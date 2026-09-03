@@ -11,7 +11,10 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded PR runs are cancelled; main runs never are. A cancelled check on
+  # a main commit is a Wait-for-CI deploy that hangs on a check that will never
+  # report — the same failure the push-to-main trigger above exists to prevent.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -20,6 +23,7 @@ jobs:
   check:
     name: typecheck, test, build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
