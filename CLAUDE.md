@@ -91,14 +91,19 @@ card. Do not widen its input to improve the prose.
 ## Conventions
 
 - Branch, PR, merge. No commits straight to main. `git-guardrails` hooks are installed — do not work around
-  them.
+  them. The hook lives globally at `~/.claude`, not in this repo, so it is not visible in a checkout:
+  plain `git push` is deliberately left unblocked, because Railway deploys on merge and the workflow
+  depends on pushing; `--force`, `reset --hard`, `clean`, `branch -D` and `checkout .` / `restore .` are
+  blocked. The push allowance is a decision, not a misconfiguration — do not "tighten" it.
 - Migrations are additive and checked in. Schema changes never happen through the Supabase console.
 - Secrets come from the environment. Never a literal key, never a committed `.env`.
 - Tests: unit for engine arithmetic and data rules, integration for RLS, rate limits and ingestion, Playwright
   for flows. Anything visual or tactile is a human checklist — write the checklist, do not fake it with a
   class-name assertion.
-- Skills from `mattpocock/skills` are installed. **Adopted and live:** `grill-with-docs`, `grilling`,
-  `domain-modeling`, `tdd`, `code-review`, `implement`, `resolving-merge-conflicts`,
+- **Skills from `mattpocock/skills`, and only those.** This bullet is not an inventory of what is on disk
+  — other skills are installed from elsewhere, they are governed by nothing here, and their absence below
+  says nothing about them. **Adopted and live:** `grill-with-docs`, `grilling`, `domain-modeling`, `tdd`,
+  `code-review`, `implement`, `writing-for-agents`, `resolving-merge-conflicts`,
   `git-guardrails-claude-code`. **Installed as source material only — do NOT invoke:** `to-spec`,
   `to-tickets`. Both publish to a tracker layout this project does not use; Linear is the tracker and specs
   live in `docs/specs/`. Adapted versions are being written in Stephen's vault (STE-26). If a task seems to
