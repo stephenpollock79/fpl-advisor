@@ -177,6 +177,12 @@ is headless and unit-tested before any UI exists.
 Cheap to reverse, and therefore not laboured: serving static assets from the app container rather than a
 CDN, and the choice of Hono over another minimal Node server.
 
+> **Amended 2026-09-03 (ADR 0006).** The CDN half of that is no longer quite true. ADR 0006 makes the
+> client call same-origin `/api/*` everywhere, so moving it to a separate origin now means introducing an
+> API base URL and CORS, not just relocating files. Accepted deliberately: NFR Scalability states there is
+> no growth target and that serving more people would be a rewrite, so the CDN is never coming. Recorded
+> here rather than left to contradict the code.
+
 ## Deliberately not decided here
 
 Named so that none of it arrives by implication. All of it is STE-24's unless stated:

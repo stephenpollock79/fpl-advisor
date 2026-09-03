@@ -82,6 +82,14 @@ comment or user-facing string should claim it does.
 It is headless and unit-tested before any UI exists. Never compute conviction, net or a band inside a
 component. If a feature needs a variation, it is a parameter to the engine, not a second implementation.
 
+**The engine is a package, not a folder.** `packages/engine` declares no `dependencies`,
+`devDependencies` or `peerDependencies`, and compiles with `"lib": ["ES2022"]` and `"types": []`. So
+`window`, `document`, `process` and `fs` are compile errors inside it, and an undeclared import is
+unresolvable under pnpm rather than quietly hoisted. Both apps import it from source. **Do not add a
+dependency to it, widen its `lib`, or give it `types`** — those three edits are the only way through the
+boundary, and each one silently converts a mechanism back into a convention. Asserted in
+`tests/engine-package-boundary.test.ts`; reasoning in ADR 0006.
+
 **Data fetching lives behind a thin module, never in a component.** No component calls `fetch`, and none
 holds a feed or database client. This is the entire mitigation for the one-way door in ADR 0005: the app is
 client-rendered, moving off client rendering would otherwise be a rewrite of every data path, and this layer
@@ -121,8 +129,11 @@ card. Do not widen its input to improve the prose.
 ## Stack
 
 - **Runtime:** Railway. **Database and auth:** Supabase. **Source and CI:** GitHub. **Analytics:** PostHog.
-- Framework, rendering approach and data model: **TBD — STE-24.** Fill this in when the architecture spec
-  lands, and delete this line.
+- **Client:** React, client-rendered, built with Vite. **Server:** Hono on Node. One Railway service serves
+  both — the server owns static serving, the SPA fallback and every route that touches a secret (ADR 0005).
+- **Repo:** pnpm workspaces — `packages/engine`, `apps/client`, `apps/server` (ADR 0006). The client calls
+  same-origin `/api/*` everywhere, in development through Vite's proxy, so no build carries an API origin.
+- **Data model: TBD — STE-24.** Fill this in when the architecture spec lands, and delete this line.
 
 ## Do not
 
