@@ -29,7 +29,9 @@ expensive risk. Three costs remain, and the gate mitigates none of them:
 **Local-first inner loop, continuous deploy on merge. No staging environment.**
 
 1. Develop locally against a **separate dev Supabase project**. The agent iterates here.
-2. **One branch per slice**, named from its Linear issue (`stephenpollock/ste-60-engine-…`).
+2. **One branch per slice**, named from its Linear issue — use the branch name Linear itself generates
+   (`stephenpollock1/ste-60-engine-…`), copied from the issue rather than composed by hand, so Linear
+   auto-links the pull request to the issue.
 3. **Tests run locally before push** — the engine unit tests above all, which is why the engine is a
    headless slice.
 4. **Push → PR → CI runs tests → human review → merge.**
