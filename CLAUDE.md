@@ -82,6 +82,13 @@ comment or user-facing string should claim it does.
 It is headless and unit-tested before any UI exists. Never compute conviction, net or a band inside a
 component. If a feature needs a variation, it is a parameter to the engine, not a second implementation.
 
+**Data fetching lives behind a thin module, never in a component.** No component calls `fetch`, and none
+holds a feed or database client. This is the entire mitigation for the one-way door in ADR 0005: the app is
+client-rendered, moving off client rendering would otherwise be a rewrite of every data path, and this layer
+is the one place that rewrite would have to happen. It works with the engine invariant above rather than
+beside it — the engine takes values and never fetches them — so between the two, no framework assumption
+reaches the code that computes.
+
 **Row-level security from the first migration.** Every table carrying user data gets a policy in the
 migration that creates it. No table ships without one, and this is asserted by a test rather than trusted.
 
