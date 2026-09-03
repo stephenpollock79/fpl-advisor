@@ -1,6 +1,6 @@
 # ADR 0005 — Framework and rendering approach
 
-- **Status:** Proposed, 2026-09-03
+- **Status:** Accepted, 2026-09-03
 - **Deciders:** Stephen
 - **Related:** ADR 0002 (deploy target), ADR 0004 (development and deploy workflow), STE-24, STE-30
 
@@ -145,8 +145,15 @@ is headless and unit-tested before any UI exists.
   deployment" stays literally true.
 - Every route that touches a secret is a visible HTTP endpoint, so the NFR's boundary can be read off the
   route list rather than inferred from a module graph.
-- Routing, the data-fetching layer and the static-serving wiring are ours to write. That is real day-one
-  time a framework would have absorbed.
+- Routing, the data-fetching layer and the static-serving wiring are ours to write: **roughly 1.5–2 hours
+  of day-one time, net.** Gross is 2–3 hours against `create-next-app` — the router, Hono's static serving
+  and SPA fallback, the two-output build wiring, and a dev proxy so Vite reaches the API process. The
+  data-fetching module is not in that figure, because the invariant above requires it under every option,
+  Next included. It is quoted net rather than gross because self-hosting Next on Railway is not free
+  either — standalone output and server/client boundary hygiene carry their own setup. **This is an
+  estimate from the shape of the work, not a measurement**, and it is the one cost this ADR names and
+  cannot evidence. If it overruns it will be on the build wiring and the dev proxy, since ESM/CJS
+  mismatches and path aliases are where agent-generated code actually goes wrong.
 - The client bundle is on the critical path of every cold open. **It is unmeasured and unenforced, and
   there is deliberately no budget** — a threshold invented before any measurement would be a number with
   no evidence behind it, which is a criterion without a mechanism and worse than saying nothing. What is
