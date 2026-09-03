@@ -147,8 +147,13 @@ is headless and unit-tested before any UI exists.
   route list rather than inferred from a module graph.
 - Routing, the data-fetching layer and the static-serving wiring are ours to write. That is real day-one
   time a framework would have absorbed.
-- The client bundle is on the critical path of every cold open, so bundle size becomes a thing to watch
-  from the first slice rather than a late optimisation.
+- The client bundle is on the critical path of every cold open. **It is unmeasured and unenforced, and
+  there is deliberately no budget** — a threshold invented before any measurement would be a number with
+  no evidence behind it, which is a criterion without a mechanism and worse than saying nothing. What is
+  true today: `vite build` prints gzipped chunk sizes on every build, so the figure is never invisible,
+  and nothing fails on it. The first measurement is the STE-30 skeleton — the cheapest cold open the app
+  will ever have, and therefore the right place to take a baseline against the 3 s budget. A number, and
+  any check that enforces one, follows that measurement rather than preceding it.
 - The server renders no user content, so it is never the place a session is read for rendering. What
   follows from that for session storage is **not settled here** — see below.
 
@@ -172,7 +177,9 @@ Named so that none of it arrives by implication. All of it is STE-24's unless st
 - The data model, and the first migration's shape.
 - **Session transport** — whether the browser holds a Supabase session directly, or talks only to our own
   API behind an httpOnly cookie. Client rendering permits both, so it is not forced by this decision and
-  is not folded into it. It does not block STE-30, whose done-when is a live URL serving a skeleton.
+  is not folded into it. **Decided at STE-24; required before slice 1.** It does not block STE-30, whose
+  done-when is a live URL serving a skeleton — but it does block STE-51 (F7-core), which cannot be built
+  without it. The deferral therefore carries a deadline, not just an owner.
 - Client state and data-fetching libraries; the router.
 - Styling. The Design System is colour tokens, a type scale, button rules, radii, shadows and widget
   anatomy for one device, and it is framework-agnostic — nothing in it picks or excludes any option above.
