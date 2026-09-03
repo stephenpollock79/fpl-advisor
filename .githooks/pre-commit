@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Fail the commit if docs/criteria/ has drifted from the PRD in the vault.
+#
+# Install once, after cloning:
+#     git config core.hooksPath .githooks
+#
+# The vault path can be overridden per machine:
+#     git config fpl.vault-path '/path/to/Main Vault'
+#
+# CI cannot do this check — it has no access to the vault — which is why it
+# lives here, on the machine where both filesystems exist.
+
+set -u
+
+VAULT="$(git config --get fpl.vault-path || true)"
+: "${VAULT:=/Users/stephenpollock/Desktop/OBS Folder/Main Vault}"
+
+EXTRACTOR="$VAULT/01 Projects/AI Month/Pet Project/Project - The FPL Advisor/06 Agent Context/extract-criteria.py"
+
+if [ ! -f "$EXTRACTOR" ]; then
+  echo "pre-commit: vault not found, skipping criteria staleness check." >&2
+  echo "            looked for: $EXTRACTOR" >&2
+  echo "            set the path with: git config fpl.vault-path '/path/to/Main Vault'" >&2
+  exit 0
+fi
+
+if [ ! -d docs/criteria ]; then
+  exit 0
+fi
+
+if ! python3 "$EXTRACTOR" --out docs/criteria --check; then
+  cat >&2 <<'MSG'
+
+pre-commit: docs/criteria/ is stale against the PRD.
+
+Those files are DERIVED. Do not edit them — regenerate:
+
+    python3 "<vault>/01 Projects/AI Month/Pet Project/Project - The FPL Advisor/06 Agent Context/extract-criteria.py" --out docs/criteria
+
+then review the diff and commit it alongside your change. Every ticket cites
+criteria by identifier, so stale files mean the build is working from
+requirements the PRD no longer states.
+
+MSG
+  exit 1
+fi
