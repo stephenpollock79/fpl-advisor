@@ -141,5 +141,9 @@ card. Do not widen its input to improve the prose.
 - Do not build a projection model, a price-prediction model, or fitted weights. Projections are bought in.
 - Do not manufacture advice to fill a screen. "Nothing worth changing" is a legitimate, designed answer.
 - Do not add a scheduled job. Feeds are fetched on open; refresh is manual and diff-gated.
-- Do not treat the design prototype export as a specification. It is a mid-design snapshot and is known
-  stale on at least three points.
+- Do not treat the design handoff in `docs/design/` as a specification. It is authoritative for visual
+  truth only — colour, type, spacing, component anatomy. Behaviour comes from `docs/criteria/`, and where
+  the handoff's *Interactions & behaviour*, *Model rules* or *Hard constraints* sections disagree with a
+  criteria file, the criteria file is right. Say so rather than picking. The prototype's three known
+  contradictions were corrected at source on 2026-09-03; its left-hand panel is a demo harness, not part
+  of the product.

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<template id="__bundler_thumbnail" data-bg-color="#FAF8F3">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#FAF8F3"></rect>
+  <circle cx="72" cy="82" r="26" fill="#0A6E3D"></circle>
+  <circle cx="120" cy="82" r="26" fill="#10985A"></circle>
+  <rect x="46" y="126" width="108" height="12" rx="6" fill="#23211D"></rect>
+  <rect x="46" y="148" width="70" height="12" rx="6" fill="#CFC7B6"></rect>
+</svg>
+</template>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&family=Lobster+Two:ital,wght@1,700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #F2EEE6; font-family: 'Manrope', system-ui, sans-serif; color: #23211D; -webkit-font-smoothing: antialiased; }
+  a { color: #0E8A4E; }
+  a:hover { color: #0A6E3D; }
+</style>
+</helmet>
+
+<div style="padding:46px 40px 80px;display:flex;flex-direction:column;gap:34px;max-width:1020px">
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;color:#8A857B">FPL ADVISOR · DESIGN SYSTEM v1</div>
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+      <div style="font-family:'Lobster Two',cursive;font-style:italic;font-weight:700;font-size:46px;line-height:1;color:#0A6E3D">The Gaffer</div>
+      <div style="font-size:15px;color:#4A453D">Everything needed to rebuild the app's surfaces, controls and widgets.</div>
+    </div>
+    <div style="font-size:13px;line-height:1.6;color:#4A453D;max-width:760px;text-wrap:pretty">One product, one device: a portrait phone at 390×844. Warm paper, ink text, green for action, red for forced, amber for caution. Figures are always mono. Nothing decorative earns space — every colour and every border in here carries meaning.</div>
+  </div>
+
+  <div style="height:1px;background:#DFDACE"></div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:#0A6E3D">01 · COLOUR</div>
+    <div style="font-size:13px;line-height:1.55;color:#4A453D;max-width:760px">Two surfaces (cream screen, white card), three inks, and three signal colours. Tints are the signal colour at 10–16% over the surface; borders are the same colour at 32–40%.</div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:64px;background:#FAF8F3;border-bottom:1px solid #E9E4DA"></div>
+        <div style="padding:9px 11px 11px">
+          <div style="font-size:12px;font-weight:800">Screen</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#847F74;margin-top:3px">#FAF8F3</div>
+          <div style="font-size:11px;line-height:1.4;color:#6A655C;margin-top:5px">Every screen background.</div>
+        </div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:64px;background:#FFFFFF;border-bottom:1px solid #E9E4DA"></div>
+        <div style="padding:9px 11px 11px">
+          <div style="font-size:12px;font-weight:800">Card</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#847F74;margin-top:3px">#FFFFFF</div>
+          <div style="font-size:11px;line-height:1.4;color:#6A655C;margin-top:5px">Cards, sheets, rows.</div>
+        </div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:64px;background:#F7F4EE;border-bottom:1px solid #E9E4DA"></div>
+        <div style="padding:9px 11px 11px">
+          <div style="font-size:12px;font-weight:800">Warm strip</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#847F74;margin-top:3px">#F7F4EE</div>
+          <div style="font-size:11px;line-height:1.4;color:#6A655C;margin-top:5px">Sub-headers inside cards, button faces on cards.</div>
+        </div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:64px;background:#E6F1EA;border-bottom:1px solid #C9E0D3"></div>
+        <div style="padding:9px 11px 11px">
+          <div style="font-size:12px;font-weight:800">Group header</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#847F74;margin-top:3px">#E6F1EA · #C9E0D3</div>
+          <div style="font-size:11px;line-height:1.4;color:#6A655C;margin-top:5px">Position bands in the stat table.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:52px;background:#23211D"></div>
+        <div style="padding:8px 10px 10px"><div style="font-size:11px;font-weight:800">Ink</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:2px">#23211D</div></div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:52px;background:#3A3630"></div>
+        <div style="padding:8px 10px 10px"><div style="font-size:11px;font-weight:800">Body</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:2px">#3A3630</div></div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:52px;background:#6A655C"></div>
+        <div style="padding:8px 10px 10px"><div style="font-size:11px;font-weight:800">Muted</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:2px">#6A655C</div></div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:52px;background:#847F74"></div>
+        <div style="padding:8px 10px 10px"><div style="font-size:11px;font-weight:800">Caption</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:2px">#847F74</div></div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:52px;background:#DFDACE"></div>
+        <div style="padding:8px 10px 10px"><div style="font-size:11px;font-weight:800">Border</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:2px">#DFDACE</div></div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:52px;background:#CFC7B6"></div>
+        <div style="padding:8px 10px 10px"><div style="font-size:11px;font-weight:800">Border strong</div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:2px">#CFC7B6</div></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:56px;display:flex"><div style="flex:1;background:#10985A"></div><div style="flex:1;background:#0A6E3D"></div><div style="flex:1;background:rgba(16,152,90,.10)"></div></div>
+        <div style="padding:9px 11px 12px">
+          <div style="font-size:12px;font-weight:800;color:#0A6E3D">Green · act</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:3px">#10985A · #0A6E3D · label #0E8A4E</div>
+          <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:5px">Positive actions, selected decisions, high conviction, the wordmark, a doubled fixture.</div>
+        </div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:56px;display:flex"><div style="flex:1;background:#E03A4E"></div><div style="flex:1;background:#D33A4E"></div><div style="flex:1;background:rgba(224,58,78,.10)"></div></div>
+        <div style="padding:9px 11px 12px">
+          <div style="font-size:12px;font-weight:800;color:#D33A4E">Red · forced or rejected</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:3px">#E03A4E · #D33A4E</div>
+          <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:5px">Reserved for no-choice and destructive. Never for merely high confidence.</div>
+        </div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:12px;overflow:hidden">
+        <div style="height:56px;display:flex"><div style="flex:1;background:#C2820F"></div><div style="flex:1;background:#B4791A"></div><div style="flex:1;background:rgba(194,130,15,.12)"></div></div>
+        <div style="padding:9px 11px 12px">
+          <div style="font-size:12px;font-weight:800;color:#B4791A">Amber · caution</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#847F74;margin-top:3px">#C2820F · #B4791A</div>
+          <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:5px">Stale data, pending review, recommended band, a deadline closing in.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:1px;background:#DFDACE"></div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:#0A6E3D">02 · TYPE</div>
+    <div style="font-size:13px;line-height:1.55;color:#4A453D;max-width:760px">Manrope for language, JetBrains Mono for every figure and every caps label, Lobster Two bold italic for the wordmark only. Minimum body size 9px; primary body copy 11–13px.</div>
+    <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:14px"><span style="flex:none;width:118px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">WORDMARK</span><span style="font-family:'Lobster Two',cursive;font-style:italic;font-weight:700;font-size:27px;color:#0A6E3D">The Gaffer</span></div>
+      <div style="display:flex;align-items:baseline;gap:14px"><span style="flex:none;width:118px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">SCREEN TITLE</span><span style="font-size:18px;font-weight:800">Transfers decided</span><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#A29C91">18/800</span></div>
+      <div style="display:flex;align-items:baseline;gap:14px"><span style="flex:none;width:118px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">CARD TITLE</span><span style="font-size:14px;font-weight:800">Wood → Ekitiké</span><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#A29C91">13–14/800</span></div>
+      <div style="display:flex;align-items:baseline;gap:14px"><span style="flex:none;width:118px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">BODY</span><span style="font-size:12px;color:#3A3630">Nothing left pending here.</span><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#A29C91">11–12/400 · 1.45</span></div>
+      <div style="display:flex;align-items:baseline;gap:14px"><span style="flex:none;width:118px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">CAPS LABEL</span><span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#847F74">WHAT YOU DECIDED</span><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#A29C91">8/700 · .14em</span></div>
+      <div style="display:flex;align-items:baseline;gap:14px"><span style="flex:none;width:118px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">FIGURE</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#0E8A4E">+8.1</span><span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#A29C91">11–12/700</span></div>
+    </div>
+    <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:800;margin-bottom:6px">Label-before-value</div>
+      <div style="font-size:12px;line-height:1.5;color:#4A453D">Every figure is introduced by its label, in that order — <strong>xPTS +8.1</strong>, never a bare number. In columns the label is the 8px mono cap and the value sits directly beneath it.</div>
+      <div style="margin-top:10px;display:flex;gap:18px">
+        <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">XPTS</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#0E8A4E;margin-top:2px">+8.1</div></div>
+        <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">COST</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#46433D;margin-top:2px">−£1.4m</div></div>
+        <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">CONVICTION</div><div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#0A6E3D;margin-top:2px">86%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:1px;background:#DFDACE"></div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:#0A6E3D">03 · BUTTONS</div>
+    <div style="background:#FFFFFF;border:2px solid #23211D;border-radius:14px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:800">The rule</div>
+      <div style="font-size:12px;line-height:1.55;color:#3A3630;margin-top:4px;text-wrap:pretty">A button's face steps one shade away from the surface it sits on, and its text colour says what kind of action it is. No button is styled to outrank another — the app never implies which one you should press.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">ON A WHITE CARD</div>
+        <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Face <strong>#F7F4EE</strong>, border <strong>2px</strong>. Radius 9px, min height 44px.</div>
+        <div style="margin-top:11px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:#F7F4EE;border:2px solid #BFDCCB;border-radius:9px;padding:11px 8px;text-align:center">
+            <div style="font-size:13px;font-weight:700;color:#0E8A4E">Choose a screenshot</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;color:#918C83;margin-top:3px">FROM CAMERA ROLL</div>
+          </div>
+          <div style="background:#F7F4EE;border:2px solid #BFDCCB;border-radius:9px;padding:11px 8px;text-align:center">
+            <div style="font-size:13px;font-weight:700;color:#0E8A4E">Take a photo</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;color:#918C83;margin-top:3px">USE THE CAMERA</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;background:#F7F4EE;border:2px solid #DFDACE;border-radius:9px;padding:12px 0;text-align:center;font-size:13px;font-weight:700;color:#6A655C">Cancel</div>
+        <div style="margin-top:8px;background:#F7F4EE;border:2px solid rgba(224,58,78,.34);border-radius:9px;padding:12px 0;text-align:center;font-size:13px;font-weight:700;color:#6A655C">Log out</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;color:#A29C91;margin-top:7px">GREEN BORDER #BFDCCB · QUIET #DFDACE · DESTRUCTIVE rgba(224,58,78,.34)</div>
+      </div>
+
+      <div style="background:#FAF8F3;border:1px solid #DFDACE;border-radius:14px;padding:14px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">ON THE CREAM SCREEN</div>
+        <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Tinted face, border <strong>1px</strong>. Same radius and heights.</div>
+        <div style="margin-top:11px;display:flex;flex-direction:column;gap:8px">
+          <div style="height:44px;display:flex;align-items:center;justify-content:center;background:rgba(16,152,90,.10);border:1px solid rgba(16,152,90,.32);border-radius:9px;font-size:12px;font-weight:700;color:#0E8A4E">Generate again</div>
+          <div style="height:44px;display:flex;align-items:center;justify-content:center;gap:7px;background:rgba(35,33,29,.05);border:1px solid #DFDACE;border-radius:9px">
+            <span style="font-size:13px;font-weight:700;color:#6A655C">Log out</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;color:#A29C91">MANAGER 4 821 336</span>
+          </div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;color:#A29C91;margin-top:9px">POSITIVE rgba(16,152,90,.10) + .32 BORDER · QUIET rgba(35,33,29,.05) + #DFDACE</div>
+        <div style="margin-top:12px;font-size:11px;line-height:1.45;color:#6A655C">Text colour carries the meaning: <span style="color:#0E8A4E;font-weight:700">#0E8A4E</span> for do-it actions, <span style="color:#6A655C;font-weight:700">#6A655C</span> for cancel, back, keep, carry on and log out.</div>
+      </div>
+    </div>
+
+    <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px;display:flex;gap:26px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74;margin-bottom:7px">SEGMENTED CONTROL · TABS</div>
+        <div style="display:flex;gap:4px">
+          <div style="padding:5px 11px;border-radius:7px;background:#10985A;color:#FFFFFF;font-size:12px;font-weight:700">Pitch</div>
+          <div style="padding:5px 11px;border-radius:7px;color:#6A655C;font-size:12px;font-weight:700">Stat</div>
+        </div>
+        <div style="font-size:11px;line-height:1.4;color:#6A655C;margin-top:7px;max-width:290px">The only place a solid green fill survives: tabs are state, not action.</div>
+      </div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74;margin-bottom:7px">HIT TARGETS</div>
+        <div style="font-size:11px;line-height:1.5;color:#6A655C;max-width:330px">Primary 44px. Dense status-row controls may be 28–32px with an extended hit area. Rarely-used destructive actions live behind the avatar sheet, never in the thumb strip.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:1px;background:#DFDACE"></div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:#0A6E3D">04 · MODEL LANGUAGE</div>
+    <div style="font-size:13px;line-height:1.55;color:#4A453D;max-width:760px">One computation produces net xPts, conviction and cost; every surface reads from it. Conviction maps to a band, and the band drives the label, the colour, the card border, the filters and the tally — all from one function.</div>
+
+    <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:104px 1fr 128px 1fr;gap:0;background:#F7F4EE;border-bottom:1px solid #E9E4DA;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">
+        <div>BAND</div><div>RANGE</div><div>CHIP</div><div>CARD BORDER</div>
+      </div>
+      <div style="display:grid;grid-template-columns:104px 1fr 128px 1fr;align-items:center;gap:0;padding:9px 12px;border-bottom:1px solid #F0EDE5">
+        <div style="font-size:12px;font-weight:800;color:#D33A4E">Forced</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#46433D">no choice at all</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:rgba(224,58,78,.10);color:#D33A4E;border:1px solid rgba(224,58,78,.32)">FORCED</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6A655C">2px #E03A4E</div>
+      </div>
+      <div style="display:grid;grid-template-columns:104px 1fr 128px 1fr;align-items:center;gap:0;padding:9px 12px;border-bottom:1px solid #F0EDE5">
+        <div style="font-size:12px;font-weight:800;color:#0A6E3D">Certain</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#46433D">90–100%</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:#0A6E3D;color:#FFFFFF">CERTAIN</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6A655C">2px #0A6E3D</div>
+      </div>
+      <div style="display:grid;grid-template-columns:104px 1fr 128px 1fr;align-items:center;gap:0;padding:9px 12px;border-bottom:1px solid #F0EDE5">
+        <div style="font-size:12px;font-weight:800;color:#0E8A4E">Strong</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#46433D">80–90%</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:rgba(16,152,90,.14);color:#0E8A4E;border:1px solid rgba(16,152,90,.36)">STRONG</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6A655C">2px #10985A</div>
+      </div>
+      <div style="display:grid;grid-template-columns:104px 1fr 128px 1fr;align-items:center;gap:0;padding:9px 12px;border-bottom:1px solid #F0EDE5">
+        <div style="font-size:12px;font-weight:800;color:#46433D">Lean</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#46433D">60–80%</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:#FFFFFF;color:#0E8A4E;border:1px solid rgba(16,152,90,.36)">LEAN</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6A655C">2px #86BE9F</div>
+      </div>
+      <div style="display:grid;grid-template-columns:104px 1fr 128px 1fr;align-items:center;gap:0;padding:9px 12px">
+        <div style="font-size:12px;font-weight:800;color:#6A655C">Thin</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#46433D">under 60%</div>
+        <div><span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:#F7F4EE;color:#6A655C;border:1px solid #D5CFC2">THIN</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#6A655C">2px #D5CFC2</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Forced is not confidence</div>
+        <div style="font-size:11px;line-height:1.5;color:#4A453D;margin-top:5px;text-wrap:pretty">Forced is a property of the call — an unplayable starter — not a threshold on the percentage. A 95% captaincy pick is Certain, never Forced: you always have a choice about an armband.</div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Decision states</div>
+        <div style="font-size:11px;line-height:1.5;color:#4A453D;margin-top:5px">Per call, not per category: <strong>Pending review</strong>, <strong>Selected · Locked</strong>, <strong>Rejected</strong>. Swipe right to select, left to reject, up to defer. Rejecting is removing — there is no separate remove.</div>
+        <div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:rgba(194,130,15,.12);color:#8A6A28;border:1px solid rgba(194,130,15,.40)">PENDING REVIEW ▾</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:rgba(16,152,90,.12);color:#0E8A4E;border:1px solid rgba(16,152,90,.36)">SELECTED · LOCKED ▾</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:rgba(224,58,78,.10);color:#D33A4E;border:1px solid rgba(224,58,78,.32)">REJECTED ▾</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:1px;background:#DFDACE"></div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:#0A6E3D">05 · WIDGETS</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Fixture pill · three states</div>
+        <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Opponent and venue for <em>this gameweek</em>. On the pitch the face is white so it reads against the grass; in the stat table it takes the FDR tint.</div>
+        <div style="margin-top:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:#FFFFFF;border:1px solid #10985A;color:#10985A">BUR (H)</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:#EFEBE3;border:1px dashed #C6BFB0;color:#7A756B">NO GAME</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:#0A6E3D;border:1px solid #0A6E3D;color:#FFFFFF">SUN ×2</span>
+        </div>
+        <div style="margin-top:10px;font-size:11px;line-height:1.45;color:#4A453D">A blank is grey and <strong>dashed</strong> — an absence. A double is solid deep green — a bonus. Both are stated once and everything downstream follows: xPts goes to 0.0 or sums both games, and the totals recompute.</div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Difficulty bars · next three</div>
+        <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Three equal tracks under the pill, one per upcoming fixture, coloured by FDR 1–5.</div>
+        <div style="margin-top:12px;display:flex;gap:22px;align-items:flex-end">
+          <div>
+            <div style="display:flex;gap:2px;width:66px"><span style="flex:1;height:3px;border-radius:2px;background:#2FA96A"></span><span style="flex:1;height:3px;border-radius:2px;background:#E0A924"></span><span style="flex:1;height:3px;border-radius:2px;background:#E0604E"></span></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:#847F74;margin-top:5px">NORMAL</div>
+          </div>
+          <div>
+            <div style="display:flex;gap:2px;width:66px"><span style="flex:1;height:3px;border-radius:2px;border:1px dashed #C6BFB0"></span><span style="flex:1;height:3px;border-radius:2px;background:#E0A924"></span><span style="flex:1;height:3px;border-radius:2px;background:#2FA96A"></span></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:#847F74;margin-top:5px">BLANK · EMPTY TRACK</div>
+          </div>
+          <div>
+            <div style="display:flex;gap:2px;width:66px"><span style="flex:.5;height:3px;border-radius:2px;background:#0A6E3D"></span><span style="flex:.5;height:3px;border-radius:2px;background:#0A6E3D"></span><span style="flex:1;height:3px;border-radius:2px;background:#E0A924"></span><span style="flex:1;height:3px;border-radius:2px;background:#2FA96A"></span></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:#847F74;margin-top:5px">DOUBLE · FIRST TRACK SPLIT</div>
+          </div>
+        </div>
+        <div style="margin-top:11px;display:flex;gap:6px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:2px 6px;border-radius:5px;background:#FFFFFF;border:1px dashed #A9A296;color:#7A756B">5 BLANK</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:2px 6px;border-radius:5px;background:#0A6E3D;border:1px solid #0A6E3D;color:#FFFFFF">3 DOUBLES</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Player marker</div>
+        <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Kit colour and shirt number — never a photograph. Markers stay upright wherever they sit.</div>
+        <div style="margin-top:12px;display:flex;gap:14px;align-items:flex-start">
+          <div style="text-align:center;width:64px">
+            <div style="width:34px;height:34px;border-radius:8px;background:#6CABDD;color:#0B2A4A;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto">9</div>
+            <div style="font-size:11px;font-weight:700;margin-top:4px">Haaland</div>
+            <span style="display:inline-block;margin-top:3px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:#FFFFFF;border:1px solid #10985A;color:#10985A">SUN (H)</span>
+          </div>
+          <div style="text-align:center;width:64px">
+            <div style="width:34px;height:34px;border-radius:8px;background:#E23A3A;color:#FFFFFF;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto">7</div>
+            <div style="font-size:11px;font-weight:700;margin-top:4px">Saka</div>
+            <span style="display:inline-block;margin-top:3px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:#EFEBE3;border:1px dashed #C6BFB0;color:#7A756B">NO GAME</span>
+          </div>
+          <div style="flex:1;font-size:11px;line-height:1.45;color:#4A453D">Status flags sit above the name: <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#D33A4E">INJ</span>, <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#B4791A">75%</span>, and the armband as a small disc. The pitch is a deeper green with the goal at the <strong>top</strong>: keeper in the box, forwards nearest the halfway line at the bottom.</div>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Chip discs</div>
+        <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Blue poker chips with a segmented edge. Spent ones go flat grey — never hidden.</div>
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+          <div style="width:38px;height:38px;border-radius:50%;background:#2B5BB8;border:3px dashed #7FA0DC;color:#FFFFFF;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">WC</div>
+          <div style="width:38px;height:38px;border-radius:50%;background:#2B5BB8;border:3px dashed #7FA0DC;color:#FFFFFF;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">FH</div>
+          <div style="width:38px;height:38px;border-radius:50%;background:#2B5BB8;border:3px dashed #7FA0DC;color:#FFFFFF;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">BB</div>
+          <div style="width:38px;height:38px;border-radius:50%;background:#E3E0D8;border:3px dashed #CFC7B6;color:#918C83;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">TC</div>
+          <div style="font-size:11px;line-height:1.4;color:#6A655C;max-width:150px">Chips are a season plan on their own screen, not a weekly swipeable call.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:800">Call card</div>
+      <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">The Overview unit. Title, one-line reason, state flags, then three mono figures. Border and conviction come from the band; a rejected card stays visible at 55% opacity.</div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;max-width:366px">
+        <div style="border:2px solid #10985A;border-radius:11px;background:#FFFFFF;padding:9px 11px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:800;color:#1C1A17">Wood → Ekitiké</div>
+              <div style="font-size:11px;color:#6A655C;margin-top:1px">FWD · NFO → LIV</div>
+            </div>
+            <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:rgba(194,130,15,.12);color:#8A6A28;border:1px solid rgba(194,130,15,.40)">WATCH</span>
+            <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:#A29C91">›</span>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">XPTS</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#0E8A4E;margin-top:2px">+5.2</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">COST</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#46433D;margin-top:2px">−£1.4m</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">CONVICTION</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#0E8A4E;margin-top:2px">86%</div></div>
+          </div>
+        </div>
+        <div style="border:2px solid #E03A4E;border-radius:11px;background:#FFFFFF;padding:9px 11px;display:flex;align-items:center;gap:7px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:800;color:#1C1A17">Muñoz → Milenković</div>
+            <div style="font-size:11px;color:#6A655C;margin-top:1px">DEF · injured out</div>
+          </div>
+          <span style="flex:none;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:3px 6px;border-radius:5px;background:rgba(224,58,78,.10);color:#D33A4E;border:1px solid rgba(224,58,78,.32)">FORCED</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:800">Head-to-head row</div>
+      <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Outgoing on the left, incoming on the right, the measure in the middle, and a mark showing which side wins. The fixture row carries the pill plus its three difficulty bars per side.</div>
+      <div style="margin-top:11px;border:1px solid #E9E4DA;border-radius:11px;overflow:hidden;max-width:366px">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,1.15fr) 18px minmax(0,1fr);align-items:center;gap:4px;padding:8px 10px;border-bottom:1px solid #F0EDE5">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#46433D;text-align:right">6.1</div>
+          <div style="text-align:center;font-size:11px;color:#0E8A4E">▶</div>
+          <div style="font-size:11px;color:#6A655C;text-align:center">xPts this GW</div>
+          <div></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#0E8A4E;text-align:left">14.2</div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,1.15fr) 18px minmax(0,1fr);align-items:center;gap:4px;padding:8px 10px">
+          <div style="text-align:right">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:#FFFFFF;border:1px solid #10985A;color:#10985A">BRE (H)</span>
+            <div style="display:flex;gap:2px;width:56px;margin-left:auto;margin-top:4px"><span style="flex:1;height:3px;border-radius:2px;background:#2FA96A"></span><span style="flex:1;height:3px;border-radius:2px;background:#E0A924"></span><span style="flex:1;height:3px;border-radius:2px;background:#E0A924"></span></div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:#0E8A4E">▶</div>
+          <div style="font-size:11px;color:#6A655C;text-align:center">this gameweek</div>
+          <div></div>
+          <div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:#0A6E3D;border:1px solid #0A6E3D;color:#FFFFFF">SUN ×2</span>
+            <div style="display:flex;gap:2px;width:56px;margin-top:4px"><span style="flex:.5;height:3px;border-radius:2px;background:#0A6E3D"></span><span style="flex:.5;height:3px;border-radius:2px;background:#0A6E3D"></span><span style="flex:1;height:3px;border-radius:2px;background:#2FA96A"></span><span style="flex:1;height:3px;border-radius:2px;background:#E0A924"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:800">Banded card</div>
+      <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">The workhorse container: the Overview editorial, the squad scenario, the Chip proposal summary, the cleared-category confirmation. Same anatomy every time, so a new one needs no new decisions.</div>
+
+      <div style="margin-top:12px;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+        <div style="width:366px;border:2px solid #CFC7B6;border-radius:14px;overflow:hidden;background:#FFFFFF;box-shadow:0 6px 18px rgba(92,82,62,.12)">
+          <div style="background:linear-gradient(135deg,#0A6E3D 0%,#10985A 100%);padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:rgba(255,255,255,.92)">THE WEEK IN ONE READ</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:rgba(255,255,255,.9);white-space:nowrap">7 CALLS · NONE DECIDED</span>
+          </div>
+          <div style="padding:12px 14px 13px">
+            <div style="font-size:12px;line-height:1.5;color:#3A3630;text-wrap:pretty">One forced problem and two upgrades worth taking. Muñoz is out for a month, so that transfer makes itself.</div>
+          </div>
+          <div style="padding:9px 12px;border-top:1px solid #E9E4DA;background:#F7F4EE;display:flex;gap:16px">
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">XI XPTS</div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#23211D;margin-top:2px">67.5</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">IN THE BANK</div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#23211D;margin-top:2px">£0.6m</div></div>
+          </div>
+          <div style="padding:11px 12px 12px;border-top:1px solid #E9E4DA;display:flex;gap:10px;align-items:flex-start">
+            <div style="flex:none;width:34px;height:46px;border-radius:6px;background:#EDEAE1;border:1px dashed #CFC7B6"></div>
+            <div style="flex:1;border-left:2px solid #BFDCCB;padding-left:9px;font-size:11px;line-height:1.45;color:#4A453D;text-wrap:pretty">Nothing in the next six weeks needs the Chip. Its value is the fixture swing in GW9, not this week.</div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:250px;font-size:11px;line-height:1.6;color:#4A453D">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74;margin-bottom:6px">ANATOMY · TOP TO BOTTOM</div>
+          <div><strong>Shell</strong> — <strong>2px #CFC7B6</strong>, <em>overflow hidden</em> so the band bleeds to the corners, white body, and a shadow by context: <code style="font-family:'JetBrains Mono',monospace;font-size:10px">0 6px 18px rgba(92,82,62,.12)</code> for a card in a column, <code style="font-family:'JetBrains Mono',monospace;font-size:10px">0 10px 30px rgba(92,82,62,.14)</code> for a card that fills the screen, <code style="font-family:'JetBrains Mono',monospace;font-size:10px">0 -10px 40px rgba(35,33,29,.28)</code> for a banded sheet. Radius follows scale: 11px for a row or call card, 14px in a column, 18px for a banded sheet, 20px for a hero.</div>
+          <div style="margin-top:5px"><strong>Band header</strong> — the card's one saturated element, always the same fill: <code style="font-family:'JetBrains Mono',monospace;font-size:10px">linear-gradient(135deg,#0A6E3D,#10985A)</code>. No card uses a flat green, and no card uses a red or amber band — state is carried by a disc or a chip inside the band, never by recolouring it.</div>
+          <div style="margin-top:5px"><strong>Body</strong> — 12–14px padding, one paragraph of 12px prose at 1.5. Never a figure without its label.</div>
+          <div style="margin-top:5px"><strong>Figure strip</strong> — optional, on #F7F4EE with a 1px #E9E4DA rule above: two or three mono figures, 8px cap over 12px value, 16px apart.</div>
+          <div style="margin-top:5px"><strong>Reasoning block</strong> — optional: mascot cutout on the left, text with a 2px #BFDCCB left rule. Clamped to four lines.</div>
+          <div style="margin-top:5px"><strong>Footer</strong> — optional action row on the card face, buttons per §03 (cream faces on white).</div>
+          <div style="margin-top:7px;color:#6A655C">Rules: one band per card, never two saturated bands on a screen; the band always states <em>what this card is</em> plus its scope; sections are separated by 1px #E9E4DA rules, never by gaps; nothing inside a banded card scrolls except a designated table region.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:#847F74">TWO BAND TYPES · THE ONLY TWO</div>
+      <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
+        <div style="width:280px">
+          <div style="border:2px solid #CFC7B6;border-radius:14px;overflow:hidden;box-shadow:0 6px 18px rgba(92,82,62,.12)">
+            <div style="background:linear-gradient(135deg,#0A6E3D 0%,#10985A 100%);padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:rgba(255,255,255,.92)">CHIP PLAN</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:rgba(255,255,255,.9)">GW4 → GW9</span>
+            </div>
+            <div style="padding:9px 11px;background:#FFFFFF;font-size:10px;line-height:1.4;color:#4A453D">Compact band</div>
+          </div>
+          <div style="font-size:11px;line-height:1.5;color:#4A453D;margin-top:6px"><strong>Compact.</strong> A 9px mono caps label at .16em in <code style="font-family:'JetBrains Mono',monospace;font-size:10px">rgba(255,255,255,.92)</code> with a 9px mono value on the right at .9. Used where the card is one of several in a column — the editorial, the squad scenario, the chip plan, the proposal summary.</div>
+        </div>
+        <div style="width:280px">
+          <div style="border:2px solid #CFC7B6;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(92,82,62,.14)">
+            <div style="background:linear-gradient(135deg,#0A6E3D 0%,#10985A 100%);padding:11px 13px;display:flex;align-items:center;gap:10px">
+              <span style="flex:none;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#FFFFFF;font-size:16px;display:flex;align-items:center;justify-content:center">✓</span>
+              <div style="min-width:0">
+                <div style="font-size:17px;font-weight:800;letter-spacing:-.01em;color:#FFFFFF;line-height:1.2">Transfers decided</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.85);margin-top:3px">2 CALLS DECIDED · NOTHING PENDING</div>
+              </div>
+            </div>
+            <div style="padding:9px 11px;background:#FFFFFF;font-size:10px;line-height:1.4;color:#4A453D">Titled band</div>
+          </div>
+          <div style="font-size:11px;line-height:1.5;color:#4A453D;margin-top:6px"><strong>Titled.</strong> A 17px/800 white title at −.01em over a 9px mono scope line at .85, with a disc on the left. The disc is fixed by kind: <strong>34px</strong> at <code style="font-family:'JetBrains Mono',monospace;font-size:10px">rgba(255,255,255,.18)</code> with a <strong>1px rgba(255,255,255,.42)</strong> ring for a settled or informational card; <strong>28px</strong> solid <code style="font-family:'JetBrains Mono',monospace;font-size:10px">#E03A4E</code> with a <strong>2px #FFFFFF</strong> ring for a failure. Both always ringed. Used when the card <em>is</em> the screen — a cleared category, a failure, a confirmation sheet.</div>
+        </div>
+        <div style="width:280px">
+          <div style="border:2px solid #CFC7B6;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(92,82,62,.14)">
+            <div style="background:linear-gradient(135deg,#0A6E3D 0%,#10985A 100%);padding:11px 13px;display:flex;align-items:center;gap:10px">
+              <span style="flex:none;width:28px;height:28px;border-radius:50%;background:#E03A4E;border:2px solid #FFFFFF;color:#FFFFFF;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">!</span>
+              <div style="min-width:0">
+                <div style="font-size:17px;font-weight:800;letter-spacing:-.01em;color:#FFFFFF;line-height:1.2">Couldn't read that picture</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(255,255,255,.85);margin-top:3px">SQUAD UNTOUCHED</div>
+              </div>
+            </div>
+            <div style="padding:9px 11px;background:#FFFFFF;font-size:10px;line-height:1.4;color:#4A453D">Failure · titled band, red disc</div>
+          </div>
+          <div style="font-size:11px;line-height:1.5;color:#4A453D;margin-top:6px"><strong>Failure is not a red band.</strong> The band stays green; the disc goes <code style="font-family:'JetBrains Mono',monospace;font-size:10px">#E03A4E</code> and the scope line states what survived. The Gaffer never shouts — the card is still his.</div>
+        </div>
+      </div>
+
+
+      <div style="margin-top:13px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+        <div style="width:230px;border:2px solid #CFC7B6;border-radius:14px;overflow:hidden">
+          <div style="background:#F7F4EE;border-bottom:1px solid #E9E4DA;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;color:#847F74">WHAT YOU DECIDED</div>
+          <div style="padding:9px 10px;font-size:10px;line-height:1.4;color:#4A453D">Sub-header inside a card — warm strip, 8px mono caps at .14em. Not a band: it divides, it does not announce.</div>
+        </div>
+        <div style="flex:1;min-width:250px;font-size:11px;line-height:1.5;color:#6A655C;padding-top:2px">Discs carry state inside the band: translucent white for a settled or informational card, <span style="color:#D33A4E;font-weight:700">#E03A4E</span> for a failure, <span style="color:#B4791A;font-weight:700">#C2820F</span> for stale data. A chip in the band may state the scope instead. Whatever the state, the fill is the one gradient.</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Sheet</div>
+        <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Every confirmation and menu is a bottom sheet over a 42% ink scrim: 16px radius, 1px #CFC7B6 border, 12px side inset. Tapping the scrim closes it; taps inside never do.</div>
+        <div style="margin-top:11px;background:rgba(35,33,29,.42);border-radius:12px;padding:22px 10px 10px">
+          <div style="background:#FFFFFF;border:1px solid #CFC7B6;border-radius:16px;overflow:hidden">
+            <div style="padding:12px 14px 10px">
+              <div style="font-size:15px;font-weight:800;color:#1C1A17">Log out?</div>
+              <div style="margin-top:4px;font-size:11px;line-height:1.45;color:#4A453D">Your squad and this week's decisions stay on the Gaffer's side.</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid #E9E4DA;padding:10px">
+              <div style="background:#F7F4EE;border:2px solid #DFDACE;border-radius:9px;padding:11px 0;text-align:center;font-size:12px;font-weight:700;color:#6A655C">Stay signed in</div>
+              <div style="background:#F7F4EE;border:2px solid rgba(224,58,78,.34);border-radius:9px;padding:11px 0;text-align:center;font-size:12px;font-weight:700;color:#6A655C">Log out</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Header</div>
+        <div style="font-size:11px;line-height:1.45;color:#6A655C;margin-top:4px">Avatar, wordmark, then a mono status row of label-over-value figures. The avatar is the account menu on every screen — that is where log out and, later, settings live.</div>
+        <div style="margin-top:11px;border:1px solid #E9E4DA;border-radius:12px;padding:11px 12px;background:#FFFFFF">
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="width:38px;height:38px;border-radius:50%;flex:none;background:#E8F3EC;border:2px solid #10985A"></div>
+            <div style="font-family:'Lobster Two',cursive;font-style:italic;font-weight:700;font-size:22px;line-height:1;color:#0A6E3D">The Gaffer</div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:16px">
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">DEADLINE</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#23211D;margin-top:2px">Sat 12 Sep, 11:00</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">BALANCE</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#23211D;margin-top:2px">£1.4m</div></div>
+            <div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;color:#847F74">FREE TRANSFERS</div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:#23211D;margin-top:2px">1</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:1px;background:#DFDACE"></div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:#0A6E3D">06 · LAYOUT &amp; RULES</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Frame</div>
+        <div style="font-size:11px;line-height:1.55;color:#4A453D;margin-top:5px">390×844, portrait only, 34px corner radius. 44px status bar, then header, then content, then a 22px home strip. Side padding 12–16px; radius 11px for a row or call card, 14px in a column, 16px for a sheet, 18–20px for a hero; gaps of 6, 8, 10 and 14px.</div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Nothing scrolls as a whole</div>
+        <div style="font-size:11px;line-height:1.55;color:#4A453D;margin-top:5px">Screens are exactly one viewport. Only named regions scroll: the stat table (both axes), the evaluation table inside a detail card, the candidate picker, and the Overview column.</div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Voice</div>
+        <div style="font-size:11px;line-height:1.55;color:#4A453D;margin-top:5px">The Gaffer speaks plainly and takes a position: one sentence of advice, one of reason. No hedging, no exclamation, no emoji. Real Premier League names and real figures — never lorem or placeholder data.</div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #DFDACE;border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:800">Empty and failure states</div>
+        <div style="font-size:11px;line-height:1.55;color:#4A453D;margin-top:5px">Every failure keeps the squad intact and says so. A cleared category shows what you decided and lets you tap any decision to reopen it. A refresh is always confirmed and always reports a diff.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
