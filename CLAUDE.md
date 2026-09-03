@@ -97,6 +97,12 @@ card. Do not widen its input to improve the prose.
 - Tests: unit for engine arithmetic and data rules, integration for RLS, rate limits and ingestion, Playwright
   for flows. Anything visual or tactile is a human checklist — write the checklist, do not fake it with a
   class-name assertion.
+- Skills from `mattpocock/skills` are installed. **Adopted and live:** `grill-with-docs`, `grilling`,
+  `domain-modeling`, `tdd`, `code-review`, `implement`, `resolving-merge-conflicts`,
+  `git-guardrails-claude-code`. **Installed as source material only — do NOT invoke:** `to-spec`,
+  `to-tickets`. Both publish to a tracker layout this project does not use; Linear is the tracker and specs
+  live in `docs/specs/`. Adapted versions are being written in Stephen's vault (STE-26). If a task seems to
+  call for either, say so and stop rather than running them.
 - Cost: the model call is the expensive step. Cache what is stable within a gameweek, and never put raw
   `bootstrap-static` into a prompt.
 
