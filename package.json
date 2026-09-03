@@ -1,0 +1,23 @@
+{
+  "name": "fpl-advisor",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm --filter @fpl/client build && pnpm --filter @fpl/server build && pnpm run copy:client",
+    "copy:client": "rm -rf apps/server/dist/public && cp -R apps/client/dist apps/server/dist/public",
+    "start": "pnpm --filter @fpl/server start",
+    "test": "vitest run",
+    "typecheck": "tsc -p packages/engine/tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
