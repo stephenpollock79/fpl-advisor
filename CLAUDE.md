@@ -9,40 +9,18 @@ never asks for FPL credentials, and never stores them.
 
 Single user. Invite-only. Portrait phone at 390×844 — no desktop layout, no tablet layout.
 
-## How we work — read `docs/working-rules.md` first
+## How we work — two files, no overlap
 
-**At the start of every session, read `docs/working-rules.md` and follow it.** It defines
-order, reply format, verification, scope, and what you decide alone versus what you bring to
-Stephen. It is short. Read it before touching anything.
+**The general contract is `~/.claude/CLAUDE.md`.** It loads into every session automatically and
+holds who is reading you, the five reply types and the type-naming line, verification, scope, the
+ask gates, and the repo boundary. Its rules are numbered `G1…`.
 
-The part that matters most, inlined because it is the part that drifts:
+**`docs/working-rules.md` holds only what is true of this project** — the Build Plan / Linear
+split, the derived files and their extractors, this project's silent-failure list, and the Cowork
+handoff. Its rules are numbered `P1…`. **Read it at the start of every session.** It is short.
 
-**Stephen is a product manager with no coding background.** He rules on consequences — money,
-time, what the app does, who can reach it. He cannot rule on implementation. Write every reply
-for that reader.
-
-**Every reply is exactly one of five types, in plain English a ten-year-old could follow, and
-ends with a line naming its type:**
-
-| Type | Contains |
-| --- | --- |
-| Decision needed | What, why now, options, pros and cons, a recommendation |
-| Action needed from you | What, why, numbered steps |
-| Challenge | What is wrong, why, the alternative, why it is better |
-| Task complete | What changed, plus a verification step where it is a silent-failure case |
-| Blocked | What was tried, what it looks like, whether anything is broken, options, a recommendation |
-
-**Ask only if:** it costs money · it affects the timeline · it affects functionality · it
-affects security · the documents do not answer it · it is hard to undo. Everything else you
-decide and note in one line — including schema shape, migration mechanics, RLS implementation,
-structure, naming, libraries, test construction and routine git.
-
-**Never present a technical choice.** Present the consequence with the technical option folded
-into the recommendation. If you cannot phrase the question for someone who does not code, that
-is the signal you should simply decide it.
-
-**Order comes from `docs/build-plan.md`, state goes to Linear.** Never take a slice out of
-order. One slice at a time; one session per slice.
+Every rule lives in exactly one of those two files. Nothing is restated here, deliberately: a
+third copy is how the contract drifts. If a rule is not in this repo, it is a `G` rule.
 
 ## Where truth lives
 
