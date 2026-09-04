@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Fail the commit if docs/criteria/ has drifted from the PRD in the vault.
+# Fail the commit if a DERIVED file has drifted from its source in the vault.
+#
+# Two derived artefacts, two sources, one check each:
+#   docs/criteria/    <- PRD - The FPL Advisor.md        (extract-criteria.py)
+#   docs/build-plan.md <- Build Plan - The FPL Advisor.md (extract-build-plan.py)
 #
 # Install once, after cloning:
 #     git config core.hooksPath .githooks
@@ -9,27 +13,33 @@
 #
 # CI cannot do this check — it has no access to the vault — which is why it
 # lives here, on the machine where both filesystems exist.
+#
+# working-rules.md rule 24 says to stop when a derived file's hash does not match
+# its source. This hook is the only thing that can detect that, so both derived
+# files need a check here or the rule has no mechanism for one of them.
 
 set -u
 
 VAULT="$(git config --get fpl.vault-path || true)"
 : "${VAULT:=/Users/stephenpollock/Desktop/OBS Folder/Main Vault}"
 
-EXTRACTOR="$VAULT/01 Projects/AI Month/Pet Project/Project - The FPL Advisor/06 Agent Context/extract-criteria.py"
+AGENT_CONTEXT="$VAULT/01 Projects/AI Month/Pet Project/Project - The FPL Advisor/06 Agent Context"
 
-if [ ! -f "$EXTRACTOR" ]; then
+status=0
+
+# Each check is independent: a missing extractor skips only its own check, never
+# the other one. Skipping is deliberate — a clone without the vault must still
+# be able to commit.
+
+CRITERIA_EXTRACTOR="$AGENT_CONTEXT/extract-criteria.py"
+
+if [ ! -f "$CRITERIA_EXTRACTOR" ]; then
   echo "pre-commit: vault not found, skipping criteria staleness check." >&2
-  echo "            looked for: $EXTRACTOR" >&2
+  echo "            looked for: $CRITERIA_EXTRACTOR" >&2
   echo "            set the path with: git config fpl.vault-path '/path/to/Main Vault'" >&2
-  exit 0
-fi
-
-if [ ! -d docs/criteria ]; then
-  exit 0
-fi
-
-if ! python3 "$EXTRACTOR" --out docs/criteria --check; then
-  cat >&2 <<'MSG'
+elif [ -d docs/criteria ]; then
+  if ! python3 "$CRITERIA_EXTRACTOR" --out docs/criteria --check; then
+    cat >&2 <<'MSG'
 
 pre-commit: docs/criteria/ is stale against the PRD.
 
@@ -42,5 +52,32 @@ criteria by identifier, so stale files mean the build is working from
 requirements the PRD no longer states.
 
 MSG
-  exit 1
+    status=1
+  fi
 fi
+
+BUILD_PLAN_EXTRACTOR="$AGENT_CONTEXT/extract-build-plan.py"
+
+if [ ! -f "$BUILD_PLAN_EXTRACTOR" ]; then
+  echo "pre-commit: vault not found, skipping build-plan staleness check." >&2
+  echo "            looked for: $BUILD_PLAN_EXTRACTOR" >&2
+elif [ -f docs/build-plan.md ]; then
+  if ! python3 "$BUILD_PLAN_EXTRACTOR" --out docs/build-plan.md --check; then
+    cat >&2 <<'MSG'
+
+pre-commit: docs/build-plan.md is stale against the Build Plan.
+
+That file is DERIVED. Do not edit it — regenerate:
+
+    python3 "<vault>/01 Projects/AI Month/Pet Project/Project - The FPL Advisor/06 Agent Context/extract-build-plan.py" --out docs/build-plan.md
+
+then review the diff and commit it alongside your change. This file owns build
+ORDER and DATES, so a stale copy means work is being sequenced against a plan
+that no longer exists.
+
+MSG
+    status=1
+  fi
+fi
+
+exit "$status"
