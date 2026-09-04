@@ -1,6 +1,3 @@
-<!-- Staged copy. Drop in at the repo root as CLAUDE.md (STE-28).
-     Sections marked TBD are filled by the architecture spec, STE-24. -->
-
 # The Gaffer — FPL Advisor
 
 A personal, mobile-only decision-support app for Fantasy Premier League. Before each weekly deadline it
@@ -12,6 +9,41 @@ never asks for FPL credentials, and never stores them.
 
 Single user. Invite-only. Portrait phone at 390×844 — no desktop layout, no tablet layout.
 
+## How we work — read `docs/working-rules.md` first
+
+**At the start of every session, read `docs/working-rules.md` and follow it.** It defines
+order, reply format, verification, scope, and what you decide alone versus what you bring to
+Stephen. It is short. Read it before touching anything.
+
+The part that matters most, inlined because it is the part that drifts:
+
+**Stephen is a product manager with no coding background.** He rules on consequences — money,
+time, what the app does, who can reach it. He cannot rule on implementation. Write every reply
+for that reader.
+
+**Every reply is exactly one of five types, in plain English a ten-year-old could follow, and
+ends with a line naming its type:**
+
+| Type | Contains |
+| --- | --- |
+| Decision needed | What, why now, options, pros and cons, a recommendation |
+| Action needed from you | What, why, numbered steps |
+| Challenge | What is wrong, why, the alternative, why it is better |
+| Task complete | What changed, plus a verification step where it is a silent-failure case |
+| Blocked | What was tried, what it looks like, whether anything is broken, options, a recommendation |
+
+**Ask only if:** it costs money · it affects the timeline · it affects functionality · it
+affects security · the documents do not answer it · it is hard to undo. Everything else you
+decide and note in one line — including schema shape, migration mechanics, RLS implementation,
+structure, naming, libraries, test construction and routine git.
+
+**Never present a technical choice.** Present the consequence with the technical option folded
+into the recommendation. If you cannot phrase the question for someone who does not code, that
+is the signal you should simply decide it.
+
+**Order comes from `docs/build-plan.md`, state goes to Linear.** Never take a slice out of
+order. One slice at a time; one session per slice.
+
 ## Where truth lives
 
 | Question | Answer |
@@ -20,6 +52,7 @@ Single user. Invite-only. Portrait phone at 390×844 — no desktop layout, no t
 | What must this slice do? | `docs/criteria/F<n>.criteria.md` |
 | How is it built? | `docs/specs/` and `docs/adr/` |
 | Why was it decided that way? | The Decision Log, in the vault, cited by number (#68) |
+| What do I build next, and when? | `docs/build-plan.md` — derived from the vault. Order and dates only. |
 | What is the state of the work? | Linear, project *FPL Advisor — v1*. Not this file, not the vault. |
 
 **Load per slice, not per session.** Read the one criteria file for the slice you are on. For F3 and F4 also
@@ -107,9 +140,10 @@ card. Do not widen its input to improve the prose.
 
 - Branch, PR, merge. No commits straight to main. `git-guardrails` hooks are installed — do not work around
   them. The hook lives globally at `~/.claude`, not in this repo, so it is not visible in a checkout:
-  plain `git push` is deliberately left unblocked, because Railway deploys on merge and the workflow
-  depends on pushing; `--force`, `reset --hard`, `clean`, `branch -D` and `checkout .` / `restore .` are
-  blocked. The push allowance is a decision, not a misconfiguration — do not "tighten" it.
+  plain `git push` is deliberately left unblocked — it prompts, rather than being refused — because
+  Railway deploys on merge and the workflow depends on pushing; `--force`, `reset --hard`, `clean`,
+  `branch -D` and `checkout .` / `restore .` are blocked. The push allowance is a decision, not a
+  misconfiguration — do not "tighten" it into a block, and do not loosen it into an `allow` rule either.
 - Migrations are additive and checked in. Schema changes never happen through the Supabase console.
 - Secrets come from the environment. Never a literal key, never a committed `.env`.
 - Tests: unit for engine arithmetic and data rules, integration for RLS, rate limits and ingestion, Playwright

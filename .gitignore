@@ -148,3 +148,12 @@ vite.config.ts.timestamp-*
 # Supabase local
 supabase/.temp/
 supabase/.branches/
+
+# Claude Code personal overrides. The shared .claude/settings.json IS committed;
+# this one is per-machine and must not be. Claude Code only auto-excludes it when
+# it writes the file itself, so a hand-created one needs this line.
+.claude/settings.local.json
+
+# Editor and staging backups. A stale .bak of an always-loaded instructions file
+# is worse than no backup — it looks authoritative in a diff.
+*.bak
