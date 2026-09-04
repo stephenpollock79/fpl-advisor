@@ -7,12 +7,23 @@ The Claude Design handoff for The Gaffer, plus one derived file. Committed under
 **This folder is authoritative for visual truth only** — colour, type, spacing, radii, shadows,
 component anatomy, layout hierarchy, assets.
 
-**`docs/criteria/` is authoritative for behaviour**, without exception. Thresholds, flag rules, what
-a control does, what a screen shows when: those come from the criteria files, which are extracted
-verbatim from the PRD. `handoff/README.md` contains sections titled *Interactions & behaviour*,
-*Model rules* and *Hard constraints*, and they are a useful description of the design's intent —
-but where any of them disagrees with a criteria file, **the criteria file is right and the handoff
-is stale**. Do not resolve such a conflict by reading both and picking; say so instead.
+**`docs/criteria/` is authoritative for behaviour**, without exception. STE-74's scope rule states
+it in four words: **the handoff is authoritative for HOW, never WHAT.**
+
+Behaviour, thresholds and acceptance criteria come from the criteria files, which are extracted
+verbatim from the PRD — **wherever a competing statement appears in the bundle**. That last clause
+is the whole rule, and it is deliberately not a list of sections. `handoff/README.md` argues for its
+own authority over behaviour in at least four places, and only some of them are the ones you would
+expect: *Interactions & behaviour*, *Model rules* and *Hard constraints*, but also the bundle table
+in *Overview* ("Source of truth for what exists and how it behaves") and *About the design files*
+("What should be carried over faithfully is the model rules section below — those are product
+decisions"). Both of the latter are read before any named section is reached.
+
+Naming three sections would invite the inference that a fourth is exempt. So: **any statement
+anywhere in `handoff/` about behaviour, thresholds or rules yields to `docs/criteria/`**, including
+in a future re-export that adds sections this file has never seen. Where the two disagree, the
+criteria file is right and the handoff is stale. Do not resolve such a conflict by reading both and
+picking; say so instead.
 
 ## The prototype
 
@@ -42,9 +53,23 @@ no fixture. The prototype follows the criterion as written. Tracked as STE-77.
 | `handoff/README.md` | The handoff's own documentation. Authority for token values. |
 | `handoff/FPL Advisor Design System.dc.html` | Visual reference — palette, type, controls, widgets, states. |
 | `handoff/FPL Advisor Prototype.dc.html` | Behaviour reference and demo harness. |
-| `handoff/support.js` | Runtime needed to open the two HTML files. Not part of the design. |
+| `handoff/support.js` | Loader for the two HTML files. Not part of the design, and not the whole runtime — see *Opening these files*. |
 | `handoff/assets/` | The two Gaffer illustrations. Project-owned. No player photographs exist or should be introduced. |
-| `TOKENS.md` | Derived — measured WCAG contrast for every text token against every surface. |
+| `TOKENS.md` | Derived — measured WCAG contrast, each figure against a named surface. |
+
+## Opening these files
+
+**The bundle is not self-contained. Opening either HTML file requires network access.**
+`support.js` fetches React 18.3.1, ReactDOM 18.3.1 and Babel standalone 7.29.0 from **unpkg**, and
+both HTML files fetch Manrope, JetBrains Mono and Lobster Two from **Google Fonts**. Every version
+is pinned exactly, so what loads today loads tomorrow — but nothing renders offline, and if unpkg
+becomes unreachable the two files stop opening rather than degrading. The fonts fail more quietly:
+type falls back and the layout still reads, which is worse, because the file appears to have opened
+correctly.
+
+The handoff's own README describes `support.js` as the "runtime needed to open the two HTML files",
+which reads as though it were the whole runtime. It is the loader for a runtime held on two CDNs.
+Worth knowing before treating this folder as an archival record of the design.
 
 ## Regenerating
 
