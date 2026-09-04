@@ -14,9 +14,10 @@
 # CI cannot do this check — it has no access to the vault — which is why it
 # lives here, on the machine where both filesystems exist.
 #
-# working-rules.md rule 24 says to stop when a derived file's hash does not match
-# its source. This hook is the only thing that can detect that, so both derived
-# files need a check here or the rule has no mechanism for one of them.
+# Rule G18 (in ~/.claude/CLAUDE.md) says to stop when a derived file does not
+# match its source; working-rules.md P8 names this hook as the mechanism. It is
+# the only thing that can detect that, so both derived files need a check here
+# or the rule has no mechanism for one of them.
 
 set -u
 
