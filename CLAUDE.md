@@ -141,5 +141,12 @@ card. Do not widen its input to improve the prose.
 - Do not build a projection model, a price-prediction model, or fitted weights. Projections are bought in.
 - Do not manufacture advice to fill a screen. "Nothing worth changing" is a legitimate, designed answer.
 - Do not add a scheduled job. Feeds are fetched on open; refresh is manual and diff-gated.
-- Do not treat the design prototype export as a specification. It is a mid-design snapshot and is known
-  stale on at least three points.
+- Do not treat the design handoff in `docs/design/` as a specification. **It is authoritative for HOW,
+  never WHAT** — colour, type, spacing, radii, shadows, component anatomy, assets. Behaviour, thresholds
+  and acceptance criteria come from `docs/criteria/`, and that holds **wherever a competing statement
+  appears in the bundle**, not just in the sections whose titles announce it — `handoff/README.md` claims
+  authority over behaviour in its *Overview* and *About the design files* sections too, both of which are
+  read before any named section. Any statement anywhere in `handoff/` about behaviour, thresholds or
+  rules yields to the criteria file. Where they disagree, the criteria file is right; say so rather than
+  picking. The prototype's three known contradictions were corrected at source on 2026-09-03; its
+  left-hand panel is a demo harness, not part of the product.
