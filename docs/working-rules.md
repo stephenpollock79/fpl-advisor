@@ -59,3 +59,30 @@ light.
 **P9. The Cowork handoff is for plan changes only** (P4). Not for translation, not for reviews, not
 for checking something against the vault. If you find yourself wanting a second opinion from the
 vault, that is a sign something is missing from this repo — say so.
+
+## E. The slice review
+
+*Section E added 2026-09-08.*
+
+**P10. Every slice ends with a cold review, before its ticket is called done.** Run the
+`slice-review` skill. It reads the slice's spec, its criteria and the diff, and posts three things
+to the build ticket: what was built that the spec did not account for, what the spec asked for and
+is missing, and what the spec left open that the build had to decide.
+
+**The review runs in a subagent, and that subagent is given identifiers only** — paths and a commit
+range. The session that built the slice cannot review it: it has already decided that every one of
+those files was necessary, and will decide it again. Handing that subagent a summary, an explanation
+or a reason a file exists puts the context back, and what comes out is not a review but the same
+opinion in a second voice.
+
+**P11. The review reports. It does not fix, revert, or record coverage.** Acting on a finding is a
+separate unit of work (G10); removing something the review names is a scope decision (G13). Nothing
+from a review enters `docs/manual-coverage.md` or `docs/coverage-gaps.md` — both state what may
+enter them and neither takes entries from a review. A finding that recurs across two slices is
+*proposed* as a new `P` rule here, never added.
+
+**P12. The next slice's spec reads the last slice's review.** `slice-spec` opens the previous
+slice's review comment before it writes, and the review's third section is an input to it. This is
+the entire mechanism behind the plan's "later specs get better from what the earlier builds taught":
+writing the specs just in time creates the opportunity and nothing more. If Linear is unreachable,
+say so and write the spec without it — never infer what the review would have said.
