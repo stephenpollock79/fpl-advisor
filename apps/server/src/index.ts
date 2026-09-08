@@ -5,15 +5,21 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { engineIdentity } from '@fpl/engine'
 import { Hono } from 'hono'
+import { authRoutes } from './auth/routes.js'
+import { declaredVariables, loadEnv } from './env.js'
+import { configureSupabase } from './supabase.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const PUBLIC_DIR = join(HERE, 'public')
-const PORT = Number(process.env['PORT'] ?? 8787)
 
-// Railway injects the deployed commit. Reading it back from /api/health is what
-// makes STE-25's rollback test verifiable — you can see which deployment is
-// actually live rather than inferring it.
-const COMMIT = process.env['RAILWAY_GIT_COMMIT_SHA'] ?? 'dev'
+// Boot-time validation, before anything else. A missing required variable exits
+// here rather than surfacing as a data error at the first request that needs it
+// — see env.ts for the Railway rollback case this exists for.
+const env = loadEnv()
+configureSupabase(env)
+
+const PORT = env.port
+const COMMIT = env.commit
 
 const app = new Hono()
 
@@ -23,8 +29,16 @@ app.get('/api/health', (c) =>
     commit: COMMIT,
     uptimeSeconds: Math.round(process.uptime()),
     engine: engineIdentity(),
+    // Names and required-ness only, never values. Enough to see that a rollback
+    // has left the process without something, without publishing a key.
+    env: declaredVariables.map((v) => ({
+      ...v,
+      present: Boolean(process.env[v.name]?.trim()),
+    })),
   }),
 )
+
+app.route('/', authRoutes(env))
 
 // Every other /api path is a JSON 404. Without this the SPA fallback below
 // would answer a mistyped fetch with index.html, and the caller would fail on

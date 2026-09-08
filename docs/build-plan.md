@@ -1,6 +1,6 @@
 <!-- DERIVED FILE - DO NOT EDIT. Regenerate with extract-build-plan.py in the vault. -->
 <!-- source: Build Plan - The FPL Advisor.md -->
-<!-- source-sha256: ed4c1966eb83908c -->
+<!-- source-sha256: 5226fae5e92661c7 -->
 
 # Build order and schedule
 
@@ -55,7 +55,7 @@ status from Linear — never restate one in another.
 
 | Day | Slices | Alongside | Focus |
 | --- | --- | --- | --- |
-| **Tue 8** | 1 · F7-core (STE-51, STE-58) | STE-24, STE-78, STE-54, STE-59, STE-26, STE-75, STE-82, STE-84, STE-85 | Architecture spec; finish the foundations |
+| **Tue 8** | 1 · F7-core (STE-51, STE-58) | STE-24, STE-78, STE-91, STE-54, STE-59, STE-26, STE-75, STE-82, STE-84, STE-85 | Architecture spec; finish the foundations |
 | **Wed 9** | 2 · F7 team link (STE-55) · 3 · F1 (STE-56, STE-57) | STE-32, STE-53, STE-31 | Spec F1 just-in-time, then build it |
 | **Thu 10** | 4 · Engine (STE-60, STE-61) | STE-87, STE-88 | Headless, unit tests first |
 | **Fri 11** | 5 · F3 (STE-62, STE-63) | — | The calls |
@@ -68,9 +68,9 @@ status from Linear — never restate one in another.
 
 **Four ordering constraints that are not obvious from the dates.**
 
-- **STE-54 blocks slice 4.** If `predicted_starter` is usable, rotation becomes a bought-in input and the engine drops one of its four judgement inputs. It has to be answered Tuesday, not during Thursday's slice.
-- **STE-58 sets the test-naming convention for the whole suite.** It is the first test in the repo, so the criterion-ID decision in STE-24 has to land before it is written.
+- **Slice 4 keeps all four judgement inputs.** STE-54 evaluated `predicted_starter` on 8 Sep against the whole live feed: it is a hard-constrained XI, exactly eleven per club, binary with no confidence attached, so it cannot price the 11th-versus-12th case the rotation input exists for — and it would double-count availability. **Rotation stays model-judged and the engine spec drops nothing.** Read `predicted_starter = false` on an available player as a fact shown on the card, never as a fifth input. Two hazards recorded there: `xi_known` is `true` for all 654 rows and carries no information, and a blanking club still shows eleven starters.
+- **STE-58 is the first test written under ADR 0010.** The criterion-ID naming convention landed with STE-24 on 8 Sep, so this is now a rule to follow rather than a decision to make: every automated test names the criteria it covers, and `pnpm coverage:criteria` reports the gap.
 - **Slice 4 has no acceptance criteria yet.** `ENGINE.criteria.md` carries zero `AC-` identifiers. Resolve before Thursday — either add them to PRD 3.2 and regenerate, or record that the worked example plus the unit tests are the standard.
 - **STE-87 and STE-88 block slice 5.** Both surfaced writing the architecture spec, and both are questions the F3 build would otherwise default past rather than ask: where purchase prices are read from, and what the two probabilities in the vice and bench-order arithmetic actually are. Answer them Thursday, not during Friday's slice.
 
-**After GW5 the next deadline is GW6, 10 October.** Slipping past Friday 18th costs a month, not days.
+**After GW5 the next deadline is GW6, 10 October.** Slipping past Friday 18th costs one live run and the backtest-harness slot, not a month of nothing — see the rescheduling note above, and STE-59 for how a rung is put.

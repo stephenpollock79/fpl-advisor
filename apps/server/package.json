@@ -11,6 +11,7 @@
   "dependencies": {
     "@fpl/engine": "workspace:*",
     "@hono/node-server": "^1.19.5",
+    "@supabase/supabase-js": "^2.116.0",
     "hono": "^4.9.10"
   },
   "devDependencies": {

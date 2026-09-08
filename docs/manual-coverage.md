@@ -18,4 +18,8 @@ coverage script counting it would make the number a lie.
 
 | Criterion | Kind | Verified | Where the record is |
 | --- | --- | --- | --- |
-| — | — | — | No criterion has been verified yet. |
+| — | — | — | No criterion has been verified by hand yet. |
+
+Gaps in what the automated suite proves are recorded separately, in
+`docs/coverage-gaps.md` — a register of what *is* verified must not carry prose
+about what is not.
