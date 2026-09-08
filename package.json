@@ -13,7 +13,8 @@
     "start": "pnpm --filter @fpl/server start",
     "test": "vitest run",
     "coverage:criteria": "node scripts/criteria-coverage.mjs",
-    "typecheck": "tsc -p packages/engine/tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p packages/engine/tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit",
+    "check:rls-live": "node scripts/live-rls-check.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

@@ -39,6 +39,23 @@ describe('the server refuses to start without what it needs', () => {
     expect(() => loadEnv(complete)).not.toThrow()
   })
 
+  it('rejects the REST endpoint pasted in place of the project URL', () => {
+    // The failure this prevents is PGRST125 from PostgREST on an auth call —
+    // an error with no visible relationship to a wrong environment variable.
+    expect(() =>
+      loadEnv({ ...complete, SUPABASE_URL: 'https://abc.supabase.co/rest/v1/' }),
+    ).toThrow(/project URL/)
+    expect(() =>
+      loadEnv({ ...complete, SUPABASE_URL: 'https://abc.supabase.co/auth/v1' }),
+    ).toThrow(/project URL/)
+  })
+
+  it('tolerates a trailing slash on an otherwise correct project URL', () => {
+    expect(loadEnv({ ...complete, SUPABASE_URL: 'https://abc.supabase.co/' }).supabaseUrl).toBe(
+      'https://abc.supabase.co',
+    )
+  })
+
   it('names the Railway rollback case, since that is what the check exists for', () => {
     const { SESSION_COOKIE_SECRET: _omitted, ...missing } = complete
     expect(() => loadEnv(missing)).toThrow(/rollback/)

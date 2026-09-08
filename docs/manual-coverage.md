@@ -18,7 +18,7 @@ coverage script counting it would make the number a lie.
 
 | Criterion | Kind | Verified | Where the record is |
 | --- | --- | --- | --- |
-| F7-AC-11 | Human checklist | 2026-09-08 | Grant and RLS posture confirmed on `fpl-advisor-dev` through the Data API — see `docs/coverage-gaps.md` for the half still open. |
+| F7-AC-11 | Human checklist | 2026-09-08 | Two real accounts on `fpl-advisor-dev`, signed in with real codes: neither could read, update or impersonate the other. Repeatable with `pnpm check:rls-live`. |
 
 Gaps in what the automated suite proves are recorded separately, in
 `docs/coverage-gaps.md` — a register of what *is* verified must not carry prose

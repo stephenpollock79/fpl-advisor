@@ -63,8 +63,24 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     )
   }
 
+  // The dashboard offers several URLs on one page and the REST one is the easy
+  // mistake: `https://<ref>.supabase.co/rest/v1/` looks right and routes every
+  // auth call into PostgREST, which answers `PGRST125 Invalid path specified in
+  // request URL` — an error with no relationship to the cause. Cost a debug cycle
+  // on 2026-09-08; rejected here rather than normalised, because silently
+  // repairing a wrong value teaches nobody which value was wanted.
+  const url = (source['SUPABASE_URL'] as string).replace(/\/+$/, '')
+  if (/\/(rest|auth|storage|realtime)\/v\d/.test(url)) {
+    throw new Error(
+      `SUPABASE_URL is an API endpoint, not the project URL:\n  ${url}\n\n` +
+        'Use the bare project URL — https://<ref>.supabase.co — with no path. The client\n' +
+        'appends /auth/v1 and /rest/v1 itself. Supabase\'s API settings page shows both;\n' +
+        'the one under "Project URL" is the one wanted.',
+    )
+  }
+
   return {
-    supabaseUrl: source['SUPABASE_URL'] as string,
+    supabaseUrl: url,
     supabaseAnonKey: source['SUPABASE_ANON_KEY'] as string,
     supabaseServiceKey: source['SUPABASE_SERVICE_KEY'] as string,
     sessionCookieSecret: source['SESSION_COOKIE_SECRET'] as string,

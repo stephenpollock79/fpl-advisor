@@ -25,10 +25,12 @@ migrations applied. That is a deployment fact.
 *Partly closed 2026-09-08.* Both migrations are applied to `fpl-advisor-dev`, and
 the grant posture was verified through the Data API: `service_role` and `anon` are
 both denied on `manager`, `anon` is denied on `app_session`, and `service_role`
-reads `app_session`. **Still unverified: the `authenticated` path**, because
-proving one signed-in user cannot read another's rows on dev needs two real
-accounts, and account creation is a deliberate choice under STE-51 rather than
-something to do in passing. Prod has neither migration.
+reads `app_session`. *Closed for dev 2026-09-08.* `scripts/live-rls-check.mjs` creates two throwaway
+accounts, signs in as each with a real one-time code, and tries to read the
+other's rows over HTTP exactly as the server does — then deletes both. Ten checks,
+all passing. Run it with `pnpm check:rls-live`.
+
+**Prod has neither migration**, and nothing has been verified there.
 
 **F7-AC-10 — half of it is asserted.** `tests/auth/session.test.ts` covers the
 thirty-day window and the cookie's shape. "Renewed on each visit" is a database
@@ -39,3 +41,16 @@ because that needs a live project.
 not assertable from this repo at all. F7-AC-03 in particular has no provider-level
 enforcement — password sign-in is always accepted and fails today only because no
 password is set. That is asserted in slice 10 (STE-68), not here.
+
+
+**F7-AC-02, F7-AC-05, F7-AC-07, F7-UP-01 — the identical response is not yet
+identical.** Measured on 2026-09-08: `/api/auth/request-code` returns the same
+body and status for an address with an account, one without, and a throttled
+request — but takes 3.46s, 0.045s and 0.115s respectively, because a real send
+waits on SMTP. The body is not the leak; the clock is, and a ~77x difference is a
+usable oracle for whether an address has access.
+
+**So none of those four may be ticked off against the matching body.** A test
+asserting the bodies match would pass while the criterion is false — the same
+shape as asserting a policy exists rather than that isolation holds. Recorded in
+full on STE-68, which owns the fix.
