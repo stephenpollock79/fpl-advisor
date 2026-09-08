@@ -79,8 +79,10 @@ PRD, recorded in ADR 0010 and in `docs/specs/architecture.md` §8.3 — not a ga
 
 When the slice's criteria file declares none:
 
-1. **Invent no identifiers.** A made-up `ENGINE-AC-01` would fail
-   `scripts/criteria-coverage.mjs`, which errors on an identifier no criteria file declares.
+1. **Invent no identifiers.** `scripts/criteria-coverage.mjs` counts only the shape
+   `F<n>-AC|UP|RS-<nn>`, and exits non-zero on one of those that no criteria file declares. So a
+   made-up identifier either breaks the report or — like `ENGINE-AC-01`, which does not match the
+   shape — is invisible to it. Neither creates coverage; the second is the more dangerous.
 2. **Look for a recorded standard** — a ruling in `docs/specs/architecture.md` §8.3, an ADR, or the
    build ticket. For the engine, the Build Plan names the two candidates: add criteria to PRD 3.2
    and regenerate, or record that the worked example plus the unit tests are the standard.
