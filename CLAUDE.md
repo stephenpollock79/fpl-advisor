@@ -28,8 +28,13 @@ third copy is how the contract drifts. If a rule is not in this repo, it is a `G
 | --- | --- |
 | What are we building and why? | The PRD, in Stephen's vault. Not in this repo — deliberately. |
 | What must this slice do? | `docs/criteria/F<n>.criteria.md` |
-| How is it built? | `docs/specs/` and `docs/adr/` |
+| How is it built? | `docs/specs/architecture.md` and `docs/adr/` |
 | Why was it decided that way? | The Decision Log, in the vault, cited by number (#68) |
+
+**Cite what an agent can open.** Anything an agent must act on is cited repo-side — an ADR, a
+criteria file, a spec. The vault is cited only for reasoning a human goes looking for, because an
+agent in a checkout or a worktree cannot open it. A vault-only citation on something actionable is
+an instruction that cannot be followed.
 | What do I build next, and when? | `docs/build-plan.md` — derived from the vault. Order and dates only. |
 | What is the state of the work? | Linear, project *FPL Advisor — v1*. Not this file, not the vault. |
 
@@ -110,6 +115,10 @@ reaches the code that computes.
 
 **Row-level security from the first migration.** Every table carrying user data gets a policy in the
 migration that creates it. No table ships without one, and this is asserted by a test rather than trusted.
+**And the server reads user data with the signed-in user's token, never the service key** — the service key
+bypasses row-level security entirely, so a server that uses it for user data passes every test asserting the
+policies exist while providing none of the isolation they are for. Reference tables — fixtures, projections,
+the feed cache — are the service key's only business. ADR 0007.
 
 **Reasoning is constrained by construction.** The reasoning call receives only the values shown on that
 card. Do not widen its input to improve the prose.
@@ -145,7 +154,8 @@ card. Do not widen its input to improve the prose.
   both — the server owns static serving, the SPA fallback and every route that touches a secret (ADR 0005).
 - **Repo:** pnpm workspaces — `packages/engine`, `apps/client`, `apps/server` (ADR 0006). The client calls
   same-origin `/api/*` everywhere, in development through Vite's proxy, so no build carries an API origin.
-- **Data model: TBD — STE-24.** Fill this in when the architecture spec lands, and delete this line.
+- **Data model, API surface, pipeline and session transport: `docs/specs/architecture.md`** (STE-24).
+  Money is stored as an integer in tenths of £1m throughout; no float ever holds money.
 
 ## Do not
 

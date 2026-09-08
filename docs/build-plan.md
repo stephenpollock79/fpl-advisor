@@ -1,6 +1,6 @@
 <!-- DERIVED FILE - DO NOT EDIT. Regenerate with extract-build-plan.py in the vault. -->
 <!-- source: Build Plan - The FPL Advisor.md -->
-<!-- source-sha256: 3139759b625f947d -->
+<!-- source-sha256: 0e60be5474a69fc6 -->
 
 # Build order and schedule
 
@@ -18,20 +18,20 @@ Twelve slices, not nine features. F7 is not a feature you build once and the eng
 both are spread or shared, and both were missing from the first draft of this plan because it was written
 from the features under discussion rather than from the feature list.
 
-| # | Slice | Tier | Build | Tests |
-| --- | --- | --- | --- | --- |
-| 1 | F7-core | Must | STE-51, STE-52 | STE-58 |
-| 2 | F7 team link | Must | STE-55 | — |
-| 3 | F1 Squad state | Must | STE-56 | STE-57 |
-| 4 | **Engine** | Must | STE-60 | STE-61 |
-| 5 | F3 Transfers and subs | Must | STE-62 | STE-63 |
-| 6 | F4 Captain and vice | Must | STE-64 | — |
-| 7 | F6 Refresh | Must | STE-65 | — |
-| 8 | F8 Overview + F7-surface | Must | STE-66 | — |
-| 9 | F2 Screenshot correction | Must | STE-67 | — |
-| 10 | F7 hardening pass | Must | STE-68 | in STE-68 |
-| 11 | F5 Chip season plan | Should | STE-70 | — |
-| 12 | F9 Chip proposal | Could | STE-71 | — |
+| #   | Slice                    | Tier   | Build          | Tests     |
+| --- | ------------------------ | ------ | -------------- | --------- |
+| 1   | F7-core                  | Must   | STE-51, STE-52 | STE-58    |
+| 2   | F7 team link             | Must   | STE-55         | —         |
+| 3   | F1 Squad state           | Must   | STE-56         | STE-57    |
+| 4   | **Engine**               | Must   | STE-60         | STE-61    |
+| 5   | F3 Transfers and subs    | Must   | STE-62         | STE-63    |
+| 6   | F4 Captain and vice      | Must   | STE-64         | —         |
+| 7   | F6 Refresh               | Must   | STE-65         | —         |
+| 8   | F8 Overview + F7-surface | Must   | STE-66         | —         |
+| 9   | F2 Screenshot correction | Must   | STE-67         | —         |
+| 10  | F7 hardening pass        | Must   | STE-68         | in STE-68 |
+| 11  | F5 Chip season plan      | Should | STE-70         | —         |
+| 12  | F9 Chip proposal         | Could  | STE-71         | —         |
 
 Alongside these: **STE-53** (FFIQ attribution, ships with slice 3), **STE-54** (evaluate `predicted_starter` before the
 engine slice opens), **STE-59** (set the cut trigger), **STE-69** (decide error monitoring). Deploy and

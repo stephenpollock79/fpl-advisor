@@ -1,0 +1,527 @@
+# Architecture and data model
+
+- **Status:** Accepted, 2026-09-08 (STE-24)
+- **Supersedes nothing.** Extends ADRs 0004–0010, which hold the reasoning for each decision it uses.
+
+## What this document is
+
+The build-ready translation of the PRD into a shape code can be written against. It answers four
+questions and no others:
+
+1. What runs where, and what is allowed to talk to what.
+2. What is stored, in what unit, and who can read it.
+3. What the server exposes.
+4. What is still open, and what would settle it.
+
+**It does not restate acceptance criteria.** Those live in `docs/criteria/`, are extracted verbatim
+from the PRD, and are the authority wherever this document and one of them disagree. Where a design
+here exists *because* of a criterion, that criterion is cited by identifier — the citation resolves
+to a file in this repo, which is the whole of the citation rule (CLAUDE.md, *Where truth lives*).
+
+**No architecture diagram, deliberately.** The system is one service, three packages and about a
+dozen routes. A diagram here would be presentation polish, not a decision aid.
+
+---
+
+## 1 · System shape
+
+One Railway service runs one Node process. That process is the Hono server (`apps/server`). It
+serves the built client bundle as static files, answers `/api/*`, and is the only thing in the
+system that holds a secret. The client (`apps/client`) is a React single-page app, client-rendered,
+built by Vite. The engine (`packages/engine`) is a dependency-free TypeScript package that both
+import as source. ADR 0005 decides the first; ADR 0006 decides the second.
+
+```
+browser ──── same-origin ────▶ Hono server ─────▶ Supabase (Postgres + Auth), eu-west-2
+   │          /api/*              │
+   │                              ├──▶ FPL public API          — fixtures, players, gameweeks
+   │                              ├──▶ Fantasy Football IQ     — projected points
+   │                              └──▶ Anthropic (Agent SDK)   — candidates, judgement, reasoning
+   └── engine (imported as source, runs in both) ──┘
+```
+
+**Four boundaries, and what each one is for.**
+
+| Boundary | What it stops |
+| --- | --- |
+| Two builds, no import path from server to client | A key reaching the browser. The NFR Security requirement no screen or flow expresses (ADR 0005). |
+| The engine declares no dependencies and gets no runtime types | The engine acquiring a framework, a fetch, or a clock (ADR 0006). |
+| All data fetching behind `apps/client/src/api.ts` | The one-way door in ADR 0005 becoming a rewrite of every data path. |
+| Row-level security, with user data read as the user | One account's data reaching another — and, at one user, a forgotten filter reaching a table it should not (F7-AC-11). |
+
+The fourth is the one that changed today. See §3.
+
+**Region.** Supabase is West Europe (London) `eu-west-2` for both projects; Railway is Amsterdam
+`europe-west4`, its only EU region. Matching regions was never available; London is the closest
+Supabase region to Amsterdam (~8 ms against ~22 ms for Ireland), and that hop is on every request
+inside NFR Performance's 200 ms budget. Supabase regions cannot be changed after creation, so this
+is settled rather than provisional (STE-29).
+
+---
+
+## 2 · The two feeds, and what each one owns
+
+CLAUDE.md's *Data rules* section is the authority and is not restated. What the schema adds:
+
+- **Fixtures and gameweeks come from the FPL feed and are stored normalised**, so "how many fixtures
+  does this club have in gameweek *n*" is a `count(*)`, never an inference from a projection's size
+  or presence.
+- **Projections come from Fantasy Football IQ, one row per player per gameweek**, and that one figure
+  already covers however many matches that gameweek holds. The table has no per-fixture dimension,
+  which is what makes rule 2 — nothing is summed across fixture entries — structurally true rather
+  than a convention someone has to remember.
+- **Attribution is a licence condition.** A visible link to fantasyfootballiq.app ships with the
+  squad screen (STE-53, slice 3).
+
+---
+
+## 3 · Access and session
+
+Decided in **ADR 0007**. The shape, and the one rule the rest of the build depends on:
+
+The browser holds one opaque `httpOnly` cookie our server issued and never a Supabase token. Every
+read goes through the API. The thirty-day sliding window (F7-AC-10) is ours, so it survives the
+$300 credit lapsing and the projects dropping to the Free plan.
+
+> **User data is read with the signed-in user's access token. Reference data is read with the service
+> key. Never the other way round.**
+
+The service key bypasses row-level security entirely. A server that reads user data with it passes
+every test asserting the policies exist while providing none of the isolation those policies are
+for. Nothing on screen would look wrong. That is why this sentence is here, in ADR 0007, and in the
+integration test for STE-58 — it is in the silent-failure class (G7), and repetition is the cheapest
+mitigation available.
+
+**Rate limiting** (F7-AC-06, F7-AC-07) is ours, not the provider's: at most one code per address per
+sixty seconds, an hourly ceiling per address, a matching ceiling per source address, and a throttled
+request must return exactly what an accepted one returns. It is stored in `auth_throttle`, which is
+written before anyone is authenticated and is therefore service-role only.
+
+---
+
+## 4 · The data model
+
+**Units, stated once.** Money is stored as an integer in **tenths of £1m**, matching FPL's own
+`now_cost` (`55` is £5.5m). No float ever holds money. Projected points are `numeric(5,2)`.
+Multipliers and convictions are computed by the engine and stored as computed, never re-derived on
+read (F1-AC-22, F9-AC-18 and the engine's single-source-of-truth rule all say the same thing from
+three directions).
+
+**Two families.** *User data* is owned by a person and carries a row-level policy keyed to
+`auth.uid()`. *Reference data* is the world — it belongs to nobody, is read by the server with the
+service key, and has RLS enabled with **no policy**, which under Supabase's automatic-RLS trigger
+means it is unreachable as `anon` or `authenticated`. That is correct and deliberate; it becomes a
+bug the moment something tries to read it from the browser, which under ADR 0007 nothing does.
+
+| Table | Family | Holds |
+| --- | --- | --- |
+| `manager` | user | The person's FPL team link and confirmed identity |
+| `app_session` | service | The opaque session, its sliding expiry, and the provider refresh token |
+| `auth_throttle` | service | Code-request attempts, per address and per source address |
+| `gameweek` | reference | Gameweeks, deadlines, and the `is_next` / `data_checked` flags |
+| `club` | reference | The twenty clubs, for names, kits and the three-per-club rule |
+| `player` | reference | Identity only — name, club, position, shirt number |
+| `feed_read` | reference | One row per successful fetch of a feed. The "last read" F6-UP-02 works from |
+| `player_state` | reference | The diffable per-player record, one set per `feed_read` |
+| `fixture` | reference | Fixtures per gameweek, with difficulty and venue |
+| `projection` | reference | One projected figure per player per gameweek, from FFIQ |
+| `squad_snapshot` | user | The fifteen as at a moment, and where they came from |
+| `squad_player` | user | The fifteen rows of one snapshot |
+| `run` | user | One advice generation, its outcome, and what it cost |
+| `player_judgement` | user | The model's four judgement inputs per player, with quoted evidence |
+| `call` | user | One produced call, as generated by one run |
+| `decision` | user | The manager's answer, which outlives the run that prompted it |
+| `chip_plan` | user | The season chip plan (F5, below the cut line) |
+
+### 4.1 User data
+
+**`manager`** — one row per account.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `user_id` | `uuid` PK | References `auth.users`. The RLS key for every table below. |
+| `fpl_team_id` | `int` | Linked once, by identifier (F7-AC-13). |
+| `team_name`, `manager_name`, `overall_rank` | `text`, `text`, `int` | Resolved against the public FPL API and **shown back for acceptance before anything is stored** (F7-AC-14). Stored because the account sheet displays them (F7-AC-21). |
+| `linked_at` | `timestamptz` | |
+
+No FPL credentials, ever — not requested, not transmitted, not stored. There is no column for one
+and there never will be.
+
+**`squad_snapshot`** — the fifteen as at a moment.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` PK | |
+| `user_id` | `uuid` | |
+| `gameweek` | `int` | The gameweek this squad is *for* — always `is_next`, never `is_current`. |
+| `source` | `text` | `fpl_deadline` or `screenshot`. **This column is what F8-AC-04's disclosure line reads**, and that line is what makes the freshness differentiator true. |
+| `captured_at` | `timestamptz` | For the screenshot case, the upload time the line quotes ("uploaded at 18:12"). |
+| `bank_tenths` | `int` | The Balance. |
+| `free_transfers` | `int` | |
+| `chips_remaining` | `jsonb` | Four chips, each available or spent (F1-AC-08). |
+| `superseded_at` | `timestamptz` null | A correction replaces wholesale (F2-AC-04); the old row is kept rather than deleted, so a disclosure line can never point at a squad that no longer exists. |
+
+**`squad_player`** — fifteen rows per snapshot.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `snapshot_id` | `uuid` | |
+| `player_id` | `int` | FPL's own player id. |
+| `is_starter` | `bool` | Eleven true, four false (F1-AC-01, F1-AC-02). |
+| `bench_order` | `int` null | 0 for the substitute goalkeeper, 1–3 for the outfield bench. |
+| `is_captain`, `is_vice` | `bool` | Never both on one row, never both false across the fifteen. |
+| `purchase_price_tenths` | `int` null | **Nullable, and that is an open question — see §8.1.** F3-AC-26 requires it; the selling price in F3-AC-25 is derived from it, not stored. |
+
+Formation is derived from the starting eleven and never stored (F1-AC-03). Squad and bench
+projected-points totals are summed from the players shown and never stored (F1-AC-22).
+
+**`run`** — one advice generation.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id`, `user_id`, `gameweek` | | |
+| `scope` | `text` | `all`, `transfer`, `substitution`, `captaincy`, `chips` (F6-AC-07). |
+| `trigger` | `text` | `first_open`, `refresh`, `screenshot_correction`, `gameweek_rollover`. |
+| `status` | `text` | `running`, `succeeded`, `failed`, `cancelled`. |
+| `started_at`, `finished_at` | `timestamptz` | |
+| `feed_read_id`, `squad_snapshot_id` | `uuid` | What this run saw. Makes a call reproducible without re-fetching. |
+| `model_id`, `input_tokens`, `output_tokens`, `cost_usd` | | Per ADR 0008 and 0009, from the first commit. `model_id` is the pinned identifier actually used — the one figure that can prove the evals describe what shipped. |
+
+**The last-run time is `max(finished_at) where status = 'succeeded'`.** Not `max(started_at)`, not
+the last row. F6-AC-14 and F6-UP-01 both turn on this: a failed run must never age the advice, and a
+cancelled run is treated exactly as one that never started (F6-AC-20).
+
+**`player_judgement`** — the model's four inputs, per player, per gameweek.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `user_id`, `gameweek`, `player_id` | | |
+| `run_id` | `uuid` | The run that produced or last revised it. |
+| `availability` | `numeric` | 0 / 0.25 / 0.5 / 0.75 / 1.0. |
+| `availability_source` | `text` | `fpl_feed` or `model_override`. F3-AC-30 requires the source be shown; a model override must cite contradicting evidence. |
+| `rotation` | `numeric` | Same five-point scale. |
+| `projection_reliability`, `news_freshness` | `text` | `clear` / `elevated` / `unresolved`. |
+| `evidence` | `jsonb` | The quoted evidence per input. **Four inputs, no fifth** — the model may not invent one, and a fifth key is a defect. |
+
+This table is what F6-RS-01 and F6-RS-08 mean by carrying judgement forward: if the evidence diff
+finds nothing, these rows are reused and the conviction figure is byte-identical.
+
+**`call`** — one call, as produced by one run.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id`, `user_id`, `run_id`, `gameweek` | | |
+| `call_key` | `text` | **The stable identity across runs. See §5 — this is the load-bearing column.** |
+| `category` | `text` | `transfer`, `substitution`, `captaincy` (F8-AC-27's three groups). |
+| `shape` | `text` | `transfer`, `forced_swap`, `doubt_swap`, `bench_order`, `captain`, `vice` (F3-AC-03). |
+| `out_player_id`, `in_player_id` | `int` | For a bench-order call these are the two bench players whose order changes (F3-AC-04). |
+| `net` | `numeric(6,2)` | Signed, and **non-negative by construction** — the winning side is the recommendation. |
+| `conviction` | `int` | 5–95, clamped. |
+| `band` | `text` | `certain` / `strong` / `lean` / `thin`. |
+| `k_used` | `numeric` | 0.5 substitution, 0.8 captain/vice, 2.0 transfer. Shown in the breakdown (F3-AC-30, F4-AC-11). |
+| `cost_tenths` | `int` | Transfers only; £0.00 for substitutions and captaincy (F3-AC-28). |
+| `is_forced` | `bool` | **A property of the call, never derived from conviction** (F3-AC-17, F8-AC-03). |
+| `watch_flag` | `bool` | Set by code, never by the model, and never from conviction (F3-AC-17, F3-AC-18). |
+| `is_reading` | `bool` | A keep reading — no change, nothing to do. Excluded from every tally (F4-AC-02, F4-AC-03). |
+| `reasoning` | `text` | Four lines maximum, from the constrained call (F3-AC-22). |
+| `breakdown` | `jsonb` | Every value already computed in the pipeline. **Nothing is calculated when this is displayed** (F3-AC-31). |
+| `diff_tag`, `previous_conviction`, `viewed_at` | | `NEW` / `UPDATED` / `RETURNED` / `RESURFACED` / band move (F6-AC-13). The tag is transient until viewed, which is what `viewed_at` is for. |
+
+**`decision`** — the manager's answer.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `user_id`, `gameweek`, `call_key` | composite PK | Keyed to the call's *identity*, not to a `call` row. |
+| `state` | `text` | `selected` or `rejected`. Pending is the absence of a row (F3-AC-01's third state needs no storage). |
+| `decided_at` | `timestamptz` | |
+| `broken_by_snapshot_id` | `uuid` null | Set when a squad correction contradicts a selected call and the lock is broken (F2-AC-07, F6-RS-07). Kept rather than deleted, because the manager has to be told why. |
+
+**`chip_plan`** (F5, below the cut line) — one row per chip per generation: `verdict`
+(`play` / `target` / `hold` / `spent`), `target_gameweek`, a six-cell `timeline`, and an editorial
+line. Nothing here enters the shortlist or the NBal (F5-AC-02).
+
+**F9 stores nothing.** A chip proposal's locks and swaps live in component state and are discarded
+on leaving — F9-AC-20 says so outright, and F9-UP-02 makes the discard the default case. There is
+no table, and adding one would be building a feature the criteria reject.
+
+### 4.2 Reference data
+
+**`gameweek`** — `id`, `name`, `deadline_time`, `is_next`, `is_current`, `finished`, `data_checked`.
+All four flags are stored because all four are read for different things, and two of them are
+foot-guns:
+
+- **Advise on `is_next`.** The feed marks a gameweek *current* until the following one locks, so
+  while a deadline is unpassed `is_current` is a week already played. Keying off it produces
+  confident advice about the wrong week, every week, with nothing visibly broken.
+- **Read last gameweek's points from `data_checked`, not `finished`.** `finished` flips when the last
+  match ends; bonus points and corrections land afterwards.
+
+Both are in the G7 silent-failure class and both are asserted by unit test in slice 3.
+
+**`fixture`** — `id`, `gameweek`, `home_club`, `away_club`, `kickoff`, `home_difficulty`,
+`away_difficulty`, `finished`. **This table is the only source of a fixture count.** A club with no
+row in a gameweek blanks; two rows is a double; the projection is never consulted for the count, and
+on conflict the count wins. Any gameweek where a club has other than one fixture is **logged** —
+blanks and doubles cannot be observed live early in a season, so the first real one has to announce
+itself rather than pass silently.
+
+**`projection`** — `gameweek`, `player_id`, `projected_points`, `feed_read_id`. One row per player
+per gameweek. There is no fixture dimension, by design.
+
+**`feed_read`** — `id`, `source` (`fpl_bootstrap` / `fpl_fixtures` / `ffiq`), `fetched_at`,
+`succeeded`, `raw` (`jsonb`). The raw payload is kept because F6-UP-02 works from the last read and
+has to state how old it is. **`raw` is storage, never prompt input** — sending `bootstrap-static` to
+a model costs about $2 against a ~$0.07 budget (ADR 0009).
+
+**`player_state`** — `feed_read_id`, `player_id`, `status`, `news`, `news_added`,
+`chance_of_playing_next_round`, `now_cost_tenths`. One set per read, **for every player FPL tracks —
+not only the players already inside a call**. F6-RS-02 requires the diff to run across the whole
+record, and F6-RS-05 requires a player who was never proposed to be able to surface as a brand-new
+candidate. Storing only squad players would make that impossible while looking like it worked.
+
+The diff is mechanical, free, and runs before any model call. Its count is what the news-alert token
+displays (F8-AC-13), and its result is what decides whether a model is called at all (F6-RS-08).
+
+---
+
+## 5 · Call identity, and how decisions survive a refresh
+
+This is the single most consequential piece of design in the schema, and getting it wrong produces a
+build that demonstrates correctly and loses decisions in use.
+
+F6 says three things at once. **Selected calls survive a refresh and become constraints**
+(F6-AC-01). **Rejected calls are suppressed for the rest of the gameweek** and return only if the
+premise has materially changed (F6-AC-03). **Pending calls are discarded and rewritten freely**
+(F6-AC-04).
+
+So a decision cannot belong to a `call` row, because the `call` row is thrown away and rewritten by
+the next run. It has to belong to something that outlives the run. That something is `call_key` — a
+deterministic string built from what makes a call *the same call*:
+
+```
+transfer:out=<player>:in=<player>
+substitution:forced|doubt:out=<player>:in=<player>
+substitution:bench_order:slots=<a>,<b>
+captaincy:captain:from=<player>:to=<player>
+captaincy:vice:from=<player>:to=<player>
+```
+
+Computed by the engine, so both consumers produce the same string from the same call. With that:
+
+- **Selected** — the key is looked up before generation and its players and money are treated as
+  committed (F6-AC-01). It reads *selected · locked* (F6-AC-02).
+- **Rejected** — the key is suppressed for the gameweek (F6-AC-03), *unless* the regenerated call
+  crosses a conviction band boundary or can no longer be executed, which is the whole of the
+  definition of materially changed (F6-AC-06), *or* the call is forced, which ignores suppression
+  outright (F6-AC-05).
+- **Pending** — no row, nothing to preserve.
+- **A gameweek rollover keeps nothing.** `decision` is keyed by gameweek, so a new gameweek is a
+  clean slate by construction rather than by a delete anyone has to remember (F6-UP-03).
+
+Two constraints ride alongside it. **No two calls in one run may touch the same player** — prevented
+at generation, not detected in the interface (F3-UP-04), and re-checked on every refresh, which is
+what stops scenario totals double-counting. And **conviction is never recomputed on read**: the
+stored figure is what every surface displays, so no two surfaces can disagree.
+
+---
+
+## 6 · The API surface
+
+Every route that touches a secret, a feed or the model is here. The boundary can be read off this
+list rather than inferred from a module graph — that is the point of it (ADR 0005).
+
+| Route | Purpose |
+| --- | --- |
+| `GET /api/health` | Liveness and the deployed commit. Already built (STE-30). |
+| `POST /api/auth/request-code` | Sends a code, or does not. **Returns the same response either way** — for an unknown address (F7-AC-02, F7-UP-01) and for a throttled one (F7-AC-07, F7-UP-03). |
+| `POST /api/auth/verify` | Verifies the code, creates the `app_session` row, sets the cookie. Dies after five wrong attempts (F7-AC-09). |
+| `POST /api/auth/logout` | Revokes the session row (F7-AC-24, F7-AC-25). |
+| `GET /api/me` | The manager, the linked team, and whether a team link is still needed. |
+| `POST /api/team-link/resolve` | Resolves an FPL team id and returns the team for confirmation. **Stores nothing** (F7-AC-14). |
+| `POST /api/team-link/confirm` | Stores the accepted link. |
+| `GET /api/world` | The gameweek, the squad snapshot, fixtures, projections, calls and decisions — everything a screen re-derives from. One call, because the client holds the world. |
+| `POST /api/runs` (SSE) | Starts a run at a scope and streams progress. A hand-written SSE endpoint — no framework supplies this (ADR 0005), and `AbortController` plus request-close is the cancellation (F6-AC-19, F6-AC-20). |
+| `GET /api/runs/:id/diff` | The post-run diff (F6-AC-11). |
+| `POST /api/decisions` | Records a selection or rejection against a `call_key`. |
+| `POST /api/squad/screenshots` | The two-image parse. All-or-nothing across both (F2-UP-01), then straight into a run (F2-AC-05, F2-AC-06). |
+
+Everything else under `/api/*` is a JSON 404 — already true, and deliberate: without it the SPA
+fallback answers a mistyped fetch with `index.html` and the caller fails parsing HTML somewhere far
+from the cause.
+
+---
+
+## 7 · The advice pipeline
+
+Five steps, from the engine criteria. What this document adds is where each one runs and what it
+costs.
+
+| # | Step | Where | Model |
+| --- | --- | --- | --- |
+| 0 | Fetch feeds, write `feed_read` and `player_state`, **diff the evidence** | server | none |
+| 1 | Propose the week's candidate calls | server, via ADR 0008 | Haiku |
+| 2 | Return structured judgement inputs per player, each with quoted evidence | server | Sonnet |
+| 3 | **Compute** effective points, net, conviction, band, cost | `packages/engine` | none |
+| 4 | Write the reasoning, from the card's own field values only | server | Sonnet |
+| 5 | **Assign** the band and decide what is shown | `packages/engine` | none |
+
+Step 0 is the gate: **if it finds nothing, steps 1, 2 and 4 do not run at all** and the stored
+judgement is reused (F6-RS-08). Most refreshes should therefore cost nothing.
+
+Steps 3 and 5 are the engine, and the engine is called by both F3 and F4 — one function producing
+net, conviction and band, never a variation implemented twice. If a feature needs a difference, it
+is a parameter.
+
+Step 4's input is **only the field values shown on that card's evaluation table** — not the evidence,
+news or opinion context used in step 2. That is the enforcement, not an instruction: referencing
+anything else becomes a hallucination from nothing rather than a citation of real but hidden data. A
+deterministic keyword check against excluded-field vocabulary is the second-line catch, and a
+flagged line falls back to a templated sentence rather than a retry.
+
+**The model never emits a conviction percentage.** This does not make the output deterministic — the
+model supplies the inputs — and no code comment or user-facing string should claim it does.
+
+---
+
+## 8 · Open, with the check that would settle each
+
+Named rather than folded in. Each carries a deadline, because a deferral without one is a decision
+made by default.
+
+### 8.1 Where purchase prices come from — **before slice 5, Friday 11 September**
+
+F3-AC-25 computes a transfer's cost from the outgoing player's **selling** price, which is the
+purchase price plus half of any profit since, rounded down. F3-AC-26 says purchase prices are
+therefore stored per player. It does not say where they are read from, and this project reads the
+public FPL API only — `entry/{id}/event/{gw}/picks/`, never the authenticated `my-team` endpoint.
+
+**The discriminating check, which takes a minute:** fetch
+`https://fantasy.premierleague.com/api/entry/<team-id>/event/<gw>/picks/` and look for
+`purchase_price` or `selling_price` on a pick. If they are there, `squad_player.purchase_price_tenths`
+is populated from the feed and this is closed. If they are not, three options, in the order I would
+take them: read them from the F2 Transfers screenshot, which displays selling price per player and
+which the app already parses; or track purchase price from the first snapshot a player appears in,
+which is correct only for players bought since the app started watching; or treat selling price as
+current price and accept an error of up to a few tenths on transfer cost.
+
+Until it is settled the column is nullable and cost falls back to current price. **That fallback is
+wrong in a specific, quiet way** — it overstates the cost of a player who has risen since purchase —
+so it must not be allowed to become the answer by nobody asking.
+
+### 8.2 Whether rotation is bought or judged — **today, STE-54, blocks slice 4**
+
+If FFIQ's `predicted_starter` is usable, rotation becomes a bought-in input and the engine drops one
+of its four judgement inputs. The schema consequence is small — `player_judgement.rotation` gains a
+`rotation_source` column exactly as availability has one — but the engine consequence is not, which
+is why the Build Plan puts the answer today rather than during Thursday's slice.
+
+### 8.3 Two probabilities the criteria use but never define — **before slice 5, Friday 11 September**
+
+A vice call's net is "the difference multiplied by the probability the captain misses" (ENGINE). A
+bench-order call's net is "the difference in their effective points multiplied by the probability an
+auto-sub fires for the slot they cover" (F3-AC-04). Neither probability is specified anywhere.
+
+**This spec's reading, offered so it can be corrected rather than discovered in code:** both are
+already in the model. The availability multiplier *is* an estimate of the probability a player
+plays, so the probability the captain misses is `1 − availability(captain)`, and the probability an
+auto-sub fires for a covered slot is `1 − availability(that starter)`. No new input, no new factor —
+the engine criteria are explicit that there is no fifth factor and the model may not invent one.
+
+That reading is consistent and cheap, but it **is a reading**, not a quotation. If it is wrong, the
+vice call's figure is wrong every week in the same direction, which is exactly the kind of thing
+nobody notices. Confirm it against the PRD before slice 5, or record it as a decision here.
+
+### 8.4 The engine has no acceptance criteria — **before Thursday, already flagged in the Build Plan**
+
+`ENGINE.criteria.md` carries zero `AC-` identifiers, so nothing in the engine is trackable by ADR
+0010's mechanism. Either identifiers are added to PRD 3.2 and the criteria regenerated, or it is
+recorded that the worked example plus the unit tests are the standard. Not settleable here — the
+criteria files are derived and this repo must not edit them.
+
+---
+
+## 9 · Migrations, and what every one of them must say
+
+The rules are ADR 0004's and STE-29's; what is new is the second bullet.
+
+- **Additive, checked in, dev first, never through the Supabase console.**
+- **Every migration states its table's security posture explicitly**, with `ENABLE ROW LEVEL
+  SECURITY` written out even though Supabase's automatic-RLS trigger has already done it. The
+  trigger is a fail-closed backstop, never the mechanism: F7-AC-11 says the migration owns this, and
+  a migration that does not state a table's posture is not self-describing.
+- **A user-data table ships its policy in the same migration that creates it.** No table ships
+  without one, and this is asserted by a test (STE-58), not trusted.
+- **A reference table gets no policy and needs none**, because nothing reads it as `anon` or
+  `authenticated`. If that ever changes, the `select` policy is decided in the migration, per table,
+  not on discovery.
+
+**One symptom worth knowing before it happens:** the dashboard's Table Editor and SQL Editor run
+privileged, so a table blocked by RLS in the app shows its rows normally there. An empty result in
+the app that looks fine in the dashboard is this, first guess.
+
+---
+
+## 10 · Environments and configuration
+
+Two Supabase projects, `fpl-advisor-dev` and `fpl-advisor-prod`. One Railway service, deploying on
+merge to `main`. No staging (ADR 0004).
+
+Every value below comes from the environment. Never a literal, never a committed `.env`. All of them
+are read in `apps/server` only — the client is given none of them, and there is no import path by
+which it could reach one.
+
+| Variable | Used for |
+| --- | --- |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Auth: sending and verifying codes. |
+| `SUPABASE_SERVICE_KEY` | Reference-table reads and the service tables. **Never user data** (§3). |
+| `ANTHROPIC_API_KEY` | The production reasoning path (ADR 0008). Absent locally, where the Claude Code session authenticates instead. |
+| `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON` | The pinned identifiers. Pinned in both paths, recorded per run. |
+| `FFIQ_API_KEY` | The projections feed. |
+| `SESSION_COOKIE_SECRET` | Signing the session cookie. |
+| `POSTHOG_KEY` | Analytics. |
+| `PORT`, `RAILWAY_GIT_COMMIT_SHA` | Injected by Railway. |
+
+---
+
+## 11 · The client decisions ADR 0005 deferred
+
+Settled here, briefly, because they are library choices on a settled stack rather than decisions with
+consequences worth an ADR each.
+
+- **Router: React Router 7 in declarative mode.** Library mode, not framework mode — framework mode
+  is the option ADR 0005 shortlisted and rejected, and adopting it by the back door would undo that
+  decision without recording it. Largest corpus of any router, which is ADR 0005's own third reason.
+- **No server-state library.** The app makes about six requests, holds the world in one context, and
+  recomputes locally by design. TanStack Query would add a second cache to reason about and bundle
+  weight to the one path on every cold open, in exchange for machinery this shape does not use.
+- **No client-state library.** One context holding the world, one reducer holding the week's
+  decisions. Recomputation is a pure function of the two and belongs to the engine.
+- **Styling: plain CSS with custom properties, CSS Modules per component.** The design system is a
+  fixed set of token values (`docs/design/TOKENS.md`); a utility framework would mean re-expressing
+  them in a config and maintaining two copies of the palette.
+- **Not a PWA.** No criterion asks for installation or an offline shell, and one would need a cache
+  invalidation story that the deploy-on-merge workflow does not have.
+
+Data fetching stays behind `apps/client/src/api.ts` regardless of any of the above. That module is
+the mitigation for ADR 0005's one-way door, and none of these four choices touches it.
+
+---
+
+## 12 · Deliberately not built
+
+Named so that none of it arrives by implication.
+
+- **No per-user spend ceiling in application code.** The cap is the £50 prepaid balance and nothing
+  else (NFR Cost control, ADR 0009). Its verification is opening the Anthropic console and reading
+  the balance — there is nothing in this repo to test, and writing a test would be inventing the
+  mechanism the requirements rejected.
+- **No scheduled job.** Feeds are fetched on open; refresh is manual and diff-gated. Nothing ever
+  refreshes on its own (F6-AC-15).
+- **No projection model, no price-prediction model, no fitted weights, no fifth judgement factor.**
+- **No client bundle budget.** Unmeasured and unenforced, deliberately: a threshold invented before
+  any measurement is a number with no evidence behind it. `vite build` prints gzipped chunk sizes on
+  every build, so the figure is never invisible. A budget follows the first measurement.
+- **No staging environment, no release branches, no manual gate before merge** (ADR 0004).
+- **No storage for chip proposals** (F9), and no confirm, apply or play action anywhere near a chip.
+- **The app never writes to FPL, under any circumstance**, and never reads the manager's FPL account.
+  Public endpoints only, by team id.
