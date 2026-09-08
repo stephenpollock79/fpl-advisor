@@ -349,7 +349,7 @@ list rather than inferred from a module graph — that is the point of it (ADR 0
 
 | Route | Purpose |
 | --- | --- |
-| `GET /api/health` | Liveness and the deployed commit. Already built (STE-30). |
+| `GET /api/health` | Liveness, the deployed commit, the port it bound, the Node major it is running on (§10.1) and which declared variables are present. Already built (STE-30). |
 | `POST /api/auth/request-code` | Sends a code, or does not. **Returns the same response either way** — for an unknown address (F7-AC-02, F7-UP-01) and for a throttled one (F7-AC-07, F7-UP-03). |
 | `POST /api/auth/verify` | Verifies the code, creates the `app_session` row, sets the cookie. Dies after five wrong attempts (F7-AC-09). |
 | `POST /api/auth/logout` | Revokes the session row (F7-AC-24, F7-AC-25). |
@@ -499,6 +499,32 @@ which it could reach one.
 | `SESSION_COOKIE_SECRET` | Signing the session cookie. |
 | `POSTHOG_KEY` | Analytics. |
 | `PORT`, `RAILWAY_GIT_COMMIT_SHA` | Injected by Railway. |
+
+### 10.1 The Node version, and the one place it is pinned that this repo cannot hold
+
+Three files name a Node version, and they are three different statements — none of them redundant
+(STE-75):
+
+| Where | Value | What it says |
+| --- | --- | --- |
+| `engines.node` in the root `package.json` | `>=22` | **A floor, not a pin.** What the code requires. Correct as a range; do not narrow it. |
+| `node-version` in `.github/workflows/ci.yml` | `22` | **What CI actually exercises.** It duplicates the floor deliberately. Collapsing them with `node-version-file: package.json` would make `setup-node` resolve the *range*, so CI's Node would float to whatever is newest and the pin would be lost. |
+| `.nvmrc` | `22` | **What a developer's shell picks up** under nvm, fnm or asdf. |
+
+**Railway's pin is not in this repo.** It is a service variable in the Railway dashboard:
+`NIXPACKS_NODE_VERSION=22`. It has to be, and that is not a preference. Nixpacks resolves in the
+order `NIXPACKS_NODE_VERSION` → `engines.node` → `.nvmrc` → `.node-version`, and it treats
+`engines.node` as a *range*, walking the LTS majors downward and taking the newest that satisfies
+it. So `>=22` selects the highest LTS Nixpacks knows about — today 24, tomorrow whatever ships next
+— and `.nvmrc` never gets consulted, because `engines.node` outranks it. The only lever above
+`engines.node` is the environment variable, and Railway service variables live in Railway.
+
+That leaves the gap this section exists to close: **the pin can be changed, or lost, with no trace
+in a checkout.** So `GET /api/health` reports `node`, read from `process.version` — the running
+interpreter rather than anything that claims to configure it. To check the deploy is on the major
+CI tested, read that field. If it does not start with `v22`, the service variable is missing or has
+been changed.
+
 
 ---
 

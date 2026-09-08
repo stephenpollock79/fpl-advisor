@@ -41,6 +41,11 @@ app.get('/api/health', (c) =>
     commit: COMMIT,
     uptimeSeconds: Math.round(process.uptime()),
     engine: engineIdentity(),
+    // Read from the running process, not from config. Three places state a Node
+    // version — `engines.node` (a floor), the CI pin, and Railway's
+    // NIXPACKS_NODE_VERSION — and none of them can be observed from the deploy.
+    // This can: it is what the interpreter actually is. See architecture.md §10.
+    node: process.version,
     port: {
       requested: PORT,
       bound: boundPort,
