@@ -11,32 +11,71 @@
  * Not part of `pnpm test`, deliberately. It needs credentials and it writes to a
  * real project, so it is run on demand rather than on every pull request.
  *
- *   node scripts/live-rls-check.mjs
+ *   node scripts/live-rls-check.mjs                 # dev, from apps/server/.env
+ *   node scripts/live-rls-check.mjs --project=prod  # prod, keys fetched via the CLI
  *
- * Reads apps/server/.env. Prints findings only — never a key, never a token.
+ * **It creates two accounts and deletes them**, so targeting prod is a deliberate
+ * act and never a default. Naming the project explicitly is that act; there is no
+ * way to reach prod by leaving something unset.
+ *
+ * Prod credentials are read from the Supabase CLI rather than from a file, so
+ * they are never written into `apps/server/.env` — an env file left pointing at
+ * prod is exactly the quiet mistake this project keeps designing against.
+ *
+ * Prints findings only — never a key, never a token.
  */
 
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-const ENV_FILE = fileURLToPath(new URL('../apps/server/.env', import.meta.url))
-const env = Object.fromEntries(
-  readFileSync(ENV_FILE, 'utf8')
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#') && l.includes('='))
-    .map((l) => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]),
-)
+const PROJECTS = {
+  dev: 'wtzdzjvvefbcgxdfxqom',
+  prod: 'bibsndkwgrnsklnzckim',
+}
 
-const URL_ = (env['SUPABASE_URL'] ?? '').replace(/\/+$/, '')
-const ANON = env['SUPABASE_ANON_KEY']
-const SVC = env['SUPABASE_SERVICE_KEY']
-if (!URL_ || !ANON || !SVC) throw new Error('apps/server/.env is missing Supabase values')
+const target = (process.argv.find((a) => a.startsWith('--project=')) ?? '--project=dev').split('=')[1]
+if (!(target in PROJECTS)) {
+  throw new Error(`Unknown --project=${target}. Known: ${Object.keys(PROJECTS).join(', ')}.`)
+}
 
-const ref = URL_.split('//')[1].split('.')[0]
-const DEV_REF = 'wtzdzjvvefbcgxdfxqom'
-if (ref !== DEV_REF) {
-  throw new Error(`Refusing to run: .env points at ${ref}, not the dev project ${DEV_REF}.`)
+let URL_, ANON, SVC
+const ref = PROJECTS[target]
+
+if (target === 'dev') {
+  const ENV_FILE = fileURLToPath(new URL('../apps/server/.env', import.meta.url))
+  const env = Object.fromEntries(
+    readFileSync(ENV_FILE, 'utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#') && l.includes('='))
+      .map((l) => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]),
+  )
+  URL_ = (env['SUPABASE_URL'] ?? '').replace(/\/+$/, '')
+  ANON = env['SUPABASE_ANON_KEY']
+  SVC = env['SUPABASE_SERVICE_KEY']
+  if (!URL_ || !ANON || !SVC) throw new Error('apps/server/.env is missing Supabase values')
+
+  const envRef = URL_.split('//')[1].split('.')[0]
+  if (envRef !== ref) {
+    throw new Error(
+      `Refusing to run: apps/server/.env points at ${envRef}, not the dev project ${ref}.`,
+    )
+  }
+} else {
+  // Fetched, not stored. Nothing here writes a prod key to disk.
+  const keys = JSON.parse(
+    execFileSync('supabase', ['projects', 'api-keys', '--project-ref', ref, '-o', 'json'], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` },
+    }),
+  )
+  URL_ = `https://${ref}.supabase.co`
+  ANON = keys.find((k) => k.name === 'anon')?.api_key
+  SVC = keys.find((k) => k.name === 'service_role')?.api_key
+  if (!ANON || !SVC) throw new Error(`Could not read API keys for ${ref}.`)
+  console.log(`\n  ******  TARGETING PRODUCTION (${ref})  ******`)
+  console.log('  Two accounts will be created and deleted. Cleanup is verified below.\n')
 }
 
 const results = []
@@ -97,7 +136,7 @@ const stamp = Date.now()
 const A = { email: `rls-check-a-${stamp}@gaffercalls.com` }
 const B = { email: `rls-check-b-${stamp}@gaffercalls.com` }
 
-console.log(`\nLive RLS check against ${ref} (dev)\n`)
+console.log(`\nLive RLS check against ${ref} (${target})\n`)
 
 try {
   A.id = await createUser(A.email)
@@ -176,6 +215,14 @@ try {
       console.log(`  ${r.ok ? 'cleaned up' : 'FAILED TO DELETE'} ${u.email}`)
     }
   }
+
+  // Deleting and believing the delete are different things, and a stray account
+  // on prod is exactly what invite-only exists to prevent. Ask, do not assume.
+  const after = await (await admin('admin/users?per_page=100')).json()
+  const strays = (after.users ?? []).filter((u) => u.email?.startsWith('rls-check-'))
+  check('both throwaway accounts are gone', strays.length === 0, strays.map((u) => u.email).join(', '))
+  console.log(`  accounts remaining on ${target}: ${(after.users ?? []).length}`)
+  for (const u of after.users ?? []) console.log(`    ${u.email}`)
 }
 
 const failed = results.filter((r) => !r.pass)
