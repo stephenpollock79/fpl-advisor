@@ -11,13 +11,19 @@ Single user. Invite-only. Portrait phone at 390×844 — no desktop layout, no t
 
 ## How we work — two files, no overlap
 
-**The general contract is `~/.claude/CLAUDE.md`.** It loads into every session automatically and
-holds who is reading you, the five reply types and the type-naming line, verification, scope, the
-ask gates, and the repo boundary. Its rules are numbered `G1…`.
+**The general contract loads into every session automatically, through imports in
+`~/.claude/CLAUDE.md`** — that file is three import lines and holds no rules of its own. The
+contract holds who is reading you, the five reply types and the type-naming line, verification,
+scope, the ask gates, and the repo boundary. Its rules are numbered `G0…`.
+
+It is authored at `03 Resources/Context/Contract.md` in Stephen's vault. That path is where a
+human goes to edit it, not somewhere you can open — the contract reaches you as loaded context,
+and `/memory` is how you confirm it arrived.
 
 **`docs/working-rules.md` holds only what is true of this project** — the Build Plan / Linear
-split, the derived files and their extractors, this project's silent-failure list, and the Cowork
-handoff. Its rules are numbered `P1…`. **Read it at the start of every session.** It is short.
+split, the derived files and their extractors, this project's silent-failure list, the Cowork
+handoff, the slice review, and the `G14` list for this project. Its rules are numbered `P1…`.
+**Read it at the start of every session.** It is short.
 
 Every rule lives in exactly one of those two files. Nothing is restated here, deliberately: a
 third copy is how the contract drifts. If a rule is not in this repo, it is a `G` rule.
