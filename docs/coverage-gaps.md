@@ -32,10 +32,12 @@ all passing. Run it with `pnpm check:rls-live`.
 
 **Prod has neither migration**, and nothing has been verified there.
 
-**F7-AC-10 — half of it is asserted.** `tests/auth/session.test.ts` covers the
-thirty-day window and the cookie's shape. "Renewed on each visit" is a database
-write on every authenticated request; it is in the code path and no test runs it,
-because that needs a live project.
+**F7-AC-10 — the automated half is still only the cookie.**
+`tests/auth/session.test.ts` covers the thirty-day window and the cookie's shape.
+"Renewed on each visit" was verified by hand on dev on 2026-09-08 — `expires_at`
+moved twenty seconds across two `/api/me` calls — but **no automated test runs
+it**, because that needs a live project. If the sliding update is ever removed,
+the suite stays green.
 
 **F7-AC-01, F7-AC-03, F7-AC-04 are provider settings**, configured under STE-29 and
 not assertable from this repo at all. F7-AC-03 in particular has no provider-level

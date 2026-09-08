@@ -19,6 +19,8 @@ coverage script counting it would make the number a lie.
 | Criterion | Kind | Verified | Where the record is |
 | --- | --- | --- | --- |
 | F7-AC-11 | Human checklist | 2026-09-08 | Two real accounts on `fpl-advisor-dev`, signed in with real codes: neither could read, update or impersonate the other. Repeatable with `pnpm check:rls-live`. |
+| F7-AC-04 | Human checklist | 2026-09-08 | A six-digit code arrived by email and was typed in. No tappable link, so no mail-client browser holds the session. Stephen received and read it. |
+| F7-AC-10 | Human checklist | 2026-09-08 | Full sign-in on dev: `expires_at` moved from 12:29:31 to 12:29:51 across two `/api/me` calls, so the window renews on each visit. The automated test covers only the cookie's shape. |
 
 Gaps in what the automated suite proves are recorded separately, in
 `docs/coverage-gaps.md` — a register of what *is* verified must not carry prose
