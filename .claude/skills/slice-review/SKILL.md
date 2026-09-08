@@ -9,10 +9,11 @@ disable-model-invocation: true
 **The last step of every slice (P10): a reader who did not build it says what was built that nobody asked
 for, what was asked for and is missing, and what the spec failed to say.**
 
-Three questions, one pass, in plain English (G9). **The third is the point.** `docs/build-plan.md`
-says the specs are written just in time so later ones can absorb what the earlier builds taught, and
-`slice-spec` opens this review before it writes (P12). **That pairing is the mechanism** — without
-both halves the plan's line describes something that does not happen.
+Three questions, one pass, in plain English (G9). **The third is the point.** The specs are written
+just in time, one slice ahead of the build — but that only makes a later spec better if something
+carries back what the earlier build had to invent, and `slice-spec` opens this review before it
+writes (P12). **That pairing is the mechanism** — without both halves, just-in-time speccing is an
+opportunity nothing takes.
 
 ## Why this runs in a subagent
 
