@@ -11,6 +11,13 @@ import { configureSupabase } from './supabase.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const PUBLIC_DIR = join(HERE, 'public')
+// The file, not the directory. tsup cleans dist/ and `copy:client` refills
+// dist/public afterwards, so a half-finished build can leave the directory there
+// with no index.html in it — and testing the directory then crashes the process
+// at boot instead of falling back to serving the API. On Railway that is a failed
+// health check with a stack trace, which is fail-safe but reads like a broken
+// deploy rather than a broken build.
+const INDEX_HTML = join(PUBLIC_DIR, 'index.html')
 
 // Boot-time validation, before anything else. A missing required variable exits
 // here rather than surfacing as a data error at the first request that needs it
@@ -45,17 +52,17 @@ app.route('/', authRoutes(env))
 // parsing HTML as JSON somewhere far from the cause.
 app.all('/api/*', (c) => c.json({ error: 'not_found', path: c.req.path }, 404))
 
-if (existsSync(PUBLIC_DIR)) {
+if (existsSync(INDEX_HTML)) {
   // serveStatic resolves its root against process.cwd(), so derive the relative
   // path rather than assuming where the process was started from.
   const root = relative(process.cwd(), PUBLIC_DIR) || '.'
-  const indexHtml = readFileSync(join(PUBLIC_DIR, 'index.html'), 'utf8')
+  const indexHtml = readFileSync(INDEX_HTML, 'utf8')
 
   app.use('/*', serveStatic({ root }))
   app.get('*', (c) => c.html(indexHtml))
 } else {
   console.warn(
-    `[server] no client build at ${PUBLIC_DIR} — serving the API only. ` +
+    `[server] no client build at ${INDEX_HTML} — serving the API only. ` +
       'This is expected under `pnpm dev`, where Vite serves the client and proxies /api here.',
   )
 }
