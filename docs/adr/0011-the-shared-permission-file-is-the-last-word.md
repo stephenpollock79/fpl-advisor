@@ -30,7 +30,12 @@ On 8 September, during STE-75 and STE-93, two gates failed silently:
 | `ask` before `Bash(gh pr merge:*)` | `gh pr merge 16`, `gh pr merge 17` | nothing |
 
 In both cases the local file held a broader rule — `Bash(corepack pnpm *)`, `Bash(gh pr *)` — that
-covered the command.
+covered the command, and that looked like the whole explanation.
+
+**It is not, and this ADR does not claim it is.** After the local file was emptied and the shared
+file widened, `npx --version` still ran without a prompt. `Bash(npx:*)` has been on the ask list
+since 4 September, so no reload and no local rule can account for it. See *Open* below: **why the
+ask gates are not firing is unresolved**, and this ADR's mechanism does not close it.
 
 **A third route belongs in the record, because it is the one nobody looks for.** A deny names the
 *tool* it guards, not the file. `Read(**/.env*)` stops the file-reading tool; a shell command reaches
@@ -82,7 +87,29 @@ would have passed it, and would need extending every time someone found a new ph
   The real protection for secrets remains that they are gitignored and live in Railway, not that a
   pattern list is complete.
 
-## What was rejected
+## Open — the ask gates are not firing, and this ADR does not fix that
+
+Everything above is worth having on its own terms. None of it is the thing that makes an `ask` rule
+stop for Stephen, because as of 8 September **no `ask` rule observably does**.
+
+What is established:
+
+- **Deny works.** `Read(**)` is allowed, `Read(**/.env*)` is denied, the read is refused. Tested.
+- **Ask does not prompt in this session type.** Tested with `Bash(npx:*)`, a rule present since
+  4 September, with the local file empty. It ran silently.
+- **The documentation says it should prompt.** *"Explicit ask rules still force a prompt"* appears in
+  five places on the permission-modes page, including specifically for auto mode.
+
+Observed behaviour and documented behaviour disagree, and the cause cannot be determined from inside
+a session. **The discriminating check is to run the same command from a plain CLI session**: open a
+terminal in the repository, run `claude`, and try `npx --version`.
+
+- **If it prompts there**, the gap belongs to this session type — the Claude desktop app's Code tab —
+  and the rules are sound.
+- **If it does not**, `ask` is not a working gate here at all, and anything that must stop for
+  Stephen has to move to `deny` and be lifted deliberately, or run outside auto mode.
+
+Do not treat the ask list as an enforced gate until that check has been run. Tracked in STE-94.
 
 - **Scanning the local file for dangerous-looking rules.** Rejected above: it would have passed the
   rule that actually caused the failure.
