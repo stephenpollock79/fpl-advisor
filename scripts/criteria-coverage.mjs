@@ -55,7 +55,14 @@ for (const path of testFiles) {
   for (const id of new Set(identifiersIn(path))) claim(id, relative(ROOT, path))
 }
 try {
-  for (const id of new Set(identifiersIn(MANUAL_REGISTER))) claim(id, 'docs/manual-coverage.md')
+  // Only the first cell of a table row counts, exactly as in the criteria files.
+  // Prose in this file must never register coverage: a sentence explaining that a
+  // criterion CANNOT be checked here reads to a naive grep as a claim that it has
+  // been. That is not hypothetical — it happened, and moved F7 from 2 to 5.
+  for (const line of readFileSync(MANUAL_REGISTER, 'utf8').split('\n')) {
+    const row = line.match(/^\|\s*(F\d-(?:AC|UP|RS)-\d{2})\s*\|/)
+    if (row) claim(row[1], 'docs/manual-coverage.md')
+  }
 } catch {
   console.warn('! docs/manual-coverage.md is missing — human-checklist coverage cannot be counted.\n')
 }

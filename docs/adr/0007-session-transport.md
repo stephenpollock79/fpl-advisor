@@ -57,6 +57,27 @@ connection that bypasses it. A server that reads user data with the service key 
 test that asserts the policies exist while providing none of the isolation those policies are for
 — the failure is invisible, which puts it squarely in the class G7 exists for.
 
+## Amended 2026-09-08 — the rule is now enforced by grant, not by discipline
+
+Applying the first migration to `fpl-advisor-dev` and asking the Data API for a
+row returned `permission denied for table manager` **for every role, service_role
+included.** STE-29 switched "Automatically expose new tables" off, so Supabase's
+default privileges never reach a new table and grants are ours to state.
+
+That turned out to be an opportunity rather than a chore. Postgres checks grants
+before policies, so the grant is a stronger lever than the policy: **`manager`
+grants nothing to `service_role`**, and the rule above stops being a naming
+convention in `supabase.ts` and becomes a property of the database. The service
+key cannot read user data at all, so a careless import cannot break it.
+
+**A 403 from the service key on a user table is therefore correct, and the
+obvious fix is the wrong one.** If a future slice genuinely needs service-key
+access to a user table, that is a decision to record here — not a `grant` to add
+because something returned 403.
+
+Asserted in `tests/rls/isolation.test.ts`, and verified live on dev on
+2026-09-08.
+
 ## Consequences
 
 - **F7-AC-10 survives a downgrade to the Free plan.** The provider's inactivity setting stops

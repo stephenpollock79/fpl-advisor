@@ -139,7 +139,15 @@ card. Do not widen its input to improve the prose.
   `branch -D` and `checkout .` / `restore .` are blocked. The push allowance is a decision, not a
   misconfiguration — do not "tighten" it into a block, and do not loosen it into an `allow` rule either.
 - Migrations are additive and checked in. Schema changes never happen through the Supabase console.
-- Secrets come from the environment. Never a literal key, never a committed `.env`.
+- Secrets come from the environment. Never a literal key, never a committed `.env`. **And there is no
+  local Anthropic API key — do not create one, in `.env`, `.env.local` or anywhere else.** Local and
+  eval runs authenticate through the Claude Code session via the Agent SDK (ADR 0008). The failure
+  this forbids is quiet and expensive: an agent finds no key locally, makes one to test with, and
+  every local run then draws down the £50 prepaid balance that is F7-AC-12's entire protection.
+  "Never a committed `.env`" alone reads as permission to create an uncommitted one; it is not.
+- **The server refuses to boot without a required variable** (`apps/server/src/env.ts`). Add a new
+  secret to that spec when the code that reads it lands, not before — marking something required
+  that nothing reads blocks boot for no reason and teaches everyone to route around the check.
 - Tests: unit for engine arithmetic and data rules, integration for RLS, rate limits and ingestion, Playwright
   for flows. Anything visual or tactile is a human checklist — write the checklist, do not fake it with a
   class-name assertion.

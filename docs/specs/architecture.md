@@ -464,6 +464,15 @@ The rules are ADR 0004's and STE-29's; what is new is the second bullet.
 - **A reference table gets no policy and needs none**, because nothing reads it as `anon` or
   `authenticated`. If that ever changes, the `select` policy is decided in the migration, per table,
   not on discovery.
+- **Every migration states its grants too, per table, per role.** "Automatically expose new tables"
+  is off (STE-29), so Supabase's default privileges never reach a new table and no role can read it
+  until the migration says so. This is not a formality: **Postgres checks grants before policies**,
+  so a table with policies and no grant is security that never runs, and a suite that exercises only
+  policies reports it as working. Found on 2026-09-08 by applying the first migration to dev and
+  asking the Data API for a row — every role was denied, `service_role` included.
+- **User tables grant nothing to `service_role`.** That is what makes ADR 0007's rule a mechanism
+  rather than a convention. A 403 from the service key on a user table is correct; adding a grant to
+  make it go away is the wrong fix.
 
 **One symptom worth knowing before it happens:** the dashboard's Table Editor and SQL Editor run
 privileged, so a table blocked by RLS in the app shows its rows normally there. An empty result in
