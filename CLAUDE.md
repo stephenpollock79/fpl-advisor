@@ -29,14 +29,21 @@ third copy is how the contract drifts. If a rule is not in this repo, it is a `G
 | What are we building and why? | The PRD, in Stephen's vault. Not in this repo — deliberately. |
 | What must this slice do? | `docs/criteria/F<n>.criteria.md` |
 | How is it built? | `docs/specs/architecture.md` and `docs/adr/` |
-| Why was it decided that way? | The Decision Log, in the vault, cited by number (#68) |
+| Why was it decided that way? | The Decision Log, in the vault, cited by number (#68). **Human-facing only** — see the citation rule below. |
+| What do I build next, and when? | `docs/build-plan.md` — derived from the vault. Order and dates only. |
+| What is the state of the work? | Linear, project *FPL Advisor — v1*. Not this file, not the vault. |
 
 **Cite what an agent can open.** Anything an agent must act on is cited repo-side — an ADR, a
 criteria file, a spec. The vault is cited only for reasoning a human goes looking for, because an
 agent in a checkout or a worktree cannot open it. A vault-only citation on something actionable is
 an instruction that cannot be followed.
-| What do I build next, and when? | `docs/build-plan.md` — derived from the vault. Order and dates only. |
-| What is the state of the work? | Linear, project *FPL Advisor — v1*. Not this file, not the vault. |
+
+Two consequences, because the rule is not only about the vault. **A repo-side citation must
+resolve** — pointing at an ADR that has not been written is the same failure wearing the right
+clothes, and it is the more dangerous one, because the pointer looks checkable. And **the Decision
+Log is never where an agent goes for what to do.** If an ADR's decision or its consequences for the
+build are only in the Decision Log, the ADR is incomplete; cite the log for the argument, never for
+the instruction.
 
 **Load per slice, not per session.** Read the one criteria file for the slice you are on. For F3 and F4 also
 read `ENGINE.criteria.md`. `NFR.criteria.md` applies to everything. Do not go looking for the PRD — the

@@ -1,6 +1,6 @@
 <!-- DERIVED FILE - DO NOT EDIT. Regenerate with extract-build-plan.py in the vault. -->
 <!-- source: Build Plan - The FPL Advisor.md -->
-<!-- source-sha256: 2ff3d9231516fb3a -->
+<!-- source-sha256: ed4c1966eb83908c -->
 
 # Build order and schedule
 
@@ -57,7 +57,7 @@ status from Linear — never restate one in another.
 | --- | --- | --- | --- |
 | **Tue 8** | 1 · F7-core (STE-51, STE-58) | STE-24, STE-78, STE-54, STE-59, STE-26, STE-75, STE-82, STE-84, STE-85 | Architecture spec; finish the foundations |
 | **Wed 9** | 2 · F7 team link (STE-55) · 3 · F1 (STE-56, STE-57) | STE-32, STE-53, STE-31 | Spec F1 just-in-time, then build it |
-| **Thu 10** | 4 · Engine (STE-60, STE-61) | — | Headless, unit tests first |
+| **Thu 10** | 4 · Engine (STE-60, STE-61) | STE-87, STE-88 | Headless, unit tests first |
 | **Fri 11** | 5 · F3 (STE-62, STE-63) | — | The calls |
 | **Mon 14** | 6 · F4 (STE-64) · 7 · F6 (STE-65) | STE-77 | Captaincy and refresh |
 | **Tue 15** | 8 · F8 + F7-surface (STE-66) · 9 · F2 (STE-67) | STE-33 | The surface, then **call the MVP** |
@@ -66,10 +66,11 @@ status from Linear — never restate one in another.
 | **Fri 18** | — | STE-39, STE-36, STE-40 | **Launch — live run at the GW5 deadline, 18:30 UK** |
 | not committed | 11 · F5 (STE-70) · 12 · F9 (STE-71) | — | Below the cut line |
 
-**Three ordering constraints that are not obvious from the dates.**
+**Four ordering constraints that are not obvious from the dates.**
 
 - **STE-54 blocks slice 4.** If `predicted_starter` is usable, rotation becomes a bought-in input and the engine drops one of its four judgement inputs. It has to be answered Tuesday, not during Thursday's slice.
 - **STE-58 sets the test-naming convention for the whole suite.** It is the first test in the repo, so the criterion-ID decision in STE-24 has to land before it is written.
 - **Slice 4 has no acceptance criteria yet.** `ENGINE.criteria.md` carries zero `AC-` identifiers. Resolve before Thursday — either add them to PRD 3.2 and regenerate, or record that the worked example plus the unit tests are the standard.
+- **STE-87 and STE-88 block slice 5.** Both surfaced writing the architecture spec, and both are questions the F3 build would otherwise default past rather than ask: where purchase prices are read from, and what the two probabilities in the vice and bench-order arithmetic actually are. Answer them Thursday, not during Friday's slice.
 
 **After GW5 the next deadline is GW6, 10 October.** Slipping past Friday 18th costs a month, not days.
