@@ -83,6 +83,6 @@ enter them and neither takes entries from a review. A finding that recurs across
 
 **P12. The next slice's spec reads the last slice's review.** `slice-spec` opens the previous
 slice's review comment before it writes, and the review's third section is an input to it. This is
-the entire mechanism behind the plan's "later specs get better from what the earlier builds taught":
-writing the specs just in time creates the opportunity and nothing more. If Linear is unreachable,
-say so and write the spec without it — never infer what the review would have said.
+the whole mechanism by which a later spec is better than an earlier one: writing the specs just in
+time creates the opportunity and nothing more. If Linear is unreachable, say so and write the spec
+without it — never infer what the review would have said.
