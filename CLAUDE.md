@@ -156,9 +156,14 @@ card. Do not widen its input to improve the prose.
   says nothing about them. **Adopted and live:** `grill-with-docs`, `grilling`, `domain-modeling`, `tdd`,
   `code-review`, `implement`, `writing-for-agents`, `resolving-merge-conflicts`,
   `git-guardrails-claude-code`. **Installed as source material only — do NOT invoke:** `to-spec`,
-  `to-tickets`. Both publish to a tracker layout this project does not use; Linear is the tracker and specs
-  live in `docs/specs/`. Adapted versions are being written in Stephen's vault (STE-26). If a task seems to
-  call for either, say so and stop rather than running them.
+  `to-tickets`. Both assume a greenfield: they run discovery, cut their own slices, and publish to a tracker
+  layout this project does not use. Discovery was the PRD's, the twelve slices are `docs/build-plan.md`'s,
+  Linear is the tracker and specs live in `docs/specs/`. If a task seems to call for either, say so and stop
+  rather than running them.
+- **The adapted versions live in this repo and are the ones to run** (STE-26): `slice-spec` writes one
+  slice's spec into `docs/specs/`, and `slice-tickets` publishes that slice's tickets into Linear beneath
+  the build ticket the plan already names. Both are in `.claude/skills/`, both are user-invoked only, and
+  neither may re-slice, re-date, or create a top-level ticket for a slice.
 - Cost: the model call is the expensive step. Cache what is stable within a gameweek, and never put raw
   `bootstrap-static` into a prompt.
 
