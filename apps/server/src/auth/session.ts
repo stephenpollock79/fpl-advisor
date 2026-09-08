@@ -86,6 +86,31 @@ export async function revoke(sessionId: string): Promise<void> {
     .eq('id', sessionId)
 }
 
+/**
+ * Whether this request arrived over TLS, and therefore whether the session cookie
+ * must carry `Secure`.
+ *
+ * **Not read from NODE_ENV.** It was, and the consequence shipped: Railway does
+ * not set NODE_ENV, so the first production sign-in issued a session cookie with
+ * no `Secure` flag — found on 2026-09-08 by reading the Set-Cookie header off the
+ * deployed app. A flag that depends on a variable nobody set is a flag that is
+ * silently off, which is the failure class this project keeps designing against.
+ *
+ * So it is derived from the request, and it **fails closed**: anything that is not
+ * plainly local http gets `Secure`. Railway terminates TLS at its edge and
+ * forwards `x-forwarded-proto`.
+ */
+export function isSecureRequest(url: string, forwardedProto: string | undefined): boolean {
+  if (forwardedProto) return forwardedProto.split(',')[0]?.trim() === 'https'
+  try {
+    const { protocol, hostname } = new URL(url)
+    if (protocol === 'https:') return true
+    return !(hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]')
+  } catch {
+    return true
+  }
+}
+
 export function cookieHeader(token: string, isProduction: boolean): string {
   // SameSite=Lax is sufficient and no CSRF token is needed, because ADR 0006
   // makes the client same-origin with the API — there is no cross-site form post
