@@ -1,12 +1,14 @@
 # Working rules — FPL Advisor
 
-**The general contract lives in `~/.claude/CLAUDE.md`, outside this repo, and loads into every
-session automatically.** It holds the reader, the five reply types, verification, scope, the ask
-gates and the repo boundary, numbered `G1…`. This file holds only what is true of *this* project,
-numbered `P1…`. Nothing is stated in both places: if you are looking for a rule and it is not
-here, it is a `G` rule.
+**The general contract loads into every session automatically, through imports in
+`~/.claude/CLAUDE.md`.** It holds the reader, the five reply types, verification, scope, the ask
+gates and the repo boundary, numbered `G0…`. It is authored outside this repo, at
+`03 Resources/Context/Contract.md` in Stephen's vault — that is where a human edits it, not
+somewhere you can open. This file holds only what is true of *this* project, numbered `P1…`.
+Nothing is stated in both places: if you are looking for a rule and it is not here, it is a
+`G` rule.
 
-Agreed 2026-09-03/04, split 2026-09-04 (STE-83). It is expected to change after the first few
+Agreed 2026-09-03/04, split 2026-09-04 (STE-83); contract moved to the vault 2026-09-08. It is expected to change after the first few
 slices — say so if a rule is getting in the way rather than quietly dropping it.
 
 **The unit of work (G10) is a slice.** One slice, one session.
@@ -86,3 +88,25 @@ slice's review comment before it writes, and the review's third section is an in
 the whole mechanism by which a later spec is better than an earlier one: writing the specs just in
 time creates the opportunity and nothing more. If Linear is unreachable, say so and write the spec
 without it — never infer what the review would have said.
+
+## F. What is yours to decide
+
+*Section F added 2026-09-08, on `G14` being generalised out of the global contract.*
+
+**P13. G14's list, for this project.** Decide these and note them in one line. Do not ask:
+
+- schema shape and migration mechanics
+- how row-level security is implemented
+- code structure, file layout, naming
+- library choices where the stack is settled (ADR 0005, ADR 0006)
+- how a test is written, formatting, types
+- routine git inside a slice — branch, commit, PR
+
+**The list has hard edges, and they are set elsewhere.** Four things look like items on it and
+are not choices at all: the `packages/engine` dependency, `lib` and `types` boundary; the
+no-local-API-key rule; no scheduled jobs; and derived files (P5). The first three are in
+`CLAUDE.md` under *Architecture invariants* and *Conventions*. P13 does not reopen them, and a
+change to any of them is a `G13` ask.
+
+**Where the list is silent, `G14` still governs** — decide, note it in one line. This list is the
+settled cases, not the boundary of your discretion.

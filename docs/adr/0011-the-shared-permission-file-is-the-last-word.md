@@ -2,7 +2,7 @@
 
 - **Status:** Accepted, 2026-09-08
 - **Deciders:** Stephen
-- **Related:** STE-82, STE-80, STE-81, G13 (ask gates, in `~/.claude/CLAUDE.md`)
+- **Related:** STE-82, STE-80, STE-81, G13 (ask gates, in the general contract)
 - **Mechanism:** `scripts/check-local-permissions.mjs`, called from `.githooks/pre-commit`
 
 ## Context
