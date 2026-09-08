@@ -19,6 +19,7 @@ import {
   cookieHeader,
   createSession,
   findSession,
+  isSecureRequest,
   readCookie,
   revoke,
   slide,
@@ -83,7 +84,10 @@ export function authRoutes(env: Env) {
       .from('manager')
       .upsert({ user_id: session.user.id }, { onConflict: 'user_id' })
 
-    c.header('Set-Cookie', cookieHeader(token, env.isProduction))
+    // Derived from the request rather than from env.isProduction — see
+    // isSecureRequest for why that distinction cost a production defect.
+    const secure = isSecureRequest(c.req.url, c.req.header('X-Forwarded-Proto'))
+    c.header('Set-Cookie', cookieHeader(token, secure))
     return c.json({ status: 'signed_in' })
   })
 
@@ -91,7 +95,10 @@ export function authRoutes(env: Env) {
     const token = readCookie(c.req.header('Cookie'))
     const session = token ? await findSession(token) : null
     if (session) await revoke(session.id)
-    c.header('Set-Cookie', clearedCookieHeader(env.isProduction))
+    c.header(
+      'Set-Cookie',
+      clearedCookieHeader(isSecureRequest(c.req.url, c.req.header('X-Forwarded-Proto'))),
+    )
     return c.json({ status: 'signed_out' })
   })
 
