@@ -39,12 +39,23 @@ is the file that owns ticket identity (P1).
 
 **Do not close or modify the parent.** Not its title, not its body, not its status.
 
-**Test tickets follow the plan's Tests column, not a formula.** Where the column names a ticket
-(STE-58, STE-57, STE-61, STE-63), that ticket is where automated verification lives: attach one
-sub-issue to *it* per verification mechanism the spec names — unit, integration, Playwright — rather
-than creating a peer. Where the column reads `—`, the plan has already ruled that the slice carries
-its checklist inside the build ticket; add the checklist there as a sub-issue of the build ticket
-and create no test ticket at all.
+**Test tickets follow the plan's Tests column, not a formula.** **Read the whole cell**, and match
+it against these three values — never scan it for a `STE-` identifier, because two of the three
+contain one and they mean opposite things.
+
+| The Tests cell reads | What it means | What to do |
+| --- | --- | --- |
+| **A ticket of its own** — `STE-58`, `STE-57`, `STE-61`, `STE-63` | That ticket is where automated verification lives. | Attach one sub-issue **to that ticket** per verification mechanism the spec names — unit, integration, Playwright. Never a peer beside it. |
+| **`in STE-<n>`** — slice 10 reads `in STE-68` | The identifier is the slice's **build** ticket. The plan has ruled that the tests live inside it. | Handle exactly as `—` below. |
+| **`—`** | The slice carries its checklist inside the build ticket. | Add the checklist as a sub-issue of the build ticket. Create no test ticket. |
+
+The middle row is the trap. `in STE-68` names the same ticket the Build column names, so a cell
+read as an identifier turns the build ticket into a test ticket and hangs the slice's own tests off
+the wrong parent. **Compare the identifier against the Build column: if they match, it is the build
+ticket.**
+
+A cell in none of these three shapes means the plan has changed. Stop and say so (G3) rather than
+picking the closest row.
 
 ## Steps
 

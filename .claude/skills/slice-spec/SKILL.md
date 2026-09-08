@@ -62,6 +62,34 @@ across the codebase, the better, and one is the ideal. Decide this yourself and 
 of plain English each — where the slice is tested from, and what that seam sees. A seam is an
 implementation call (G14), so present the consequence, never the choice (G15).
 
+**With one exception, and it is a list rather than a judgement.** A seam that touches any of the
+following is hard to undo, and hard to undo is an ask gate (G13): stop, and put the consequence to
+Stephen before writing the spec.
+
+The first four are `docs/specs/architecture.md` §1's boundary table — the four things the system
+shape exists to stop:
+
+- **The client's single data path**, `apps/client/src/api.ts`. Moving off client rendering is a
+  rewrite of every data path rather than a configuration change (ADR 0005, *Consequences*); this
+  file is the one place that rewrite would have to happen, and a seam that reaches around it
+  removes the mitigation.
+- **The engine's zero-dependency, no-runtime-types rule** (ADR 0006). Adding a dependency, widening
+  its `lib`, or giving it `types` are the only three ways through the boundary, and each one
+  converts a mechanism back into a convention. `tests/engine-package-boundary.test.ts` asserts it.
+- **The row-level-security boundary** — every table with user data carrying a policy in its creating
+  migration, and the server reading user data as the signed-in user rather than with the service
+  key (ADR 0007).
+- **The server/client build split**, which is what stops a key reaching the browser.
+
+And two by their general form:
+
+- **Storage shape and units** — anything a migration would be needed to reverse. Money is an integer
+  in tenths of £1m throughout, and no float ever holds money.
+- **Anything else whose undo is a migration, or a rewrite of every call site.**
+
+Everything not on this list, decide and state. **The gate is this list, not a feeling** — a seam
+either touches one of these or it does not.
+
 **Blocking edges, declared before anything is published.** Name what must be settled before the
 slice can start. Three kinds, and they are not the same:
 
