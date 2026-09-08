@@ -158,10 +158,10 @@ supabase/.branches/
 # is worse than no backup — it looks authoritative in a diff.
 *.bak
 
-# Scratch copies of instructions that live outside this repo. `~/.claude/CLAUDE.md`
-# cannot be connected to Cowork (macOS protected location), so editing the G-rules
-# from there means a working copy lands in a folder that IS connected — here. Same
-# reasoning as *.bak above: a second copy of an always-loaded instructions file looks
-# authoritative in a diff and has no owner to keep it current. Work on them freely;
-# just never commit one.
+# Scratch copies of instructions that live outside this repo — the general
+# contract, and anything else that is always loaded. Same reasoning as *.bak
+# above: a second copy of an always-loaded instructions file looks authoritative
+# in a diff and has no owner to keep it current. That holds however the copy got
+# here, so this rule needs no story about where the original is kept. Work on
+# them freely; just never commit one.
 *.tmp.md
