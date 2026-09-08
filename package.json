@@ -10,6 +10,7 @@
     "copy:client": "rm -rf apps/server/dist/public && cp -R apps/client/dist apps/server/dist/public",
     "start": "pnpm --filter @fpl/server start",
     "test": "vitest run",
+    "coverage:criteria": "node scripts/criteria-coverage.mjs",
     "typecheck": "tsc -p packages/engine/tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
