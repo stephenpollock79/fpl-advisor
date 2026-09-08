@@ -73,6 +73,23 @@ CLAUDE.md's *Data rules* section is the authority and is not restated. What the 
 - **Attribution is a licence condition.** A visible link to fantasyfootballiq.app ships with the
   squad screen (STE-53, slice 3).
 
+**Two FFIQ fields that look more informative than they are.** Both established by STE-54, settled
+2026-09-08, and recorded here because the failure mode in each is silence.
+
+- **`predicted_starter` is a hard-constrained XI — exactly eleven per club, for all twenty clubs,
+  always.** It knows nothing about fixtures, so **a club that blanks still carries eleven predicted
+  starters.** It must never be read as "will play this gameweek", only "is in the notional XI". Same
+  shape as the fixture-count rule above, and it needs the same defensive test against fabricated
+  fixture data. It is also binary with no confidence attached, which is why rotation stays
+  model-judged (§7): a nailed-on starter and a coin-flip both read `true`.
+- **`xi_known` is inert.** `true` for all 654 rows on the day it was checked. It reads exactly like
+  the confidence flag that would have made the rotation decision go the other way, and it is not
+  one. Do not build on it without first re-checking that it ever goes false.
+
+`predicted_starter = false` on an otherwise available player is used as **a fact shown on the card
+and passed to the reasoning call** — not as a fifth judgement input and not as a substitute for the
+rotation rating. It adds no elicitation, so the four-input cap holds.
+
 ---
 
 ## 3 · Access and session
@@ -199,7 +216,7 @@ cancelled run is treated exactly as one that never started (F6-AC-20).
 | `run_id` | `uuid` | The run that produced or last revised it. |
 | `availability` | `numeric` | 0 / 0.25 / 0.5 / 0.75 / 1.0. |
 | `availability_source` | `text` | `fpl_feed` or `model_override`. F3-AC-30 requires the source be shown; a model override must cite contradicting evidence. |
-| `rotation` | `numeric` | Same five-point scale. |
+| `rotation` | `numeric` | Same five-point scale. **Model-judged, and staying that way** — STE-54 settled 2026-09-08 that FFIQ's `predicted_starter` cannot replace it (§2). So there is no `rotation_source` column: unlike availability, rotation has only one source. |
 | `projection_reliability`, `news_freshness` | `text` | `clear` / `elevated` / `unresolved`. |
 | `evidence` | `jsonb` | The quoted evidence per input. **Four inputs, no fifth** — the model may not invent one, and a fifth key is a defect. |
 
@@ -388,7 +405,7 @@ model supplies the inputs — and no code comment or user-facing string should c
 Named rather than folded in. Each carries a deadline, because a deferral without one is a decision
 made by default.
 
-### 8.1 Where purchase prices come from — **before slice 5, Friday 11 September**
+### 8.1 Where purchase prices come from — **STE-87, before slice 5, Friday 11 September**
 
 F3-AC-25 computes a transfer's cost from the outgoing player's **selling** price, which is the
 purchase price plus half of any profit since, rounded down. F3-AC-26 says purchase prices are
@@ -408,14 +425,7 @@ Until it is settled the column is nullable and cost falls back to current price.
 wrong in a specific, quiet way** — it overstates the cost of a player who has risen since purchase —
 so it must not be allowed to become the answer by nobody asking.
 
-### 8.2 Whether rotation is bought or judged — **today, STE-54, blocks slice 4**
-
-If FFIQ's `predicted_starter` is usable, rotation becomes a bought-in input and the engine drops one
-of its four judgement inputs. The schema consequence is small — `player_judgement.rotation` gains a
-`rotation_source` column exactly as availability has one — but the engine consequence is not, which
-is why the Build Plan puts the answer today rather than during Thursday's slice.
-
-### 8.3 Two probabilities the criteria use but never define — **before slice 5, Friday 11 September**
+### 8.2 Two probabilities the criteria use but never define — **STE-88, before slice 5, Friday 11 September**
 
 A vice call's net is "the difference multiplied by the probability the captain misses" (ENGINE). A
 bench-order call's net is "the difference in their effective points multiplied by the probability an
@@ -431,7 +441,7 @@ That reading is consistent and cheap, but it **is a reading**, not a quotation. 
 vice call's figure is wrong every week in the same direction, which is exactly the kind of thing
 nobody notices. Confirm it against the PRD before slice 5, or record it as a decision here.
 
-### 8.4 The engine has no acceptance criteria — **before Thursday, already flagged in the Build Plan**
+### 8.3 The engine has no acceptance criteria — **before Thursday, already flagged in the Build Plan**
 
 `ENGINE.criteria.md` carries zero `AC-` identifiers, so nothing in the engine is trackable by ADR
 0010's mechanism. Either identifiers are added to PRD 3.2 and the criteria regenerated, or it is
