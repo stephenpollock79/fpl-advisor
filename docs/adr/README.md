@@ -26,6 +26,7 @@ place rather than deleted, because the reference is correct and it is the file t
 | 0008 | The reasoning interface — Claude Agent SDK, two auth paths, one pinned model | New, 2026-09-08 |
 | 0009 | Model routing and cost control | New, 2026-09-08 |
 | 0010 | Criterion identifiers in test names | New, 2026-09-08 |
+| 0011 | The shared permission file is the last word | New, 2026-09-08 |
 
 **The Decision Log stays the fuller record.** An ADR states the decision and its consequences for the build;
 the Decision Log holds the argument, the alternatives and who decided what. Cite it by number (#68) rather

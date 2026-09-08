@@ -81,4 +81,16 @@ MSG
   fi
 fi
 
+# The third check is a different kind from the two above: not a derived file
+# against its source, but a permission file against the rule that it stays
+# empty. It runs here because .claude/settings.local.json is gitignored — no CI
+# job and no diff will ever show it, and a commit is the most frequent moment
+# where someone is present to read the output. STE-82, ADR 0011.
+
+if [ -f scripts/check-local-permissions.mjs ]; then
+  if ! node scripts/check-local-permissions.mjs; then
+    status=1
+  fi
+fi
+
 exit "$status"
