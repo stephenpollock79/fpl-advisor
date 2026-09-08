@@ -23,6 +23,10 @@ That one stays source-only — see the skills bullet in `CLAUDE.md`.
    `NFR.criteria.md` applies to every slice.
 3. **`docs/specs/architecture.md`** — 1–7 for shape and contracts, 8 for what is still open, 9 for
    migrations, 12 for what is deliberately not built.
+4. **The previous slice's review comment in Linear** (P12), on that slice's build ticket. Its third
+   section — what the last spec left open that the build had to decide — is an input to this one.
+   If there is no previous slice, or Linear is unreachable, say so in one line and carry on. Never
+   infer what the review would have said.
 
 Read the code the slice actually touches. Do not go looking for the PRD: the criteria files are its
 words, verbatim.
@@ -36,6 +40,11 @@ Name it back in one line before writing anything: number, name, build ticket, te
 
 The twelve slices and their ticket identity are fixed. If the work looks like it wants a thirteenth,
 or a different order, that is a Challenge (G3): say so, stop, and wait.
+
+**Then read the previous slice's review** (input 4). Name, in one line each, the gaps from its third
+section that this spec closes — and any it does not, with why. A gap that recurs here after showing
+up in two reviews is a rule `slice-spec` is missing: raise it as a proposed `P` rule (P11) rather
+than absorbing it silently into this one spec and losing it again.
 
 ### 2. Count the criteria in scope
 

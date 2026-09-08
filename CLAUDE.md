@@ -164,6 +164,11 @@ card. Do not widen its input to improve the prose.
   slice's spec into `docs/specs/`, and `slice-tickets` publishes that slice's tickets into Linear beneath
   the build ticket the plan already names. Both are in `.claude/skills/`, both are user-invoked only, and
   neither may re-slice, re-date, or create a top-level ticket for a slice.
+- **`slice-review` is this repo's own, adapted from nothing.** It reviews a finished slice from cold — in a
+  subagent, because the session that built the slice cannot review it — and posts what was built beyond the
+  spec, what the spec asked for and is missing, and what the spec left open, to the slice's build ticket. Also
+  in `.claude/skills/`, also user-invoked. It changes no files and gates nothing; the rules governing it are
+  `P10`–`P12`.
 - Cost: the model call is the expensive step. Cache what is stable within a gameweek, and never put raw
   `bootstrap-static` into a prompt.
 
