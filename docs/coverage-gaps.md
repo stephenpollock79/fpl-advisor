@@ -20,9 +20,15 @@ inferred from a green suite.
 `tests/rls/isolation.test.ts` runs the real migration files against real Postgres
 (pglite) and proves that a signed-in user cannot read another user's rows. What it
 cannot see is whether `fpl-advisor-dev` and `fpl-advisor-prod` actually have those
-migrations applied. That is a deployment fact, and the check is: apply the
-migration, then from the SQL editor confirm `manager` reports `rowsecurity = true`
-and lists three policies. Until slice 1 is deployed, this is unverified.
+migrations applied. That is a deployment fact.
+
+*Partly closed 2026-09-08.* Both migrations are applied to `fpl-advisor-dev`, and
+the grant posture was verified through the Data API: `service_role` and `anon` are
+both denied on `manager`, `anon` is denied on `app_session`, and `service_role`
+reads `app_session`. **Still unverified: the `authenticated` path**, because
+proving one signed-in user cannot read another's rows on dev needs two real
+accounts, and account creation is a deliberate choice under STE-51 rather than
+something to do in passing. Prod has neither migration.
 
 **F7-AC-10 — half of it is asserted.** `tests/auth/session.test.ts` covers the
 thirty-day window and the cookie's shape. "Renewed on each visit" is a database

@@ -86,6 +86,9 @@ describe('F7-AC-11 · per-user data isolation is enforced by the database', () =
   })
 
   it('F7-AC-11: a signed-in user cannot read another user\'s rows', async () => {
+    // If this throws "permission denied", the table has policies and no grant —
+    // security that never runs, because Postgres checks grants first. That is
+    // exactly what dev reported before the grants migration existed.
     for (const { table } of userTables()) {
       const asA = await db.as('authenticated', USER_A, `select user_id from public.${table}`)
       const asB = await db.as('authenticated', USER_B, `select user_id from public.${table}`)
@@ -130,18 +133,65 @@ describe('F7-AC-11 · per-user data isolation is enforced by the database', () =
   })
 })
 
-describe('ADR 0007 · why user data is never read with the service key', () => {
-  it('F7-AC-11: the service key bypasses every policy, so it must never carry a user read', async () => {
-    // This is the hazard stated three times in prose — CLAUDE.md, ADR 0007 and
-    // the architecture spec — asserted once. A server that reads user data with
-    // the service key passes every other test in this file while providing none
-    // of the isolation they describe.
-    //
-    // If this test ever fails, do not "fix" it: it failing means service_role
-    // stopped bypassing RLS, and the three documents need rewriting, not the code.
+describe('ADR 0007 · the service key cannot reach user data, by grant', () => {
+  it('F7-AC-11: service_role has no privilege on any user-data table', async () => {
+    // This was a naming convention in supabase.ts until dev proved grants are
+    // ours to state ("Automatically expose new tables" is off, STE-29). Now it is
+    // a property of the database: the service key cannot read `manager` at all,
+    // so ADR 0007's rule cannot be broken by a careless import.
     for (const { table } of userTables()) {
-      const rows = await db.as('service_role', null, `select user_id from public.${table}`)
-      expect(rows.length, `${table}: service_role did not bypass RLS`).toBeGreaterThan(1)
+      const [row] = await db.as<{ readable: boolean; writable: boolean }>(
+        'service_role',
+        null,
+        `select has_table_privilege('service_role', 'public.${table}', 'SELECT') as readable,
+                has_table_privilege('service_role', 'public.${table}', 'INSERT') as writable`,
+      )
+      expect(row?.readable, `${table}: service_role can read user data`).toBe(false)
+      expect(row?.writable, `${table}: service_role can write user data`).toBe(false)
+    }
+  })
+
+  it('F7-AC-11: service_role bypasses RLS, which is why the grant is withheld rather than the policy trusted', async () => {
+    // The reasoning behind the test above, asserted so it does not decay into
+    // folklore. If service_role were ever granted a user table, no policy on that
+    // table would apply to it.
+    const [row] = await db.as<{ bypasses: boolean }>(
+      'service_role',
+      null,
+      `select rolbypassrls as bypasses from pg_roles where rolname = 'service_role'`,
+    )
+    expect(row?.bypasses).toBe(true)
+  })
+
+  it('F7-AC-11: the signed-in user has exactly the privileges the app needs, and no more', async () => {
+    for (const { table } of userTables()) {
+      const [row] = await db.as<Record<string, boolean>>(
+        'service_role',
+        null,
+        `select has_table_privilege('authenticated', 'public.${table}', 'SELECT') as "select",
+                has_table_privilege('authenticated', 'public.${table}', 'DELETE') as "delete",
+                has_table_privilege('anon',          'public.${table}', 'SELECT') as "anonSelect"`,
+      )
+      expect(row?.['select'], `${table}: authenticated cannot read its own rows`).toBe(true)
+      // No delete policy exists, so a delete grant would be a privilege with
+      // nothing governing it.
+      expect(row?.['delete'], `${table}: authenticated can delete`).toBe(false)
+      expect(row?.['anonSelect'], `${table}: anon was granted a user table`).toBe(false)
+    }
+  })
+
+  it('F7-AC-11: service-posture tables are granted to service_role and to nobody else', async () => {
+    for (const { table } of tables.filter((t) => t.posture === 'service')) {
+      const [row] = await db.as<Record<string, boolean>>(
+        'service_role',
+        null,
+        `select has_table_privilege('service_role',  'public.${table}', 'SELECT') as "service",
+                has_table_privilege('authenticated', 'public.${table}', 'SELECT') as "authed",
+                has_table_privilege('anon',          'public.${table}', 'SELECT') as "anon"`,
+      )
+      expect(row?.['service'], `${table}: the server cannot read its own table`).toBe(true)
+      expect(row?.['authed'], `${table}: an authenticated user reached a service table`).toBe(false)
+      expect(row?.['anon'], `${table}: anon reached a service table`).toBe(false)
     }
   })
 })

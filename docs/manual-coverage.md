@@ -18,7 +18,7 @@ coverage script counting it would make the number a lie.
 
 | Criterion | Kind | Verified | Where the record is |
 | --- | --- | --- | --- |
-| — | — | — | No criterion has been verified by hand yet. |
+| F7-AC-11 | Human checklist | 2026-09-08 | Grant and RLS posture confirmed on `fpl-advisor-dev` through the Data API — see `docs/coverage-gaps.md` for the half still open. |
 
 Gaps in what the automated suite proves are recorded separately, in
 `docs/coverage-gaps.md` — a register of what *is* verified must not carry prose

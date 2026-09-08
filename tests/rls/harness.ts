@@ -32,9 +32,16 @@ const MIGRATIONS_DIR = fileURLToPath(new URL('../../supabase/migrations', import
  * - `anon`, `authenticated` and `service_role` are the real roles. `service_role`
  *   carries BYPASSRLS, which is precisely why ADR 0007 says user data must never
  *   be read with it.
- * - The default-privileges grant reproduces Supabase's own, so that a table
- *   protected only by "we never granted it" is not mistaken for one protected by
- *   a policy.
+ * - **No default privileges are granted, because this project's Supabase projects
+ *   have "Automatically expose new tables" switched OFF** (STE-29). A new table
+ *   therefore reaches no role until the migration grants it explicitly.
+ *
+ *   An earlier version of this file granted `all on tables` to all three roles by
+ *   default, which is what Supabase does when that setting is ON. It made the
+ *   suite optimistic: the migration passed every isolation test here while, on
+ *   dev, `service_role` itself got `permission denied for table manager`. Postgres
+ *   checks grants before policies, so RLS that nothing can reach proves nothing.
+ *   Modelling the project we actually have is the whole value of this harness.
  */
 const SUPABASE_PREAMBLE = `
   create schema if not exists auth;
@@ -59,9 +66,6 @@ const SUPABASE_PREAMBLE = `
 
   grant usage on schema public to anon, authenticated, service_role;
   grant usage on schema auth   to anon, authenticated, service_role;
-
-  alter default privileges in schema public
-    grant all on tables to anon, authenticated, service_role;
 `
 
 export type TestDb = {
