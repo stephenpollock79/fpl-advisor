@@ -32,10 +32,14 @@ On 8 September, during STE-75 and STE-93, two gates failed silently:
 In both cases the local file held a broader rule — `Bash(corepack pnpm *)`, `Bash(gh pr *)` — that
 covered the command, and that looked like the whole explanation.
 
-**It is not, and this ADR does not claim it is.** After the local file was emptied and the shared
-file widened, `npx --version` still ran without a prompt. `Bash(npx:*)` has been on the ask list
-since 4 September, so no reload and no local rule can account for it. See *Open* below: **why the
-ask gates are not firing is unresolved**, and this ADR's mechanism does not close it.
+**It is not, and this ADR does not claim it is.** The real cause was the session: the desktop app was
+running Claude Code 2.1.231, which did not enforce `ask` rules at all. Nothing in this repo was
+broken. That is traced in full below, because the wrong explanation was the more convincing one and
+is worth being able to recognise again.
+
+**So the mechanism in this ADR does not close the gap those two failures came through** — a version
+upgrade did. It closes a different one, which is real and remains: the local file accumulating rules
+that nobody reviews.
 
 **A third route belongs in the record, because it is the one nobody looks for.** A deny names the
 *tool* it guards, not the file. `Read(**/.env*)` stops the file-reading tool; a shell command reaches
@@ -87,45 +91,69 @@ would have passed it, and would need extending every time someone found a new ph
   The real protection for secrets remains that they are gitignored and live in Railway, not that a
   pattern list is complete.
 
-## Open — the ask gates are not firing, and this ADR does not fix that
+## Why the ask gates appeared not to fire — resolved, STE-94
 
-Everything above is worth having on its own terms. None of it is the thing that makes an `ask` rule
-stop for Stephen, because as of 8 September **no `ask` rule observably does**.
+Everything above is worth having on its own terms, but none of it was what made the two gates fail.
+Finding that out took three checks, and the order matters because the first two both pointed at the
+wrong culprit.
 
-What is established:
+**Check one — is it the local file?** No. With the local file emptied and the shared file widened,
+`npx --version` still ran with no prompt, and `Bash(npx:*)` had been on the ask list since
+4 September. Neither a stale reload nor a local rule could account for it. Meanwhile `deny` was
+verified working throughout: `Read(**)` is allowed, `Read(**/.env*)` is denied, the read is refused.
 
-- **Deny works.** `Read(**)` is allowed, `Read(**/.env*)` is denied, the read is refused. Tested.
-- **Ask does not prompt in this session type.** Tested with `Bash(npx:*)`, a rule present since
-  4 September, with the local file empty. It ran silently.
-- **The documentation says it should prompt.** *"Explicit ask rules still force a prompt"* appears in
-  five places on the permission-modes page, including specifically for auto mode.
+This is where the original diagnosis broke. The local file *did* hold broader rules covering both
+commands, which is a complete-looking explanation and a wrong one — the documentation says an
+explicit ask rule forces a prompt even in auto mode, in five separate places on the permission-modes
+page, so the silence needed explaining rather than rationalising.
 
-That check was run, and it prompted:
+**Check two — is it Claude Code, or this session?** A plain CLI session prompted immediately:
 
 ```
 Permission rule Bash(npx:*) requires confirmation for this command.
 ```
 
-**So the rules are right and the ask list is correct as written.** The gap is not in this repo. It
-is in the session that was doing the work: the Claude desktop app's Code tab, which had been running
-Claude Code **2.1.231** all day while the CLI had auto-updated to **2.1.263**.
+So the rules were right and the gap was not in this repo. It was the session doing the work: the
+Claude desktop app's Code tab, running Claude Code **2.1.231** while the CLI had auto-updated to
+**2.1.263**.
 
-That leaves two candidates, and they are still not separated:
+**Check three — the version, or the surface?**
 
-- **The version.** 2.1.231 did not enforce ask rules in that session type, and a restarted desktop
-  session on 2.1.263 would.
-- **The session type.** The desktop Code tab handles ask rules differently at any version.
+A fresh desktop session, started after quitting the app so it loads 2.1.263, separates them. It
+prompted:
 
-**The discriminating check is a fresh desktop session** — which will start on 2.1.263 — running the
-same `npx --version`. Prompts, and it was the version; silent, and it is the surface.
+```
+Allow Claude to run Check npx version?
+  npx --version
+[Deny]  [Allow once]
+```
 
-Until that is answered, one operating rule holds, and it is the practical half of this ADR:
+**It was the version.** 2.1.231 did not enforce `ask` rules in a desktop session; 2.1.263 does. The
+rules, the shared file and this project's configuration were correct throughout.
 
-> **A gate is only enforced in a session that prompts for it.** In a desktop session, treat the ask
-> list as documentation of intent rather than a control, and confirm anything on it in the
-> conversation before running it.
+Two details from that prompt are worth keeping, because they are the difference between the two
+versions and not incidental to it:
 
-Tracked in STE-94.
+- **The dialog offers only *Deny* and *Allow once*.** There is no "don't ask again", so a desktop
+  prompt cannot write a rule into `.claude/settings.local.json` at all. The CLI's third option can.
+- **The local file stayed empty across that session.** On 2.1.231 it had refilled within fifteen
+  minutes, twice, with rules nobody was shown — most tellingly `Bash(node
+  scripts/check-local-permissions.mjs)`, the check granting itself an exemption.
+
+So the accumulation this ADR guards against was, on the older version, both silent and fast. It is
+neither on the current one — which lowers the frequency the check has to catch, and does not change
+the case for it, since the CLI still offers the option that writes the file.
+
+### The rule that outlives the bug
+
+> **A gate is only enforced in a session that prompts for it.**
+
+Keep this. It was written for a version mismatch that is now fixed, but the fault it names is
+general: the ask list is a claim about what will happen, and only the running session decides
+whether it does. A session pinned to an old build, a surface that has not caught up, or a mode that
+adjudicates differently all produce the same silence, and none of them announce themselves.
+
+A session that has not shown a permission prompt is not evidence that nothing needed one.
 
 - **Scanning the local file for dangerous-looking rules.** Rejected above: it would have passed the
   rule that actually caused the failure.
