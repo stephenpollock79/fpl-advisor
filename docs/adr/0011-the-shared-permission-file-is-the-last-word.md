@@ -100,16 +100,32 @@ What is established:
 - **The documentation says it should prompt.** *"Explicit ask rules still force a prompt"* appears in
   five places on the permission-modes page, including specifically for auto mode.
 
-Observed behaviour and documented behaviour disagree, and the cause cannot be determined from inside
-a session. **The discriminating check is to run the same command from a plain CLI session**: open a
-terminal in the repository, run `claude`, and try `npx --version`.
+That check was run, and it prompted:
 
-- **If it prompts there**, the gap belongs to this session type — the Claude desktop app's Code tab —
-  and the rules are sound.
-- **If it does not**, `ask` is not a working gate here at all, and anything that must stop for
-  Stephen has to move to `deny` and be lifted deliberately, or run outside auto mode.
+```
+Permission rule Bash(npx:*) requires confirmation for this command.
+```
 
-Do not treat the ask list as an enforced gate until that check has been run. Tracked in STE-94.
+**So the rules are right and the ask list is correct as written.** The gap is not in this repo. It
+is in the session that was doing the work: the Claude desktop app's Code tab, which had been running
+Claude Code **2.1.231** all day while the CLI had auto-updated to **2.1.263**.
+
+That leaves two candidates, and they are still not separated:
+
+- **The version.** 2.1.231 did not enforce ask rules in that session type, and a restarted desktop
+  session on 2.1.263 would.
+- **The session type.** The desktop Code tab handles ask rules differently at any version.
+
+**The discriminating check is a fresh desktop session** — which will start on 2.1.263 — running the
+same `npx --version`. Prompts, and it was the version; silent, and it is the surface.
+
+Until that is answered, one operating rule holds, and it is the practical half of this ADR:
+
+> **A gate is only enforced in a session that prompts for it.** In a desktop session, treat the ask
+> list as documentation of intent rather than a control, and confirm anything on it in the
+> conversation before running it.
+
+Tracked in STE-94.
 
 - **Scanning the local file for dangerous-looking rules.** Rejected above: it would have passed the
   rule that actually caused the failure.
