@@ -34,6 +34,10 @@ const SPEC: Spec[] = [
   { name: 'FFIQ_API_KEY', required: false, why: 'Projections feed. Slice 3.' },
   { name: 'ANTHROPIC_API_KEY', required: false, why: 'Production reasoning path. Slice 4.' },
   { name: 'POSTHOG_KEY', required: false, why: 'Analytics.' },
+  // Not required: absent means 8787, which is a working default rather than a
+  // fault. Declared so /api/health can answer "what port is this on" without
+  // anyone opening the Railway dashboard — the question that prompted this.
+  { name: 'PORT', required: false, why: 'Injected by Railway. Absent means the 8787 fallback.' },
 ]
 
 export type Env = {
