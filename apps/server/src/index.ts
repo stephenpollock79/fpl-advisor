@@ -28,6 +28,11 @@ configureSupabase(env)
 const PORT = env.port
 const COMMIT = env.commit
 
+// The port we asked for and the port we got are different facts. Reporting the
+// second is the point: it is read from the listening socket, so it cannot be
+// wrong the way a configured value can.
+let boundPort: number | null = null
+
 const app = new Hono()
 
 app.get('/api/health', (c) =>
@@ -36,6 +41,11 @@ app.get('/api/health', (c) =>
     commit: COMMIT,
     uptimeSeconds: Math.round(process.uptime()),
     engine: engineIdentity(),
+    port: {
+      requested: PORT,
+      bound: boundPort,
+      source: process.env['PORT']?.trim() ? 'PORT' : 'fallback (PORT unset)',
+    },
     // Names and required-ness only, never values. Enough to see that a rollback
     // has left the process without something, without publishing a key.
     env: declaredVariables.map((v) => ({
@@ -68,5 +78,6 @@ if (existsSync(INDEX_HTML)) {
 }
 
 serve({ fetch: app.fetch, port: PORT }, (info) => {
+  boundPort = info.port
   console.log(`[server] listening on http://localhost:${info.port} (commit ${COMMIT})`)
 })
