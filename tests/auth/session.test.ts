@@ -50,9 +50,32 @@ describe('F7-AC-10 · the session is long and sliding', () => {
       expect(isSecureRequest('https://gaffercalls.com/api/auth/verify', undefined)).toBe(true)
     })
 
-    it('F7-AC-10: plain http on localhost is the only case that is not Secure', () => {
+    it('F7-AC-10: plain http to this machine is not Secure', () => {
       expect(isSecureRequest('http://localhost:8787/api/auth/verify', undefined)).toBe(false)
       expect(isSecureRequest('http://127.0.0.1:8787/api/auth/verify', undefined)).toBe(false)
+    })
+
+    it('F7-AC-10: plain http to a private network address is not Secure either', () => {
+      // A phone on the same Wi-Fi reaches the dev server by LAN address, not by
+      // localhost. Marking that cookie Secure means the browser silently discards
+      // it: the session row is created, the cookie never lands, and the screen
+      // reports "not signed in" with nothing to say why. Observed on 2026-09-09.
+      //
+      // Safe because production cannot look like this. Railway terminates TLS and
+      // sets x-forwarded-proto, which the branch above handles; a *direct* plain
+      // http request from a private range only ever happens in development.
+      expect(isSecureRequest('http://192.168.4.24:5173/api/auth/verify', undefined)).toBe(false)
+      expect(isSecureRequest('http://10.0.0.5:5173/api/auth/verify', undefined)).toBe(false)
+      expect(isSecureRequest('http://172.16.3.9:5173/api/auth/verify', undefined)).toBe(false)
+      expect(isSecureRequest('http://gaffer.local:5173/api/auth/verify', undefined)).toBe(false)
+    })
+
+    it('F7-AC-10: a proxy saying http still fails closed, whatever the address', () => {
+      // The header wins when present. A private address behind a proxy reporting
+      // plain http is a misconfiguration, and the cookie must not go out in clear
+      // on its say-so.
+      expect(isSecureRequest('http://192.168.4.24/api/auth/verify', 'https')).toBe(true)
+      expect(isSecureRequest('https://gaffercalls.com/api/auth/verify', undefined)).toBe(true)
     })
 
     it('F7-AC-10: anything else fails closed', () => {

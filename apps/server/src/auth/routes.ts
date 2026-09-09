@@ -45,9 +45,25 @@ export function authRoutes(env: Env) {
     // in the dashboard. Public sign-up being off at the provider is a setting;
     // this is the same statement in the code path, so neither alone is the
     // mechanism.
-    await authClient()
+    // **The response is identical. The log is not.**
+    //
+    // F7-AC-02 and F7-AC-05 govern what the caller can learn, and nothing here
+    // changes that — the same body goes back for a sent code, an unknown address
+    // and a provider failure alike. But swallowing the reason entirely left the
+    // operator as blind as the stranger: a code that never arrives looks exactly
+    // like a code that was never meant to arrive, and there was nothing to read.
+    //
+    // Server-side logging is invisible to the caller, so it costs the criterion
+    // nothing and is the only way to tell a delivery failure from a typo.
+    const { error } = await authClient()
       .auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
-      .catch(() => undefined)
+      .catch((cause: unknown) => ({ error: cause as { message?: string } }))
+
+    if (error) {
+      console.warn(`[auth] request-code did not send: ${error.message ?? String(error)}`)
+    } else {
+      console.log('[auth] request-code accepted by the provider')
+    }
 
     return c.json(SAME_ANSWER)
   })
