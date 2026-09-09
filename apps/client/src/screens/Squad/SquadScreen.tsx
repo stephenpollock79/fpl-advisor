@@ -216,13 +216,13 @@ function Pitch({ world }: { world: World }) {
  * forwards stand against it.
  */
 function PitchLines() {
-  const stroke = { fill: 'none', stroke: 'rgba(255,255,255,.30)', strokeWidth: 1 }
+  const stroke = { fill: 'none', stroke: 'rgba(255,255,255,.42)', strokeWidth: 1 }
   return (
     <svg className={styles.lines} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <rect x="1" y="1" width="98" height="98" {...stroke} />
       <rect x="26" y="1" width="48" height="17" {...stroke} />
       <rect x="38" y="1" width="24" height="7" {...stroke} />
-      <circle cx="50" cy="14" r="0.8" fill="rgba(255,255,255,.30)" />
+      <circle cx="50" cy="14" r="0.8" fill="rgba(255,255,255,.42)" />
       <path d="M34 18 A 20 9 0 0 0 66 18" {...stroke} />
       <line x1="1" y1="99" x2="99" y2="99" {...stroke} />
       <circle cx="50" cy="99" r="13" {...stroke} />

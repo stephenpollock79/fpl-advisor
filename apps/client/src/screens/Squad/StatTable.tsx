@@ -65,13 +65,18 @@ export function StatTable({ players }: { players: WorldPlayer[] }) {
                   {group.map((p) => (
                     <tr key={p.playerId}>
                       <th className={`${styles.player} ${styles.name}`} scope="row">
-                        <span className={styles.nameRow}>
-                          {displaySurname(p.surname)}
+                        {/* The badge is a sibling of the name-and-club block rather
+                            than sitting inside the name line, so it centres against
+                            both lines instead of hanging off the top one. */}
+                        <span className={styles.nameCell}>
+                          <span className={styles.nameLines}>
+                            <span className={styles.nameRow}>{displaySurname(p.surname)}</span>
+                            <span className={styles.club}>{p.clubShortName}</span>
+                          </span>
                           {!p.isStarter && p.benchOrder !== null ? (
                             <span className={styles.benchBadge}>{BENCH_BADGES[p.benchOrder]}</span>
                           ) : null}
                         </span>
-                        <span className={styles.club}>{p.clubShortName}</span>
                       </th>
                       <td className={availabilityClass(p)}>{availability(p)}</td>
                       <td className={`${styles.mono} ${bandClass(bandOf(p.form, BANDS.form))}`}>
