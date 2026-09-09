@@ -495,10 +495,26 @@ which it could reach one.
 | `SUPABASE_SERVICE_KEY` | Reference-table reads and the service tables. **Never user data** (§3). |
 | `ANTHROPIC_API_KEY` | The production reasoning path (ADR 0008). Absent locally, where the Claude Code session authenticates instead. |
 | `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON` | The pinned identifiers. Pinned in both paths, recorded per run. |
-| `FFIQ_API_KEY` | The projections feed. |
 | `SESSION_COOKIE_SECRET` | Signing the session cookie. |
 | `POSTHOG_KEY` | Analytics. |
 | `PORT`, `RAILWAY_GIT_COMMIT_SHA` | Injected by Railway. |
+
+**The Fantasy Football IQ feed is not in that table, and that is not an omission.** It is
+unauthenticated public HTTPS — two static files, no key, no token, no account, no developer portal
+and no `/api` path:
+
+```
+https://fantasyfootballiq.app/data/ffiq-projections-latest.json
+https://fantasyfootballiq.app/data/ffiq-fixture-ease-latest.json
+```
+
+Confirmed by live fetch on 2026-09-09: a bare `GET` with no headers returns `200` and 654 players
+across `gw_from` 4 to `gw_to` 9. The payload carries its own grant — *"Free to use in articles,
+videos, tools and research — attribution required: link to https://fantasyfootballiq.app"* — which
+is the licence STE-53's attribution link answers, and the reason attribution is a condition rather
+than a courtesy. **The absence of an API is the design, not an outage.** A search for a "Fantasy
+Football IQ API" returns nothing relevant; that is not evidence the feed has gone, and the check
+that settles it is fetching the URL, never searching for docs.
 
 ### 10.1 The Node version, and the one place it is pinned that this repo cannot hold
 
