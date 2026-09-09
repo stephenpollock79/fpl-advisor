@@ -183,6 +183,7 @@ and there never will be.
 | Column | Type | Notes |
 | --- | --- | --- |
 | `snapshot_id` | `uuid` | |
+| `user_id` | `uuid` | **Denormalised from the snapshot, and unable to disagree with it.** Added 2026-09-09 (STE-99). The isolation suite reads every user-posture table generically and expects a `user_id`; an exception here would need a special case in the one mechanism that catches a future table forgetting its policy. The duplication is safe because the foreign key is on the *pair* — `(snapshot_id, user_id)` references `squad_snapshot (id, user_id)` — so a row naming the wrong owner cannot be written at all. |
 | `player_id` | `int` | FPL's own player id. |
 | `is_starter` | `bool` | Eleven true, four false (F1-AC-01, F1-AC-02). |
 | `bench_order` | `int` null | 0 for the substitute goalkeeper, 1–3 for the outfield bench. |
