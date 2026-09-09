@@ -137,3 +137,19 @@ export async function fetchWorld(signal?: AbortSignal): Promise<World> {
   }
   return (await response.json()) as World
 }
+
+/**
+ * Ask for a six-digit code.
+ *
+ * **The response is identical whether or not the address has access** (F7-AC-02,
+ * F7-AC-05, F7-UP-01) — the server returns the same body either way and this
+ * cannot tell the difference, which is the point.
+ */
+export async function requestCode(email: string): Promise<void> {
+  await post("/api/auth/request-code", { email })
+}
+
+/** Exchange the code for a session. The cookie is set by the server. */
+export async function verifyCode(email: string, code: string): Promise<void> {
+  await post("/api/auth/verify", { email, code })
+}

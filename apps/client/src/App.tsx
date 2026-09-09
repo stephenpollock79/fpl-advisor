@@ -1,6 +1,7 @@
 import { WorldProvider, useWorld } from "./world/WorldContext"
 import { SquadScreen } from "./screens/Squad/SquadScreen"
 import { LinkTeam } from "./screens/LinkTeam/LinkTeam"
+import { SignIn } from "./screens/SignIn/SignIn"
 import { type Me, fetchMe } from "./api"
 import { useCallback, useEffect, useState } from "react"
 
@@ -33,7 +34,8 @@ export function App() {
 
   if (failed) return <Note>Could not reach the app. Try again in a moment.</Note>
   if (me === undefined) return <Note>Loading…</Note>
-  if (me === null) return <Note>Not signed in. The log-in screen arrives with slice 8 (F7-AC-16).</Note>
+  // A stand-in, not the Landing screen — see screens/SignIn. Slice 8 replaces it.
+  if (me === null) return <SignIn onSignedIn={() => void load()} />
   if (me.needsTeamLink) return <LinkTeam onLinked={() => void load()} />
 
   return (
