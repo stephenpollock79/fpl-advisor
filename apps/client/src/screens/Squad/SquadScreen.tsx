@@ -104,7 +104,7 @@ function Header({ world }: { world: World }) {
         </div>
         <div className={styles.factRight}>
           <div className={styles.eyebrow}>Balance</div>
-          <div className={styles.figure}>{formatMoney(snapshot.bankTenths)}</div>
+          <div className={`${styles.figure} ${styles.balance}`}>{formatMoney(snapshot.bankTenths)}</div>
         </div>
         <div className={styles.factRight}>
           <div className={styles.eyebrow}>Free transfers</div>

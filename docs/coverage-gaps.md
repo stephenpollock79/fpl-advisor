@@ -96,3 +96,16 @@ exists rather than that isolation holds. **F1-AC-07 must not be read as fully
 verified**, and the check that would settle it is reading the count from the F2
 screenshot, which states it. STE-110 owns the decision; `docs/specs/architecture.md`
 §8.4 carries the detail.
+
+**F1-AC-10 — the shirt number is unavailable, not unbuilt.** The criterion asks
+each slot to show "kit, shirt number and surname". Kit and surname are there.
+**No data source has a shirt number.** FPL's `bootstrap-static` carries
+`squad_number` and it is `null` for all 654 players — checked 2026-09-09, and
+empty rather than sparse. Fantasy Football IQ has no number-shaped field at all.
+The design prototype shows numbers because its data is invented.
+
+`PlayerSlot` reads the field and renders it when present, so the code is already
+right and the slot is simply blank; if FPL populates `squad_number` later in the
+season the numbers appear with no change. **F1-AC-10 must not be read as fully
+satisfied**, and the reason is data availability rather than anything unbuilt.
+STE-112 carries the decision.
