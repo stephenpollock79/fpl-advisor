@@ -129,3 +129,21 @@ passes a normal week and fails the first exceptional one. The tests cover the
 structure. The appearance waits for a real blank, which this early in a season
 means waiting.
 
+**F7-AC-11 — the live check exercises one table, not every user table.**
+`scripts/live-rls-check.mjs` proves isolation on the real HTTP path against a
+deployed project, which the pglite suite cannot. But it queries **`manager` and
+nothing else.** The pglite suite is the generic one — it enumerates every table
+with a user posture and would fail on a new one that forgot its policy — and it
+runs against the migration files rather than against a project.
+
+So after slice 3 the two halves cover different things and neither covers the
+overlap. `squad_snapshot` and `squad_player` are proven by the suite to be
+isolated *by their migration*, and proven by nothing to be isolated *on dev or
+prod*. Both were re-run on 2026-09-09 after slice 3 deployed, both passed, and
+that pass does not mean what STE-108 asked it to mean.
+
+**Found by following STE-108's own instruction**, which said to re-run the live
+check when the new tables landed. The instruction was right; the tool it named
+does not do what the instruction assumed. Extending the script to walk the user
+tables the way the suite already does is the fix, and it is STE-108's to carry.
+

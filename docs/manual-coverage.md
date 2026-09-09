@@ -25,6 +25,7 @@ coverage script counting it would make the number a lie.
 | Criterion | Kind | Verified | Where the record is |
 | --- | --- | --- | --- |
 | F7-AC-11 | Human checklist | 2026-09-08 | Two real accounts on `fpl-advisor-dev`, signed in with real codes: neither could read, update or impersonate the other. Repeatable with `pnpm check:rls-live`. |
+| F7-AC-11 | Human checklist | 2026-09-09 (2) | Re-run against `fpl-advisor-prod` after slice 3 deployed and its migration was applied there — `node scripts/live-rls-check.mjs --project=prod`, 11/11. **Covers `manager` only.** The script queries that one table, so this says nothing about `squad_snapshot` or `squad_player` on a deployed project; see `docs/coverage-gaps.md`. |
 | F7-AC-11 | Human checklist | 2026-09-09 | The same eleven checks against **`fpl-advisor-prod`**, the project serving gaffercalls.com — `node scripts/live-rls-check.mjs --project=prod`. 11/11. Asking for another user's row by id returns nothing, so the filter is not the protection; the service key is denied on user data entirely, withheld by grant; both throwaway accounts deleted afterwards. |
 | F7-AC-04 | Human checklist | 2026-09-08 | A six-digit code arrived by email and was typed in. No tappable link, so no mail-client browser holds the session. Stephen received and read it. |
 | F1-AC-21 | Human checklist | 2026-09-09 | The pitch carries the fixture pill alone, with no difficulty bars on any slot, and the bars appear only in the stat table. Checked on both screens. |
