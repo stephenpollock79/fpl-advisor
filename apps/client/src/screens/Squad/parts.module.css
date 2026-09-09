@@ -79,8 +79,8 @@
 
 .captain { background: var(--ink); color: #fff; }
 
-.slot { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 70px; }
-.kit { position: relative; width: 38px; height: 34px; }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 66px; }
+.kit { position: relative; width: 34px; height: 30px; }
 .shirt { width: 100%; height: 100%; filter: drop-shadow(0 1px 1px rgb(0 0 0 / 22%)); }
 
 .shirtNumber {
@@ -90,10 +90,10 @@
 }
 
 .surname {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--ink);
-  max-width: 70px;
+  max-width: 66px;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;

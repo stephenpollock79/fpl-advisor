@@ -9,7 +9,7 @@
 .screen {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   padding:
     calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
     calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
@@ -150,18 +150,19 @@
 /* Goal at the top, forwards nearest the halfway line at the bottom.
    Banded, so the pitch reads as a pitch rather than a green rectangle.
 
-   Height is capped rather than left to flex. The whole screen must fit 844px
-   without scrolling (handoff, Hard constraints 2), and a pitch that takes all the
-   space left over pushes the bench off the bottom on a shorter handset. */
+   **Not capped at a pixel height.** It was, at 380px, and that was wrong for the
+   reason a simulator cannot show: on a real handset the visible viewport falls far
+   short of 844, because the browser address bar and toolbar take a chunk of it. A
+   fixed cap plus everything else then overflowed and clipped the forwards. 100dvh
+   already tracks the real figure, so the pitch takes what is left and no more. */
 .pitch {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  max-height: 380px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 24px 4px 30px;
+  padding: 20px 4px 24px;
   border-radius: var(--radius-card);
   overflow: hidden;
   background:
@@ -212,13 +213,13 @@
   gap: 3px;
 }
 
-.row { position: relative; display: flex; justify-content: space-evenly; align-items: flex-start; }
+.row { position: relative; flex: 1 1 0; min-height: 0; display: flex; justify-content: space-evenly; align-items: center; }
 
 .bench {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card);
   background: var(--card);
-  padding: 7px 8px 9px;
+  padding: 6px 7px 7px;
 }
 
 .benchLabel {
@@ -234,7 +235,7 @@
 }
 
 .benchPoints { color: var(--ink-3); }
-.benchRow { display: flex; gap: 6px; }
+.benchRow { display: flex; gap: 5px; }
 
 .benchCard {
   flex: 1;
@@ -242,7 +243,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 6px 2px 7px;
+  padding: 4px 2px 5px;
   border-radius: 10px;
   background: var(--warm-2);
   border: 1px solid var(--border-light);

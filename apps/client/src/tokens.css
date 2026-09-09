@@ -54,6 +54,9 @@
 html,
 body {
   margin: 0;
+  /* No screen scrolls as a whole (handoff, Hard constraints 2). Without this the
+     page still rubber-bands on iOS, which reads as a scroll the design forbids. */
+  overscroll-behavior: none;
   background: var(--screen);
   color: var(--ink);
   font-family: var(--font-body);
