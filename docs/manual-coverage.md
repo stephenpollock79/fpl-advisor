@@ -12,6 +12,12 @@ criterion this project deliberately does not automate:
 - **Eval** — anything graded on model output rather than asserted. What the evals actually grade is
   still open (STE-37).
 
+**One criterion per row.** `scripts/criteria-coverage.mjs` reads the first cell
+and expects a single identifier in it; a row naming two is skipped, and until
+2026-09-09 it was skipped *silently*. The script now warns about a row it cannot
+read, but the format is still one per row — which is better anyway, because each
+criterion then carries the note describing what was actually checked for it.
+
 A row here is a claim that the criterion **has been verified**, with the date and where the record
 is. It is not a plan to verify it later — an unverified criterion belongs in neither list, and the
 coverage script counting it would make the number a lie.
@@ -21,6 +27,16 @@ coverage script counting it would make the number a lie.
 | F7-AC-11 | Human checklist | 2026-09-08 | Two real accounts on `fpl-advisor-dev`, signed in with real codes: neither could read, update or impersonate the other. Repeatable with `pnpm check:rls-live`. |
 | F7-AC-11 | Human checklist | 2026-09-09 | The same eleven checks against **`fpl-advisor-prod`**, the project serving gaffercalls.com — `node scripts/live-rls-check.mjs --project=prod`. 11/11. Asking for another user's row by id returns nothing, so the filter is not the protection; the service key is denied on user data entirely, withheld by grant; both throwaway accounts deleted afterwards. |
 | F7-AC-04 | Human checklist | 2026-09-08 | A six-digit code arrived by email and was typed in. No tappable link, so no mail-client browser holds the session. Stephen received and read it. |
+| F1-AC-21 | Human checklist | 2026-09-09 | The pitch carries the fixture pill alone, with no difficulty bars on any slot, and the bars appear only in the stat table. Checked on both screens. |
+| F1-AC-04 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. Eleven starters visible with no page scroll. Took four attempts — a fixed pitch height, then shrinkable rows that overlapped each other, then badges reaching into the row above. |
+| F1-AC-05 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. The four-player bench card visible at the same time as the eleven, without scrolling. |
+| F1-AC-09 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. The *Update* control sits at the end of the chip row. It opens nothing yet — the squad-correction flow is F2, slice 9 — so only its presence and position are claimed here. |
+| F1-AC-10 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. Kit, shirt number and surname on every slot. Numbers only after STE-112 found a source for them; before that every kit was blank. |
+| F1-AC-14 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. No price appears anywhere on the pitch. The component is not given one, so it cannot show one by accident. |
+| F1-AC-15 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. All ten master columns present, reached by scrolling the table sideways. |
+| F1-AC-16 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. The player column stays pinned to the left while the table scrolls sideways. |
+| F1-AC-17 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. The header row holds position while rows scroll vertically, and the position headings stay put rather than sliding off. |
+| F1-AC-18 | Human checklist | 2026-09-09 | Checked on an iPhone in Chrome at the real viewport, not a simulator. Bench players carry S, S1, S2 and S3 beside the name in the stat table. |
 | F7-AC-14 | Human checklist | 2026-09-09 | Real team ID entered on dev by Stephen. The confirm card named the team back, and accepting it stored the link — the screen then read "Linked to Noggingham Forest". The automated tests cover the mapping and that resolve stores nothing; this covers the half only a person can see, that the team is actually shown back before anything is written. |
 | F7-AC-10 | Human checklist | 2026-09-08 | Full sign-in on dev: `expires_at` moved from 12:29:31 to 12:29:51 across two `/api/me` calls, so the window renews on each visit. The automated test covers only the cookie's shape. |
 

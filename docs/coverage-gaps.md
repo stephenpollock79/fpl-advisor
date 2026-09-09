@@ -97,15 +97,35 @@ verified**, and the check that would settle it is reading the count from the F2
 screenshot, which states it. STE-110 owns the decision; `docs/specs/architecture.md`
 §8.4 carries the detail.
 
-**F1-AC-10 — the shirt number is unavailable, not unbuilt.** The criterion asks
-each slot to show "kit, shirt number and surname". Kit and surname are there.
-**No data source has a shirt number.** FPL's `bootstrap-static` carries
-`squad_number` and it is `null` for all 654 players — checked 2026-09-09, and
-empty rather than sparse. Fantasy Football IQ has no number-shaped field at all.
-The design prototype shows numbers because its data is invented.
+**F1-AC-10 — closed 2026-09-09.** This entry recorded that no data source had a
+shirt number: FPL leaves `squad_number` null for all 654 players and FFIQ has no
+number-shaped field. That was true of the two feeds and still is. It was not true
+of the world — the Premier League public API carries the numbers and joins to FPL
+exactly on `opta_code`, so 530 players now have one and every regular starter
+does (STE-112). Kept rather than deleted, because the reasoning that the criterion
+could not be met was the thing that was wrong, and the correction is the useful
+part of the record.
 
-`PlayerSlot` reads the field and renders it when present, so the code is already
-right and the slot is simply blank; if FPL populates `squad_number` later in the
-season the numbers appear with no change. **F1-AC-10 must not be read as fully
-satisfied**, and the reason is data availability rather than anything unbuilt.
-STE-112 carries the decision.
+**F1-AC-12 — the injury and doubt markers have never been seen.** The code renders
+a red INJ marker and an amber percentage, and both appear in the design prototype.
+**Neither has appeared in the real app**, because every player in the squad has
+been fully fit on every read so far. The criterion is built and unobserved: a wrong
+colour, a clipped badge or a marker in the wrong corner would all have passed every
+check made today.
+
+It cannot be forced honestly, since the app shows what the feed says. This closes
+the first week a squad member picks up a knock, and not before.
+
+**F1-UP-01 and F1-UP-02 — the blank and double states are tested and unseen.** The
+arithmetic is covered thoroughly against fabricated fixtures: a blank projects zero
+whatever the projections feed carries, a double is never summed, and either is
+logged. **What no test covers is what they look like.** The NO GAME pill on its
+dashed border, the empty dashed difficulty track, the green multiplier and the
+corner count on the pitch have all rendered only in code — gameweek 4 has no blanks
+and no doubles, and the ingestion log said so by staying silent.
+
+This is the case PRD 3.5 warns about, seen from the other side: a structure that
+passes a normal week and fails the first exceptional one. The tests cover the
+structure. The appearance waits for a real blank, which this early in a season
+means waiting.
+

@@ -61,7 +61,23 @@ try {
   // been. That is not hypothetical — it happened, and moved F7 from 2 to 5.
   for (const line of readFileSync(MANUAL_REGISTER, 'utf8').split('\n')) {
     const row = line.match(/^\|\s*(F\d-(?:AC|UP|RS)-\d{2})\s*\|/)
-    if (row) claim(row[1], 'docs/manual-coverage.md')
+    if (row) {
+      claim(row[1], 'docs/manual-coverage.md')
+      continue
+    }
+
+    // A row that names identifiers but does not put exactly one in the first cell
+    // is skipped — and used to be skipped in silence, which is worse than being
+    // absent. Five rows were written on 2026-09-09 naming two to four criteria
+    // each; every one counted for nothing and the report looked identical.
+    if (/^\|/.test(line) && IDENTIFIER.test(line)) {
+      IDENTIFIER.lastIndex = 0
+      console.warn(
+        `! docs/manual-coverage.md: this row names criteria but is not counted — ` +
+          `the first cell must hold exactly one identifier.\n  ${line.trim().slice(0, 100)}\n`,
+      )
+    }
+    IDENTIFIER.lastIndex = 0
   }
 } catch {
   console.warn('! docs/manual-coverage.md is missing — human-checklist coverage cannot be counted.\n')
