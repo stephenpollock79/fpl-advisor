@@ -129,3 +129,34 @@ passes a normal week and fails the first exceptional one. The tests cover the
 structure. The appearance waits for a real blank, which this early in a season
 means waiting.
 
+**F7-AC-11 — the live check exercised one table, not every user table.**
+`scripts/live-rls-check.mjs` proved isolation on the real HTTP path against a
+deployed project, which the pglite suite cannot. But it queried **`manager` and
+nothing else**, so after slice 3 it reported a clean 11/11 while covering neither
+squad table. Found by following STE-108's own instruction to re-run it: the
+instruction was right, the tool it named did not do what the instruction assumed.
+
+**Closed 2026-09-09 (STE-108).** The table list is now read from the posture
+comments in the migrations — the same source the pglite suite classifies by — so
+a user table with no seed recipe **fails** the run rather than being skipped.
+Dev and prod both passed 28/28 across all three user tables.
+
+**What remains open, and it is narrower.** Prod cannot currently be re-checked
+for `squad_snapshot` and `squad_player`. Both point at reference rows, prod's
+reference tables are empty until an ingest runs there, and the script may not
+create them: those tables grant the service key `select, insert, update` and no
+`delete`, so a seeded row cannot be removed again. That is the grant working as
+designed — ingestion upserts and never deletes — and weakening it so a test can
+tidy up would trade a real constraint for a convenience. **The prod run above
+did seed, and could not clean up after itself; the rows were removed separately
+and the script was changed to refuse rather than seed.** Prod becomes verifiable
+again the moment it holds reference data, which it needs before the app works
+there at all.
+
+One thing the extended check still cannot see: a **user** table created outside a
+migration. It cross-checks the project's tables against the migrations, but that
+listing is served to secret keys only, and ADR 0007 withholds the service key's
+grant on user data — so the cross-check covers the reference and service tables
+and not the user ones. The convention that schema changes never happen through
+the console is what carries that case, and a convention is not a mechanism.
+
