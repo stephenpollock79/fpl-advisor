@@ -166,32 +166,13 @@
    bottom, where the forwards stand. */
 .lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
+/* Everything that sits on the grass as a small white pill: the gameweek badge,
+   the projected total, the blank/double counts and the formation.
+   One rule, because three copies is how the formation drifted to 11px while the
+   other two stayed at 9. */
 .gwBadge,
-.xpts {
-  position: absolute;
-  top: 7px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: var(--card);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--ink-3);
-}
-
-.gwBadge { left: 8px; }
-.xpts { right: 8px; }
-
-.corner {
-  position: absolute;
-  top: 30px;
-  right: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-}
-
+.xpts,
+.formation,
 .corner span {
   padding: 2px 7px;
   border-radius: 6px;
@@ -202,17 +183,25 @@
   color: var(--ink-3);
 }
 
+/* Position only, below this line. */
+.gwBadge,
+.xpts,
 .formation {
   position: absolute;
-  bottom: 7px;
-  right: 10px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: var(--card);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--ink-3);
+}
+
+.gwBadge { top: 7px; left: 8px; }
+.xpts { top: 7px; right: 8px; }
+.formation { bottom: 7px; right: 10px; }
+
+.corner {
+  position: absolute;
+  top: 30px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
 }
 
 .row { position: relative; display: flex; justify-content: space-evenly; align-items: flex-start; }
