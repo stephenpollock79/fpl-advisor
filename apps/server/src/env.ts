@@ -22,6 +22,11 @@ type Spec = { name: string; required: boolean; why: string }
 // Required means "this build reads it". Variables for slices not yet built are
 // listed as not-required deliberately — demanding a key nothing uses would block
 // boot for no reason and teach everyone to work around this check.
+//
+// The Fantasy Football IQ projections feed is absent from this list on purpose:
+// it is unauthenticated public HTTPS, two static files under
+// fantasyfootballiq.app/data/, and there is no key to declare. Verified by live
+// fetch 2026-09-09. See architecture.md §10 — do not add one back.
 const SPEC: Spec[] = [
   { name: 'SUPABASE_URL', required: true, why: 'Auth and every database read.' },
   { name: 'SUPABASE_ANON_KEY', required: true, why: 'Sending and verifying the six-digit code.' },
@@ -31,7 +36,6 @@ const SPEC: Spec[] = [
     why: 'Reference tables and the session table. Never user data — see ADR 0007.',
   },
   { name: 'SESSION_COOKIE_SECRET', required: true, why: 'Signing the session cookie.' },
-  { name: 'FFIQ_API_KEY', required: false, why: 'Projections feed. Slice 3.' },
   { name: 'ANTHROPIC_API_KEY', required: false, why: 'Production reasoning path. Slice 4.' },
   { name: 'POSTHOG_KEY', required: false, why: 'Analytics.' },
   // Not required: absent means 8787, which is a working default rather than a
