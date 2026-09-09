@@ -1,120 +1,91 @@
 /* Shared pieces. Values from docs/design/handoff/README.md. */
 
-/* Fixture difficulty 1->5, straight from the handoff's token table. */
-.kind   { --pill-ink: #0e8a4e; --pill-bg: rgb(16 152 90 / 12%); --pill-edge: #bfdccb; }
-.even   { --pill-ink: #8a6a28; --pill-bg: rgb(194 130 15 / 12%); --pill-edge: rgb(194 130 15 / 38%); }
-.tough  { --pill-ink: #a32c3c; --pill-bg: rgb(224 58 78 / 10%); --pill-edge: #f0d3d7; }
+/* Fixture difficulty 1->5. The pill sits on a SOLID card ground, not a tint:
+   on the pitch a translucent tint over green renders the text unreadable, which
+   it did. Difficulty is carried by the border and the ink instead. */
+.kind  { --pill-ink: #0a6e3d; --pill-edge: #86be9f; }
+.even  { --pill-ink: #8a6a28; --pill-edge: rgb(194 130 15 / 55%); }
+.tough { --pill-ink: #a32c3c; --pill-edge: #f0d3d7; }
 
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 6px;
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--pill-ink, var(--muted));
-  background: var(--pill-bg, var(--warm-2));
+  background: var(--card);
   border: 1px solid var(--pill-edge, var(--border-light));
   white-space: nowrap;
 }
 
 /* A blank is grey on a dashed border. The marker is NOT dimmed: dimming means
-   rejected or spent, and borrowing that meaning here would be a lie. */
-.blank {
-  color: var(--muted);
-  background: transparent;
-  border-style: dashed;
-  border-color: var(--border-strong);
-}
+   rejected or spent, and borrowing that meaning here would say something untrue. */
+.blank { color: var(--muted); border-style: dashed; border-color: var(--border-strong); }
 
-.venue { opacity: 0.75; }
 .double { color: var(--green-dark); font-weight: 800; }
 
-/* Three hairline bars — stat table only, never a pitch slot (F1-AC-21). */
-.bars { display: flex; gap: 2px; margin-top: 3px; }
+/* Three bars — stat table only, never a pitch slot (F1-AC-21). */
+.bars { display: flex; gap: 3px; margin-top: 4px; }
 
-.bar {
-  display: flex;
-  gap: 1px;
-  width: 14px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--pill-ink, var(--border-strong));
-}
+.bar { width: 15px; height: 4px; border-radius: 2px; background: var(--pill-ink, var(--border-strong)); }
+.barSplit { display: flex; gap: 1px; width: 15px; height: 4px; }
+.barHalf { flex: 1; height: 100%; border-radius: 2px; background: var(--pill-ink); }
 
 /* A blank is an empty dashed track, not a bar of difficulty zero. */
-.barBlank {
-  background: transparent;
-  border: 1px dashed var(--border-strong);
-  height: 5px;
-}
-
-.barHalf { flex: 1; height: 100%; border-radius: 2px; background: var(--pill-ink); }
+.barBlank { background: transparent; border: 1px dashed var(--border-strong); height: 6px; }
 
 .marker {
   position: absolute;
-  top: -4px;
-  right: -6px;
-  padding: 0 3px;
-  border-radius: 5px;
+  top: -6px;
+  right: -10px;
+  padding: 1px 4px;
+  border-radius: 6px;
   font-family: var(--font-mono);
   font-size: 8px;
   font-weight: 800;
-  line-height: 1.5;
-  color: var(--card);
+  line-height: 1.4;
+  color: #fff;
+  border: 1.5px solid var(--card);
 }
 
 .injured { background: var(--red-disc); }
-.doubt { background: #b4791a; }
+.doubt { background: #e0a924; color: #3a3630; }
 
 .armband {
   position: absolute;
-  top: -4px;
-  left: -6px;
-  width: 13px;
-  height: 13px;
+  top: -6px;
+  left: -8px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   background: var(--card);
-  border: 1px solid var(--border-strong);
+  border: 1.5px solid var(--ink);
   color: var(--ink);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.captain { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.captain { background: var(--ink); color: #fff; }
 
-/* Bench badges: S for the substitute keeper, then S1, S2, S3 (F1-AC-18). */
-.benchBadge {
-  position: absolute;
-  bottom: -3px;
-  right: -6px;
-  min-width: 15px;
-  padding: 0 2px;
-  border-radius: 7px;
-  background: var(--red-disc);
-  color: var(--card);
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 800;
-  line-height: 1.6;
-  text-align: center;
-}
+.slot { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 72px; }
 
-.slot { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 62px; }
-
+/* A drawn kit, never a photograph (handoff, Hard constraints 4). The club's
+   colours come from squad/kits.ts, since neither feed carries them. */
 .kit {
   position: relative;
-  width: 30px;
-  height: 34px;
-  border-radius: 4px 4px 8px 8px;
-  background: linear-gradient(180deg, var(--card) 0%, var(--warm-2) 100%);
-  border: 1px solid var(--border-strong);
+  width: 34px;
+  height: 30px;
+  border-radius: 5px 5px 9px 9px;
+  border: 1px solid rgb(0 0 0 / 22%);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 18%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -122,16 +93,16 @@
 
 .shirtNumber {
   font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 800;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 28%);
 }
 
 .surname {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--ink);
-  max-width: 62px;
+  max-width: 72px;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;

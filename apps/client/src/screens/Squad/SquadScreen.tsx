@@ -11,33 +11,46 @@
  */
 
 import { useState } from 'react'
-import type { World, WorldPlayer } from '../../api'
+import type { World } from '../../api'
+import avatar from '../../assets/gaffer-avatar.png'
 import { benchInOrder, formationOf, startersByPosition, totalProjected } from '../../squad/format'
 import { PlayerSlot } from './parts'
 import { StatTable } from './StatTable'
 import styles from './SquadScreen.module.css'
 
-/** The bench badges, in the fixed order F1-AC-18 names. */
-const BENCH_BADGES = ['S', 'S1', 'S2', 'S3']
+/**
+ * The four chips in the order the design lays them out, with the labels it uses.
+ * Ordered here rather than taken from the payload, because object key order is
+ * not a promise and the row would silently reshuffle.
+ */
+const CHIPS: [string, string][] = [
+  ['wildcard', 'WC'],
+  ['freehit', 'FH'],
+  ['bboost', 'BB'],
+  ['3xc', 'TC'],
+]
+
+/** Bench slot labels: the substitute keeper, then outfield one, two, three. */
+const BENCH_SLOTS = ['GK', '1', '2', '3']
 
 export function SquadScreen({ world }: { world: World }) {
-  const [mode, setMode] = useState<'pitch' | 'stats'>('pitch')
+  const [mode, setMode] = useState<'pitch' | 'stat'>('pitch')
 
   return (
     <main className={styles.screen}>
       <Header world={world} />
 
-      <div className={styles.toggle} role="tablist">
-        {(['pitch', 'stats'] as const).map((m) => (
+      <div className={styles.modes} role="tablist">
+        {(['pitch', 'stat'] as const).map((m) => (
           <button
             key={m}
             role="tab"
             aria-selected={mode === m}
-            className={mode === m ? styles.toggleOn : styles.toggleOff}
+            className={mode === m ? styles.modeOn : styles.modeOff}
             onClick={() => setMode(m)}
             type="button"
           >
-            {m === 'pitch' ? 'Pitch' : 'Stats'}
+            {m === 'pitch' ? 'Pitch' : 'Stat'}
           </button>
         ))}
       </div>
@@ -52,46 +65,77 @@ export function SquadScreen({ world }: { world: World }) {
 /**
  * The header (F1-AC-06 to F1-AC-09).
  *
- * Deadline, Balance, free transfers, the four chips, and the *Update* control at
- * the end of the chip row. What Update opens is F2 and arrives in slice 9, so it
- * says so rather than pretending to work.
+ * Wordmark and avatar, the Squad / Assistant switch, then the deadline, Balance
+ * and free transfers, then the four chips with *Update* at the end of the row.
+ *
+ * The Assistant side of the switch is F8 and arrives in slice 8. It is shown
+ * because it is the app's primary navigation and its absence misreads the screen,
+ * and it is disabled because a control that looks live and is not is worse.
  */
 function Header({ world }: { world: World }) {
   const { snapshot, gameweek } = world
 
   return (
     <header className={styles.header}>
-      <div className={styles.headerTop}>
+      <div className={styles.brandRow}>
+        <img className={styles.avatar} src={avatar} alt="" />
+        <span className={styles.wordmark}>The Gaffer</span>
+        <div className={styles.sections} role="tablist">
+          <span className={styles.sectionOn} role="tab" aria-selected="true">
+            Squad
+          </span>
+          <button
+            className={styles.sectionOff}
+            role="tab"
+            aria-selected="false"
+            disabled
+            title="The Assistant arrives with slice 8"
+            type="button"
+          >
+            Assistant
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.facts}>
         <div>
-          <div className={styles.eyebrow}>{gameweek.name} deadline</div>
+          <div className={styles.eyebrow}>Deadline</div>
           <div className={styles.deadline}>{formatDeadline(gameweek.deadlineTime)}</div>
         </div>
-        <div className={styles.money}>
-          <div>
-            <div className={styles.eyebrow}>Balance</div>
-            <div className={styles.figure}>{formatMoney(snapshot.bankTenths)}</div>
-          </div>
-          <div>
-            <div className={styles.eyebrow}>Free transfers</div>
-            <div className={styles.figure}>{snapshot.freeTransfers}</div>
-          </div>
+        <div className={styles.factRight}>
+          <div className={styles.eyebrow}>Balance</div>
+          <div className={styles.figure}>{formatMoney(snapshot.bankTenths)}</div>
+        </div>
+        <div className={styles.factRight}>
+          <div className={styles.eyebrow}>Free transfers</div>
+          <div className={styles.figure}>{snapshot.freeTransfers}</div>
         </div>
       </div>
 
       <div className={styles.chips}>
-        {Object.entries(snapshot.chipsRemaining).map(([name, state]) => (
-          <span
-            key={name}
-            className={`${styles.chip} ${state === 'spent' ? styles.chipSpent : ''}`}
-            title={`${chipLabel(name)} — ${state}`}
-          >
-            {chipLabel(name)}
-            {/* State is never carried by colour alone (NFR Accessibility 3): a
-                spent chip is struck through as well as greyed. */}
-            {state === 'spent' ? <span className={styles.chipStrike} aria-hidden="true" /> : null}
+        {CHIPS.map(([key, label]) => {
+          const spent = snapshot.chipsRemaining[key] === 'spent'
+          return (
+            <span
+              key={key}
+              className={`${styles.chip} ${spent ? styles.chipSpent : ''}`}
+              title={`${label} — ${spent ? 'spent' : 'available'}`}
+            >
+              {label}
+              {/* Struck through as well as greyed: state is never carried by
+                  colour alone (NFR Accessibility 3). */}
+              {spent ? <span className={styles.chipStrike} aria-hidden="true" /> : null}
+            </span>
+          )
+        })}
+        <button
+          className={styles.update}
+          type="button"
+          title="Correct the squad from screenshots — arrives with slice 9"
+        >
+          <span className={styles.updateArrow} aria-hidden="true">
+            ↑
           </span>
-        ))}
-        <button className={styles.update} type="button" title="Correct the squad from screenshots — slice 9">
           Update
         </button>
       </div>
@@ -103,7 +147,7 @@ function Header({ world }: { world: World }) {
  * The pitch (F1-AC-04, F1-AC-05, F1-AC-10 to F1-AC-14).
  *
  * Goal at the top, keeper in the penalty area, forwards nearest the halfway line
- * at the bottom. All eleven starters and the four-player bench card are visible
+ * at the bottom. All eleven starters and the four-player bench card visible
  * without scrolling.
  *
  * **The pitch carries the fixture pill alone and no difficulty bars** (F1-AC-21),
@@ -116,40 +160,45 @@ function Pitch({ world }: { world: World }) {
   return (
     <>
       <div className={styles.pitch}>
-        <div className={styles.pitchMeta}>
-          <span className={styles.formation}>{formationOf(world.players)}</span>
-          <span className={styles.projected}>
-            {totalProjected(world.players, { starters: true }).toFixed(1)} xPts
-          </span>
-        </div>
+        <span className={styles.gwBadge}>GW{world.gameweek.id}</span>
+        <span className={styles.xpts}>
+          xPts {totalProjected(world.players, { starters: true }).toFixed(1)}
+        </span>
 
         {/* The corner figure counting blanks and doubles (F1-UP-01, F1-UP-02). */}
         {world.blanks > 0 || world.doubles > 0 ? (
           <div className={styles.corner}>
-            {world.blanks > 0 ? <span>{world.blanks} blank{world.blanks > 1 ? 's' : ''}</span> : null}
-            {world.doubles > 0 ? <span>{world.doubles} double{world.doubles > 1 ? 's' : ''}</span> : null}
+            {world.blanks > 0 ? <span>{world.blanks} blank</span> : null}
+            {world.doubles > 0 ? <span>{world.doubles} double</span> : null}
           </div>
         ) : null}
 
         {(['GKP', 'DEF', 'MID', 'FWD'] as const).map((position) => (
           <div key={position} className={styles.row}>
             {rows[position].map((p) => (
-              <PlayerSlot key={p.playerId} player={p as WorldPlayer} />
+              <PlayerSlot key={p.playerId} player={p} />
             ))}
           </div>
         ))}
+
+        <span className={styles.formation}>{formationOf(world.players).split('-').join(' - ')}</span>
       </div>
 
       <div className={styles.bench}>
         <div className={styles.benchLabel}>
           Bench
           <span className={styles.benchPoints}>
-            {totalProjected(world.players, { starters: false }).toFixed(1)} xPts
+            xPts {totalProjected(world.players, { starters: false }).toFixed(1)}
           </span>
         </div>
         <div className={styles.benchRow}>
           {bench.map((p, i) => (
-            <PlayerSlot key={p.playerId} player={p as WorldPlayer} benchBadge={BENCH_BADGES[i]} />
+            <div key={p.playerId} className={styles.benchCard}>
+              <div className={styles.benchSlot}>
+                {BENCH_SLOTS[i]} · {p.position}
+              </div>
+              <PlayerSlot player={p} />
+            </div>
           ))}
         </div>
       </div>
@@ -182,8 +231,4 @@ function formatDeadline(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function chipLabel(name: string): string {
-  return { wildcard: 'WC', freehit: 'FH', bboost: 'BB', '3xc': 'TC' }[name] ?? name.toUpperCase()
 }

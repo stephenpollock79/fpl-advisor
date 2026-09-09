@@ -1,7 +1,10 @@
-/* Scrolls on both axes — the only region of this screen that scrolls at all. */
+.wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; }
+
+/* The only region of this screen that scrolls, and it scrolls on both axes. */
 .scroller {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  max-height: 470px;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card);
   background: var(--card);
@@ -9,7 +12,7 @@
 
 .table { border-collapse: separate; border-spacing: 0; font-size: 11px; width: max-content; }
 
-/* Sticky on the vertical axis: the header row holds while rows scroll (F1-AC-17). */
+/* Sticky vertically: the header row holds while rows scroll (F1-AC-17). */
 .head {
   position: sticky;
   top: 0;
@@ -22,39 +25,97 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
-  padding: 6px 8px;
+  padding: 7px 9px;
   text-align: left;
   white-space: nowrap;
 }
 
-/* Frozen on the horizontal axis: the player column stays pinned (F1-AC-16).
-   z-index 3 on the corner cell so it outranks both sticky axes where they meet. */
-.player { position: sticky; left: 0; z-index: 1; background: var(--card); text-align: left; }
+/* Frozen horizontally: the player column stays pinned (F1-AC-16). A right border
+   marks where the frozen column ends, so the pinning reads as deliberate. */
+.player {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--card);
+  text-align: left;
+  border-right: 1px solid var(--border-light);
+  min-width: 96px;
+}
+
+/* The corner cell outranks both sticky axes where they meet. */
 .head.player { z-index: 3; background: var(--warm-2); }
+
+.groupRow { background: var(--warm-1); }
 
 .group {
   background: var(--warm-1);
+  padding: 0;
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* The label is pinned, not the cell. The cell spans the whole table width, so
+   sticky on it does nothing — sticky on the text keeps the group name on screen
+   while the row scrolls sideways underneath it. */
+.groupLabel {
+  position: sticky;
+  left: 0;
+  display: inline-block;
+  padding: 5px 9px;
   font-family: var(--font-mono);
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
-  padding: 4px 8px;
 }
 
-.name { padding: 6px 8px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--border-light); }
+.name { padding: 7px 9px; border-bottom: 1px solid var(--border-light); }
+.nameRow { display: flex; align-items: center; gap: 5px; font-weight: 700; color: var(--ink); font-size: 12px; }
 .club { display: block; font-family: var(--font-mono); font-size: 8px; font-weight: 700; color: var(--muted); }
 
+/* S / S1 / S2 / S3 — the bench, named here because nothing else on this screen
+   says who is on it (F1-AC-18). */
+.benchBadge {
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--red-disc);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 15px;
+  text-align: center;
+}
+
 .table td {
-  padding: 6px 8px;
+  padding: 7px 9px;
   border-bottom: 1px solid var(--border-light);
   color: var(--ink-3);
   white-space: nowrap;
   vertical-align: top;
 }
 
-.strong { font-family: var(--font-mono); font-weight: 700; color: var(--ink); }
+.mono { font-family: var(--font-mono); font-weight: 700; }
+.xpts { color: var(--ink); font-size: 12px; }
 
-.table tbody tr:nth-child(even) td { background: #ebf4ee; }
-.table tbody tr:nth-child(even) .player { background: #ebf4ee; }
+/* Availability reads as a word as well as a colour (NFR Accessibility 3). */
+.fit { color: var(--green-dark); }
+.doubtful { color: #8a6a28; }
+.out { color: var(--red-text); }
+
+.table tbody tr:nth-of-type(even) td { background: #ebf4ee; }
+.table tbody tr:nth-of-type(even) .player { background: #ebf4ee; }
+.groupRow td, .groupRow .player { background: var(--warm-1) !important; }
+
+.hint {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}

@@ -37,10 +37,16 @@ export function formationOf(players: FormattablePlayer[]): string {
   return `${by.DEF.length}-${by.MID.length}-${by.FWD.length}`
 }
 
-/** The starting eleven, grouped. Bench players are excluded entirely. */
-export function startersByPosition(
-  players: FormattablePlayer[],
-): Record<Position, FormattablePlayer[]> {
+/**
+ * The starting eleven, grouped. Bench players are excluded entirely.
+ *
+ * Generic so it returns what it was given. Narrowing to the minimal shape would
+ * force every caller to cast back to the type it already had, and a cast is where
+ * a wrong field slips through.
+ */
+export function startersByPosition<T extends FormattablePlayer>(
+  players: T[],
+): Record<Position, T[]> {
   const starters = players.filter((p) => p.isStarter)
   return {
     GKP: starters.filter((p) => p.position === 'GKP'),
@@ -57,7 +63,7 @@ export function startersByPosition(
  * Sorted rather than trusted. The order is a property of the squad, not of
  * whatever order the rows happened to arrive in.
  */
-export function benchInOrder(players: FormattablePlayer[]): FormattablePlayer[] {
+export function benchInOrder<T extends FormattablePlayer>(players: T[]): T[] {
   return players
     .filter((p) => !p.isStarter)
     .sort((a, b) => (a.benchOrder ?? 0) - (b.benchOrder ?? 0))
@@ -84,7 +90,7 @@ export function displaySurname(surname: string): string {
  * zero and absent look identical in a total and are not the same on a pitch.
  */
 export function totalProjected(
-  players: FormattablePlayer[],
+  players: readonly FormattablePlayer[],
   which: { starters: boolean },
 ): number {
   return players

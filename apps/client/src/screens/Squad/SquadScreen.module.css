@@ -4,15 +4,58 @@
 .screen {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px 8px;
+  gap: 10px;
+  padding: 8px 12px;
   height: 100dvh;
   overflow: hidden;
 }
 
-.header { display: flex; flex-direction: column; gap: 8px; }
-.headerTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-.money { display: flex; gap: 16px; text-align: right; }
+.header { display: flex; flex-direction: column; gap: 10px; }
+
+.brandRow { display: flex; align-items: center; gap: 8px; }
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid var(--green);
+  box-shadow: 0 0 0 2px rgb(16 152 90 / 16%);
+  object-fit: cover;
+}
+
+.wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 25px;
+  color: var(--green-dark);
+}
+
+/* Squad / Assistant — the app's primary navigation. */
+.sections { margin-left: auto; display: flex; gap: 3px; background: var(--warm-2); border-radius: 9px; padding: 3px; }
+
+.sectionOn,
+.sectionOff {
+  padding: 5px 11px;
+  border: none;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sectionOn { background: var(--green); color: #fff; }
+.sectionOff { background: transparent; color: var(--muted); cursor: not-allowed; }
+
+.facts {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.factRight { text-align: right; }
 
 .eyebrow {
   font-family: var(--font-mono);
@@ -21,65 +64,83 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
+  margin-bottom: 2px;
 }
 
-.deadline { font-size: 13px; font-weight: 800; color: var(--ink); }
-.figure { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--ink); }
+/* The deadline is the one figure with a clock on it, and it reads warm. */
+.deadline { font-size: 14px; font-weight: 800; color: #b4791a; }
+.figure { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--ink); }
 
-.chips { display: flex; align-items: center; gap: 6px; }
+.chips { display: flex; align-items: center; gap: 8px; }
 
+/* Poker chips: blue, with a segmented edge. Spent ones go flat grey. */
 .chip {
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 800;
-  color: var(--green-dark);
-  background: var(--warm-1);
-  border: 2px dashed var(--green-soft-border);
+  color: #fff;
+  background: radial-gradient(circle at 50% 38%, #3d7fd4 0%, #1b56a8 78%);
+  border: 3px dashed #cfe0f7;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 22%);
 }
 
-/* Spent is greyed AND struck through. Never colour alone (NFR Accessibility 3). */
-.chipSpent { color: var(--muted); background: var(--warm-2); border-style: solid; border-color: var(--border-strong); }
-.chipStrike { position: absolute; left: 4px; right: 4px; height: 1.5px; background: var(--muted); transform: rotate(-24deg); }
+.chipSpent {
+  color: var(--muted);
+  background: var(--warm-2);
+  border: 3px dashed var(--border-strong);
+  box-shadow: none;
+}
+
+.chipStrike { position: absolute; left: 7px; right: 7px; height: 2px; background: var(--muted); transform: rotate(-28deg); }
 
 .update {
   margin-left: auto;
-  height: 30px;
-  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 62px;
+  padding: 6px 10px;
   border-radius: var(--radius-field);
-  background: var(--card);
-  border: 1px solid var(--border-strong);
-  font-family: inherit;
-  font-size: 11px;
+  background: var(--warm-1);
+  border: 2px solid var(--green-soft-border);
+  font-family: var(--font-mono);
+  font-size: 9px;
   font-weight: 800;
-  color: var(--ink-3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green-text);
   cursor: pointer;
 }
 
-.toggle { display: flex; gap: 4px; background: var(--warm-2); border-radius: var(--radius-field); padding: 3px; }
+.updateArrow { font-size: 13px; line-height: 1; }
 
-.toggleOn,
-.toggleOff {
+.modes { display: flex; gap: 8px; }
+
+.modeOn,
+.modeOff {
   flex: 1;
-  height: 28px;
-  border: none;
-  border-radius: 8px;
+  height: 40px;
+  border-radius: var(--radius-field);
+  border: 1px solid transparent;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
   cursor: pointer;
 }
 
-.toggleOn { background: var(--card); color: var(--green-text); }
-.toggleOff { background: transparent; color: var(--muted); }
+.modeOn { background: var(--green); color: #fff; }
+.modeOff { background: var(--warm-2); color: var(--muted); border-color: var(--border-light); }
 
-/* Goal at the top, forwards nearest the halfway line at the bottom. */
+/* Goal at the top, forwards nearest the halfway line at the bottom.
+   Banded, so the pitch reads as a pitch rather than a green rectangle. */
 .pitch {
   position: relative;
   flex: 1;
@@ -87,9 +148,12 @@
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  padding: 22px 6px 8px;
+  padding: 26px 4px 14px;
   border-radius: var(--radius-card);
-  background: linear-gradient(180deg, #2f7d55 0%, #378a5f 100%);
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(180deg, rgb(255 255 255 / 5%) 0 46px, transparent 46px 92px),
+    linear-gradient(180deg, #3f9268 0%, #4aa375 100%);
 }
 
 /* The penalty area, so the keeper stands in it rather than floating. */
@@ -97,37 +161,52 @@
   content: '';
   position: absolute;
   top: 0;
-  left: 28%;
-  width: 44%;
-  height: 46px;
-  border: 1px solid rgb(255 255 255 / 28%);
+  left: 30%;
+  width: 40%;
+  height: 52px;
+  border: 1.5px solid rgb(255 255 255 / 32%);
   border-top: none;
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 5px 5px;
 }
 
-.pitchMeta {
+.gwBadge,
+.xpts {
   position: absolute;
-  top: 6px;
-  left: 10px;
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
+  top: 7px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--ink-3);
 }
 
-.formation { font-family: var(--font-mono); font-size: 11px; font-weight: 800; color: #fff; }
-.projected { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: rgb(255 255 255 / 78%); }
+.gwBadge { left: 8px; }
+.xpts { right: 8px; }
 
-/* The corner figure counting blanks and doubles. */
 .corner {
   position: absolute;
-  top: 6px;
-  right: 10px;
+  top: 30px;
+  right: 8px;
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
   color: #fff;
+}
+
+.formation {
+  position: absolute;
+  bottom: 6px;
+  right: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: rgb(255 255 255 / 88%);
 }
 
 .row { display: flex; justify-content: space-evenly; align-items: flex-start; }
@@ -136,7 +215,7 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card);
   background: var(--card);
-  padding: 6px 8px 8px;
+  padding: 7px 8px 9px;
 }
 
 .benchLabel {
@@ -148,11 +227,32 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .benchPoints { color: var(--ink-3); }
-.benchRow { display: flex; justify-content: space-around; }
+.benchRow { display: flex; gap: 6px; }
+
+.benchCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px 7px;
+  border-radius: 10px;
+  background: var(--warm-2);
+  border: 1px solid var(--border-light);
+}
+
+.benchSlot {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 
 .attribution { font-size: 10px; color: var(--muted); text-align: center; }
 .attribution a { color: var(--green-dark); }
