@@ -1,6 +1,6 @@
 <!-- DERIVED FILE - DO NOT EDIT. Regenerate with extract-build-plan.py in the vault. -->
 <!-- source: Build Plan - The FPL Advisor.md -->
-<!-- source-sha256: d71e69d615a2ca78 -->
+<!-- source-sha256: 3fb1892c7f92e30e -->
 
 # Build order and schedule
 
@@ -57,9 +57,9 @@ status from Linear — never restate one in another.
 | ------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------- |
 | **Tue 8**     | 1 · F7-core (STE-51, STE-58)                        | STE-24, STE-78, STE-91, STE-54, STE-59, STE-26, STE-75, STE-82, STE-84, STE-85 | Architecture spec; finish the foundations           |
 | **Wed 9**     | 2 · F7 team link (STE-55) · 3 · F1 (STE-56, STE-57) | STE-32, STE-53, STE-31                                                         | Spec F1 just-in-time, then build it                 |
-| **Thu 10**    | 4 · Engine (STE-60, STE-61)                         | STE-87, STE-88                                                                 | Headless, unit tests first                          |
+| **Thu 10**    | 4 · Engine (STE-60, STE-61)                         | STE-87, STE-88, STE-113                                                        | Headless, unit tests first                          |
 | **Fri 11**    | 5 · F3 (STE-62, STE-63)                             | —                                                                              | The calls                                           |
-| **Mon 14**    | 6 · F4 (STE-64) · 7 · F6 (STE-65)                   | STE-77                                                                         | Captaincy and refresh                               |
+| **Mon 14**    | 6 · F4 (STE-64) · 7 · F6 (STE-65)                   | STE-77, STE-111                                                                | Captaincy and refresh                               |
 | **Tue 15**    | 8 · F8 + F7-surface (STE-66) · 9 · F2 (STE-67)      | STE-33                                                                         | The surface, then **call the MVP**                  |
 | **Wed 16**    | 10 · F7 hardening (STE-68)                          | STE-38, STE-69, STE-79, STE-80                                                 | E2E week opens                                      |
 | **Thu 17**    | —                                                   | STE-49, STE-50, STE-35, STE-37                                                 | Engine watches; evals decided                       |
@@ -70,7 +70,7 @@ status from Linear — never restate one in another.
 
 - **Slice 4 keeps all four judgement inputs.** STE-54 evaluated `predicted_starter` on 8 Sep against the whole live feed: it is a hard-constrained XI, exactly eleven per club, binary with no confidence attached, so it cannot price the 11th-versus-12th case the rotation input exists for — and it would double-count availability. **Rotation stays model-judged and the engine spec drops nothing.** Read `predicted_starter = false` on an available player as a fact shown on the card, never as a fifth input. Two hazards recorded there: `xi_known` is `true` for all 654 rows and carries no information, and a blanking club still shows eleven starters.
 - **STE-58 is the first test written under ADR 0010.** The criterion-ID naming convention landed with STE-24 on 8 Sep, so this is now a rule to follow rather than a decision to make: every automated test names the criteria it covers, and `pnpm coverage:criteria` reports the gap.
-- **Slice 4 has no acceptance criteria yet.** `ENGINE.criteria.md` carries zero `AC-` identifiers. Resolve before Thursday — either add them to PRD 3.2 and regenerate, or record that the worked example plus the unit tests are the standard.
+- **Slice 4's criteria are written before its worked example is run — both, in that order** (ruled 9 Sep, recorded on STE-60). `ENGINE.criteria.md` carries zero `AC-` identifiers, so baseline criteria go into PRD 3.2 and the file is regenerated first; the worked example is then run and iterated against them. **The order is the substance, not a preference.** Run the example first and whatever it produces becomes the standard by default, with nothing left to disagree with it. The criteria are **baseline, not exhaustive** — the PRD caps criteria at five per feature, and the arithmetic has more cases than that; the detail stays in the worked example and the unit tests, while the criteria carry the claims that must not silently change.
 - **STE-87 and STE-88 block slice 5.** Both surfaced writing the architecture spec, and both are questions the F3 build would otherwise default past rather than ask: where purchase prices are read from, and what the two probabilities in the vice and bench-order arithmetic actually are. Answer them Thursday, not during Friday's slice.
 
 **After GW5 the next deadline is GW6, 10 October.** Slipping past Friday 18th costs one live run and the backtest-harness slot, not a month of nothing — see the rescheduling note above, and STE-59 for how a rung is put.
