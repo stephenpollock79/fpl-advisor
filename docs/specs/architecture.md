@@ -451,6 +451,29 @@ criteria files are derived and this repo must not edit them.
 
 ---
 
+### 8.4 Free transfers remaining are derived, not read — **STE-110, before the MVP cut, 15 September**
+
+F1-AC-07 puts the free-transfer count in the header. The Balance beside it is read straight
+from `entry_history.bank`, already in tenths. **The transfer balance is in no public endpoint.**
+
+**The discriminating check, already run on 2026-09-09:** both
+`entry/{id}/event/{gw}/picks/` and `entry/{id}/history/` carry `event_transfers` — transfers
+*made* per gameweek — and neither carries the balance remaining. The authenticated `my-team`
+endpoint does report it, and this project does not use it (F7-AC-13).
+
+So slice 3 reconstructs it: one earned per gameweek after the first, minus those used, carried
+over, floored at zero, capped at five, with wildcard and free-hit gameweeks exempt because they
+grant unlimited transfers. The arithmetic is unit-tested and correct for the rules as they stand.
+
+**The quiet failure is the cap.** It was two until 2024/25 and is five now. A rule change makes
+the header confidently wrong with nothing on screen to say so — and every test still passes,
+because the tests assert the reconstruction rather than the truth. The fix that removes the
+guesswork is reading the count from the F2 screenshot, which displays it and which the app
+already parses (slice 9). Until then the derivation stands and must not be mistaken for a feed
+value.
+
+---
+
 ## 9 · Migrations, and what every one of them must say
 
 The rules are ADR 0004's and STE-29's; what is new is the second bullet.

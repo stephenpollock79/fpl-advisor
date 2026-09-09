@@ -82,3 +82,17 @@ the guarantee is currently a UI convention wearing the shape of a mechanism, and
 that distinction is the whole reason this file exists. Slice 10 (STE-68) owns the
 hardening pass where it would be closed.
 
+
+**F1-AC-07 — the free-transfer figure is tested, and the tests cannot see the risk.**
+`tests/squad/snapshot.test.ts` covers the accrual, the deduction, the cap, the floor
+and the wildcard exemption. Every one of those passes against the rule as it stands
+today, which is the whole problem: **no public FPL endpoint reports the balance**, so
+the figure is reconstructed rather than read, and the tests assert the reconstruction
+rather than the truth.
+
+If FPL changes the accumulation rule — the cap was two until 2024/25 — the suite stays
+green and the header goes quietly wrong. That is the same shape as asserting a policy
+exists rather than that isolation holds. **F1-AC-07 must not be read as fully
+verified**, and the check that would settle it is reading the count from the F2
+screenshot, which states it. STE-110 owns the decision; `docs/specs/architecture.md`
+§8.4 carries the detail.
