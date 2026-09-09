@@ -48,17 +48,7 @@
       "Bash(corepack pnpm remove:*)",
       "Bash(corepack pnpm update:*)",
       "Bash(corepack pnpm up:*)",
-      "Bash(corepack pnpm dlx:*)",
-      "Bash(python3 -c*)",
-      "Bash(python3 -)",
-      "Bash(python -c*)",
-      "Bash(node -e*)",
-      "Bash(node --eval*)",
-      "Bash(sh -c*)",
-      "Bash(bash -c*)",
-      "Bash(zsh -c*)",
-      "Bash(perl -e*)",
-      "Bash(ruby -e*)"
+      "Bash(corepack pnpm dlx:*)"
     ],
     "allow": [
       "Read(**)",
@@ -83,7 +73,19 @@
       "Bash(git branch:*)",
       "Bash(git checkout:*)",
       "Bash(git switch:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(corepack pnpm test:*)",
+      "Bash(corepack pnpm run:*)",
+      "Bash(corepack pnpm typecheck:*)",
+      "Bash(corepack pnpm build:*)",
+      "Bash(corepack pnpm dev:*)",
+      "Bash(corepack pnpm -r:*)",
+      "Bash(corepack pnpm --filter:*)",
+      "Bash(corepack pnpm exec:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh run list:*)"
     ]
   }
 }
