@@ -162,7 +162,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  padding: 14px 4px 26px;
+  padding: 22px 4px 14px;
   border-radius: var(--radius-card);
   overflow: hidden;
   background:
@@ -201,7 +201,7 @@
 
 .gwBadge { top: 7px; left: 8px; }
 .xpts { top: 7px; right: 8px; }
-.formation { bottom: 7px; right: 10px; }
+.formation { top: 7px; left: 52px; }
 
 .corner {
   position: absolute;
@@ -223,7 +223,7 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card);
   background: var(--card);
-  padding: 6px 7px 7px;
+  padding: 5px 6px 6px;
 }
 
 .benchLabel {
@@ -235,7 +235,7 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 5px;
+  margin-bottom: 3px;
 }
 
 .benchPoints { color: var(--ink-3); }
@@ -246,8 +246,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 4px 2px 5px;
+  gap: 0;
+  padding: 3px 2px 4px;
   border-radius: 10px;
   background: var(--warm-2);
   border: 1px solid var(--border-light);
@@ -255,6 +255,7 @@
 
 .benchSlot {
   font-family: var(--font-mono);
+  line-height: 1.2;
   font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.1em;

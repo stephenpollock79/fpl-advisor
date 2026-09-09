@@ -162,6 +162,7 @@ function Pitch({ world }: { world: World }) {
       <div className={styles.pitch}>
         <PitchLines />
         <span className={styles.gwBadge}>GW{world.gameweek.id}</span>
+        <span className={styles.formation}>{formationOf(world.players).split('-').join(' - ')}</span>
         <span className={styles.xpts}>
           xPts {totalProjected(world.players, { starters: true }).toFixed(1)}
         </span>
@@ -182,7 +183,6 @@ function Pitch({ world }: { world: World }) {
           </div>
         ))}
 
-        <span className={styles.formation}>{formationOf(world.players).split('-').join(' - ')}</span>
       </div>
 
       <div className={styles.bench}>
