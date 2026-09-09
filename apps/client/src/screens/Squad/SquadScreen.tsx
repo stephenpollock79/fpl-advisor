@@ -160,6 +160,7 @@ function Pitch({ world }: { world: World }) {
   return (
     <>
       <div className={styles.pitch}>
+        <PitchLines />
         <span className={styles.gwBadge}>GW{world.gameweek.id}</span>
         <span className={styles.xpts}>
           xPts {totalProjected(world.players, { starters: true }).toFixed(1)}
@@ -203,6 +204,29 @@ function Pitch({ world }: { world: World }) {
         </div>
       </div>
     </>
+  )
+}
+
+/**
+ * The markings.
+ *
+ * Drawn rather than implied by a border, so the penalty area, the six-yard box,
+ * the spot, the halfway line and the centre circle all sit where a pitch puts
+ * them. Goal at the top; the halfway line is the bottom edge, which is why the
+ * forwards stand against it.
+ */
+function PitchLines() {
+  const stroke = { fill: 'none', stroke: 'rgba(255,255,255,.30)', strokeWidth: 1 }
+  return (
+    <svg className={styles.lines} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <rect x="1" y="1" width="98" height="98" {...stroke} />
+      <rect x="26" y="1" width="48" height="17" {...stroke} />
+      <rect x="38" y="1" width="24" height="7" {...stroke} />
+      <circle cx="50" cy="14" r="0.8" fill="rgba(255,255,255,.30)" />
+      <path d="M34 18 A 20 9 0 0 0 66 18" {...stroke} />
+      <line x1="1" y1="99" x2="99" y2="99" {...stroke} />
+      <circle cx="50" cy="99" r="13" {...stroke} />
+    </svg>
   )
 }
 

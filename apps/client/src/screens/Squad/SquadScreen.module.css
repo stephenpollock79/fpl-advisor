@@ -140,34 +140,31 @@
 .modeOff { background: var(--warm-2); color: var(--muted); border-color: var(--border-light); }
 
 /* Goal at the top, forwards nearest the halfway line at the bottom.
-   Banded, so the pitch reads as a pitch rather than a green rectangle. */
+   Banded, so the pitch reads as a pitch rather than a green rectangle.
+
+   Height is capped rather than left to flex. The whole screen must fit 844px
+   without scrolling (handoff, Hard constraints 2), and a pitch that takes all the
+   space left over pushes the bench off the bottom on a shorter handset. */
 .pitch {
   position: relative;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  max-height: 380px;
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  padding: 26px 4px 14px;
+  justify-content: space-between;
+  padding: 24px 4px 16px;
   border-radius: var(--radius-card);
   overflow: hidden;
   background:
-    repeating-linear-gradient(180deg, rgb(255 255 255 / 5%) 0 46px, transparent 46px 92px),
+    repeating-linear-gradient(180deg, rgb(255 255 255 / 5%) 0 38px, transparent 38px 76px),
     linear-gradient(180deg, #3f9268 0%, #4aa375 100%);
 }
 
-/* The penalty area, so the keeper stands in it rather than floating. */
-.pitch::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 30%;
-  width: 40%;
-  height: 52px;
-  border: 1.5px solid rgb(255 255 255 / 32%);
-  border-top: none;
-  border-radius: 0 0 5px 5px;
-}
+/* The markings, drawn rather than implied: penalty area and six-yard box at the
+   top where the goal is, and the halfway line with its centre circle at the
+   bottom, where the forwards stand. */
+.lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
 .gwBadge,
 .xpts {
@@ -209,7 +206,7 @@
   color: rgb(255 255 255 / 88%);
 }
 
-.row { display: flex; justify-content: space-evenly; align-items: flex-start; }
+.row { position: relative; display: flex; justify-content: space-evenly; align-items: flex-start; }
 
 .bench {
   border: 1px solid var(--border-light);

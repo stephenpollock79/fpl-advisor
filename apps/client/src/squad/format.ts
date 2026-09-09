@@ -97,3 +97,34 @@ export function totalProjected(
     .filter((p) => p.isStarter === which.starters)
     .reduce((sum, p) => sum + p.projectedPoints, 0)
 }
+
+/**
+ * Colour bands for the stat table's numeric columns.
+ *
+ * **These thresholds are invented and no criterion specifies them.** F1-AC-15
+ * says the master column list is shown; it says nothing about colouring it. They
+ * are here, named, so that changing them is one edit rather than a search — and
+ * so it is obvious they are a presentation judgement rather than anything the
+ * engine or the PRD decided.
+ *
+ * Chosen against a real gameweek's spread rather than round numbers: form across
+ * a squad ran 2.3 to 8.0 and projections 1.5 to 7.7, so the cuts sit where the
+ * middle of that distribution actually falls. Re-cut them freely; nothing depends
+ * on them but the colour of a figure.
+ *
+ * They are never the only signal — every banded figure is the number itself, so
+ * the colour adds emphasis rather than carrying meaning alone (NFR Accessibility).
+ */
+export const BANDS = {
+  form: { good: 6, fair: 3.5 },
+  projected: { good: 5, fair: 3 },
+} as const
+
+export type Band = 'good' | 'fair' | 'poor'
+
+export function bandOf(value: number | null, scale: { good: number; fair: number }): Band | null {
+  if (value === null) return null
+  if (value >= scale.good) return 'good'
+  if (value >= scale.fair) return 'fair'
+  return 'poor'
+}

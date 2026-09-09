@@ -14,7 +14,7 @@
 
 import { Fragment } from 'react'
 import type { WorldPlayer } from '../../api'
-import { displaySurname } from '../../squad/format'
+import { BANDS, type Band, bandOf, displaySurname } from '../../squad/format'
 import { DifficultyBars, FixturePill } from './parts'
 import styles from './StatTable.module.css'
 
@@ -74,8 +74,12 @@ export function StatTable({ players }: { players: WorldPlayer[] }) {
                         <span className={styles.club}>{p.clubShortName}</span>
                       </th>
                       <td className={availabilityClass(p)}>{availability(p)}</td>
-                      <td className={styles.mono}>{p.form?.toFixed(1) ?? '—'}</td>
-                      <td className={`${styles.mono} ${styles.xpts}`}>{p.projectedPoints.toFixed(1)}</td>
+                      <td className={`${styles.mono} ${bandClass(bandOf(p.form, BANDS.form))}`}>
+                        {p.form?.toFixed(1) ?? '—'}
+                      </td>
+                      <td className={`${styles.mono} ${styles.xpts} ${bandClass(bandOf(p.projectedPoints, BANDS.projected))}`}>
+                        {p.projectedPoints.toFixed(1)}
+                      </td>
                       <td>
                         <FixturePill fixtures={p.fixtures} />
                         <DifficultyBars next={p.nextThree} />
@@ -98,6 +102,14 @@ export function StatTable({ players }: { players: WorldPlayer[] }) {
       </div>
     </div>
   )
+}
+
+/** High reads green, middling amber, low red. The figure itself is always shown. */
+function bandClass(band: Band | null): string {
+  if (band === 'good') return styles.good ?? ''
+  if (band === 'fair') return styles.fair ?? ''
+  if (band === 'poor') return styles.poor ?? ''
+  return ''
 }
 
 /** Fit, a doubt with its percentage, or out. Never colour alone (F1-AC-12). */
