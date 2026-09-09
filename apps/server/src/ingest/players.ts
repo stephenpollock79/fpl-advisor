@@ -44,6 +44,8 @@ type BootstrapPayload = {
   element_types: { id: number; singular_name_short: string }[]
   elements: {
     id: number
+    /** Opta identifier. The join to the Premier League squad feed for shirt numbers. */
+    opta_code?: string | null
     team: number
     element_type: number
     first_name: string

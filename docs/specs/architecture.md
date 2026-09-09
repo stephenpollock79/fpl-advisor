@@ -73,6 +73,19 @@ CLAUDE.md's *Data rules* section is the authority and is not restated. What the 
 - **Attribution is a licence condition.** A visible link to fantasyfootballiq.app ships with the
   squad screen (STE-53, slice 3).
 
+**A third source, for one field only.** F1-AC-10 asks each player slot to show a shirt
+number and neither feed has one — FPL carries `squad_number` and it is null for all 654 players,
+and FFIQ has no number-shaped field at all (STE-112). The Premier League public API does carry
+them, and the join is exact: FPL ships `opta_code` on every element and the Premier League ships
+the same identifier as `altIds.opta`. Measured 2026-09-09, 530 of 654 matched and **253 of the
+254 players with ninety minutes or more**.
+
+**It is not a feed and must not become one.** A shirt number changes about once a season, so
+`ensureShirtNumbers` fetches only when the numbers are largely missing: it runs once and then
+stops. No schedule, no manual step, and no twenty-one extra requests on every open. It also fails
+soft — a blank kit is a cosmetic loss, and an unreachable third source must never take down a read
+of the world.
+
 **Two FFIQ fields that look more informative than they are.** Both established by STE-54, settled
 2026-09-08, and recorded here because the failure mode in each is silence.
 

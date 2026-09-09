@@ -11,6 +11,7 @@
  */
 
 import { fetchProjections } from '../ffiq/feed.js'
+import { ensureShirtNumbers } from '../pl/shirt-numbers.js'
 import { fetchBootstrap, fetchFixtures } from '../fpl/feed.js'
 import { referenceClient } from '../supabase.js'
 import { reportFixtureAnomalies, toFixtureRows } from './fixtures.js'
@@ -72,6 +73,26 @@ export async function ingestWorld(log: (message: string) => void = console.warn)
     surname: p.surname,
     shirt_number: p.shirtNumber,
   })))
+
+  // Shirt numbers come from a third source, and only when they are missing — see
+  // pl/shirt-numbers.ts. The join is opta_code, which is in hand here and stored
+  // nowhere, so this is the one place it can be done without a new column.
+  await ensureShirtNumbers(
+    async () => {
+      const { count } = await db
+        .from('player')
+        .select('id', { count: 'exact', head: true })
+        .not('shirt_number', 'is', null)
+      return count ?? 0
+    },
+    bootstrap.elements.map((e) => ({ id: e.id, optaCode: e.opta_code ?? null })),
+    async (numbers) => {
+      for (const n of numbers) {
+        await db.from('player').update({ shirt_number: n.shirtNumber }).eq('id', n.id)
+      }
+    },
+    log,
+  )
 
   // Every player FPL tracks, not only the fifteen — F6-RS-05 needs a player who
   // was never proposed to be able to surface as a new candidate.
