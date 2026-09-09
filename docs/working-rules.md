@@ -110,3 +110,29 @@ change to any of them is a `G13` ask.
 
 **Where the list is silent, `G14` still governs** — decide, note it in one line. This list is the
 settled cases, not the boundary of your discretion.
+
+## G. Failing and partial criteria
+
+*Section G added 2026-09-09, after slice 2 recorded two gaps and one of them named a
+ticket that said nothing about it.*
+
+**P14. A criterion that is not satisfied gets told to Stephen, and then gets a home.**
+Never one without the other. When work leaves a criterion failing, partial, or true only
+by convention:
+
+- **Say so in the session**, in the reply where it was found. Not in a file he has to go
+  looking in, and not only in a commit message.
+- **Then either fix it there and then, or put it on a ticket** — an existing one whose
+  scope already covers it, or a new one. A gap recorded in `docs/coverage-gaps.md` with no
+  ticket behind it is a note, not a plan.
+
+**The citation must resolve both ways.** If the gaps file names a ticket as the owner, that
+ticket has to say so too. Slice 2 wrote "slice 10 owns this" into `coverage-gaps.md` while
+STE-68 carried no mention of it — which would have evaporated the moment slice 10 opened its
+own ticket and found nothing there. Same failure as a repo-side citation pointing at an ADR
+nobody wrote: it looks checkable, and is not.
+
+**This is not a licence to defer.** The default is to fix it in the slice that broke it.
+The ticket route is for work that genuinely belongs to a later slice, and it costs a
+sentence saying which slice and why.
+

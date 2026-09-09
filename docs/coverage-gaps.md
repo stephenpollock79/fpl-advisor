@@ -30,7 +30,21 @@ accounts, signs in as each with a real one-time code, and tries to read the
 other's rows over HTTP exactly as the server does — then deletes both. Ten checks,
 all passing. Run it with `pnpm check:rls-live`.
 
-**Prod has neither migration**, and nothing has been verified there.
+**Prod has both tables; isolation there is still unproven.** Checked in the
+`fpl-advisor-prod` dashboard on 2026-09-09 — `manager` and `app_session` are both
+present, so the migrations have been applied. The line that stood here saying prod
+had neither was written during slice 1 and was stale from the moment STE-92 landed.
+
+What is still unproven on prod is the half that matters. **Tables existing proves
+the migrations ran, not that isolation holds.** Postgres checks grants before
+policies, so a table can carry every policy and be unreachable, or carry them and
+be wide open — and the dashboard shows neither, because the Table Editor runs
+privileged and sees rows regardless. That is exactly how dev looked correct while
+`service_role` was being denied on `manager`.
+
+The check is `scripts/live-rls-check.mjs` with prod's `SUPABASE_URL`,
+`SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_KEY`. **Until it has been run there,
+F7-AC-11 is verified for dev only** — and prod is the one serving gaffercalls.com.
 
 **F7-AC-10 — the automated half is still only the cookie.**
 `tests/auth/session.test.ts` covers the thirty-day window and the cookie's shape.
