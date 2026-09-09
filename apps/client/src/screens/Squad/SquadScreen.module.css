@@ -1,0 +1,158 @@
+/* Squad state. Values from docs/design/handoff/README.md, screen 4.
+   Portrait phone only, 390x844. No screen scrolls as a whole. */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 8px;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.header { display: flex; flex-direction: column; gap: 8px; }
+.headerTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.money { display: flex; gap: 16px; text-align: right; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.deadline { font-size: 13px; font-weight: 800; color: var(--ink); }
+.figure { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--ink); }
+
+.chips { display: flex; align-items: center; gap: 6px; }
+
+.chip {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--green-dark);
+  background: var(--warm-1);
+  border: 2px dashed var(--green-soft-border);
+}
+
+/* Spent is greyed AND struck through. Never colour alone (NFR Accessibility 3). */
+.chipSpent { color: var(--muted); background: var(--warm-2); border-style: solid; border-color: var(--border-strong); }
+.chipStrike { position: absolute; left: 4px; right: 4px; height: 1.5px; background: var(--muted); transform: rotate(-24deg); }
+
+.update {
+  margin-left: auto;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-field);
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.toggle { display: flex; gap: 4px; background: var(--warm-2); border-radius: var(--radius-field); padding: 3px; }
+
+.toggleOn,
+.toggleOff {
+  flex: 1;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.toggleOn { background: var(--card); color: var(--green-text); }
+.toggleOff { background: transparent; color: var(--muted); }
+
+/* Goal at the top, forwards nearest the halfway line at the bottom. */
+.pitch {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 22px 6px 8px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(180deg, #2f7d55 0%, #378a5f 100%);
+}
+
+/* The penalty area, so the keeper stands in it rather than floating. */
+.pitch::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 28%;
+  width: 44%;
+  height: 46px;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+}
+
+.pitchMeta {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.formation { font-family: var(--font-mono); font-size: 11px; font-weight: 800; color: #fff; }
+.projected { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: rgb(255 255 255 / 78%); }
+
+/* The corner figure counting blanks and doubles. */
+.corner {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.row { display: flex; justify-content: space-evenly; align-items: flex-start; }
+
+.bench {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  padding: 6px 8px 8px;
+}
+
+.benchLabel {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.benchPoints { color: var(--ink-3); }
+.benchRow { display: flex; justify-content: space-around; }
+
+.attribution { font-size: 10px; color: var(--muted); text-align: center; }
+.attribution a { color: var(--green-dark); }

@@ -1,0 +1,60 @@
+/* Scrolls on both axes — the only region of this screen that scrolls at all. */
+.scroller {
+  overflow: auto;
+  max-height: 470px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.table { border-collapse: separate; border-spacing: 0; font-size: 11px; width: max-content; }
+
+/* Sticky on the vertical axis: the header row holds while rows scroll (F1-AC-17). */
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--warm-2);
+  border-bottom: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 6px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* Frozen on the horizontal axis: the player column stays pinned (F1-AC-16).
+   z-index 3 on the corner cell so it outranks both sticky axes where they meet. */
+.player { position: sticky; left: 0; z-index: 1; background: var(--card); text-align: left; }
+.head.player { z-index: 3; background: var(--warm-2); }
+
+.group {
+  background: var(--warm-1);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 8px;
+}
+
+.name { padding: 6px 8px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--border-light); }
+.club { display: block; font-family: var(--font-mono); font-size: 8px; font-weight: 700; color: var(--muted); }
+
+.table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--ink-3);
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.strong { font-family: var(--font-mono); font-weight: 700; color: var(--ink); }
+
+.table tbody tr:nth-child(even) td { background: #ebf4ee; }
+.table tbody tr:nth-child(even) .player { background: #ebf4ee; }

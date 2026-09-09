@@ -1,0 +1,139 @@
+/* Shared pieces. Values from docs/design/handoff/README.md. */
+
+/* Fixture difficulty 1->5, straight from the handoff's token table. */
+.kind   { --pill-ink: #0e8a4e; --pill-bg: rgb(16 152 90 / 12%); --pill-edge: #bfdccb; }
+.even   { --pill-ink: #8a6a28; --pill-bg: rgb(194 130 15 / 12%); --pill-edge: rgb(194 130 15 / 38%); }
+.tough  { --pill-ink: #a32c3c; --pill-bg: rgb(224 58 78 / 10%); --pill-edge: #f0d3d7; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--pill-ink, var(--muted));
+  background: var(--pill-bg, var(--warm-2));
+  border: 1px solid var(--pill-edge, var(--border-light));
+  white-space: nowrap;
+}
+
+/* A blank is grey on a dashed border. The marker is NOT dimmed: dimming means
+   rejected or spent, and borrowing that meaning here would be a lie. */
+.blank {
+  color: var(--muted);
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.venue { opacity: 0.75; }
+.double { color: var(--green-dark); font-weight: 800; }
+
+/* Three hairline bars — stat table only, never a pitch slot (F1-AC-21). */
+.bars { display: flex; gap: 2px; margin-top: 3px; }
+
+.bar {
+  display: flex;
+  gap: 1px;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--pill-ink, var(--border-strong));
+}
+
+/* A blank is an empty dashed track, not a bar of difficulty zero. */
+.barBlank {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  height: 5px;
+}
+
+.barHalf { flex: 1; height: 100%; border-radius: 2px; background: var(--pill-ink); }
+
+.marker {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  padding: 0 3px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.5;
+  color: var(--card);
+}
+
+.injured { background: var(--red-disc); }
+.doubt { background: #b4791a; }
+
+.armband {
+  position: absolute;
+  top: -4px;
+  left: -6px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  color: var(--ink);
+  font-size: 8px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.captain { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+/* Bench badges: S for the substitute keeper, then S1, S2, S3 (F1-AC-18). */
+.benchBadge {
+  position: absolute;
+  bottom: -3px;
+  right: -6px;
+  min-width: 15px;
+  padding: 0 2px;
+  border-radius: 7px;
+  background: var(--red-disc);
+  color: var(--card);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.slot { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 62px; }
+
+.kit {
+  position: relative;
+  width: 30px;
+  height: 34px;
+  border-radius: 4px 4px 8px 8px;
+  background: linear-gradient(180deg, var(--card) 0%, var(--warm-2) 100%);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shirtNumber {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.surname {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink);
+  max-width: 62px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
