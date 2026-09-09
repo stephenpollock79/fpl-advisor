@@ -16,35 +16,24 @@ Not a coverage claim — the opposite. These are places where a test exists and
 proves less than its criterion asks, recorded so the gap is visible rather than
 inferred from a green suite.
 
-**F7-AC-11 — the isolation test proves the migrations, not the projects.**
+**F7-AC-11 — verified on both projects, and it stays a point-in-time check.**
 `tests/rls/isolation.test.ts` runs the real migration files against real Postgres
-(pglite) and proves that a signed-in user cannot read another user's rows. What it
-cannot see is whether `fpl-advisor-dev` and `fpl-advisor-prod` actually have those
-migrations applied. That is a deployment fact.
+and proves the migrations isolate. What it cannot see is whether a given project
+has them applied, or whether PostgREST and the grants behave as expected on the
+real path. That half is deployment fact, not code fact.
 
-*Partly closed 2026-09-08.* Both migrations are applied to `fpl-advisor-dev`, and
-the grant posture was verified through the Data API: `service_role` and `anon` are
-both denied on `manager`, `anon` is denied on `app_session`, and `service_role`
-reads `app_session`. *Closed for dev 2026-09-08.* `scripts/live-rls-check.mjs` creates two throwaway
-accounts, signs in as each with a real one-time code, and tries to read the
-other's rows over HTTP exactly as the server does — then deletes both. Ten checks,
-all passing. Run it with `pnpm check:rls-live`.
+*Closed for dev 2026-09-08. Closed for prod 2026-09-09* — eleven checks against
+`fpl-advisor-prod`, all passing, via `node scripts/live-rls-check.mjs
+--project=prod`. Asking for another user's row by id returns nothing rather than
+an empty filter result; the service key cannot reach user data at all, withheld by
+grant; both throwaway accounts were deleted and the count verified afterwards.
 
-**Prod has both tables; isolation there is still unproven.** Checked in the
-`fpl-advisor-prod` dashboard on 2026-09-09 — `manager` and `app_session` are both
-present, so the migrations have been applied. The line that stood here saying prod
-had neither was written during slice 1 and was stale from the moment STE-92 landed.
-
-What is still unproven on prod is the half that matters. **Tables existing proves
-the migrations ran, not that isolation holds.** Postgres checks grants before
-policies, so a table can carry every policy and be unreachable, or carry them and
-be wide open — and the dashboard shows neither, because the Table Editor runs
-privileged and sees rows regardless. That is exactly how dev looked correct while
-`service_role` was being denied on `manager`.
-
-The check is `scripts/live-rls-check.mjs` with prod's `SUPABASE_URL`,
-`SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_KEY`. **Until it has been run there,
-F7-AC-11 is verified for dev only** — and prod is the one serving gaffercalls.com.
+**What remains, and why this entry is not deleted.** That was one moment in time.
+Nothing in CI can re-run it — it needs credentials and it writes to a real project
+— so a later migration can regress isolation on a deployed project and the suite
+will stay green. **The live check must be re-run against both projects whenever a
+user-data table is added.** Slice 3 adds two (`squad_snapshot`, `squad_player`),
+and STE-108 carries that instruction.
 
 **F7-AC-10 — the automated half is still only the cookie.**
 `tests/auth/session.test.ts` covers the thirty-day window and the cookie's shape.
