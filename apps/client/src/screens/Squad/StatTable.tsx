@@ -12,11 +12,12 @@
  * here the fifteen are one list and nothing else says who is on it.
  */
 
-import { Fragment } from 'react'
+import { Fragment, useRef } from 'react'
 import type { WorldPlayer } from '../../api'
 import { BANDS, type Band, bandOf, displaySurname } from '../../squad/format'
 import { DifficultyBars, FixturePill } from './parts'
 import styles from './StatTable.module.css'
+import { useAxisLock } from './useAxisLock'
 
 const GROUPS = [
   ['GKP', 'Goalkeepers'],
@@ -29,9 +30,13 @@ const GROUPS = [
 const BENCH_BADGES = ['S', 'S1', 'S2', 'S3']
 
 export function StatTable({ players }: { players: WorldPlayer[] }) {
+  // A table that scrolls both ways at once drifts diagonally under the thumb.
+  const scroller = useRef<HTMLDivElement>(null)
+  useAxisLock(scroller)
+
   return (
     <div className={styles.wrap}>
-      <div className={styles.scroller}>
+      <div className={styles.scroller} ref={scroller}>
         <table className={styles.table}>
           <thead>
             <tr>

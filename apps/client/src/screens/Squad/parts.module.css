@@ -79,7 +79,9 @@
 
 .captain { background: var(--ink); color: #fff; }
 
-.slot { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 66px; }
+/* padding-top reserves the space the captain and availability badges overhang
+   into. Without it they reach into the row above and sit on its fixture pill. */
+.slot { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 66px; padding-top: 6px; }
 .kit { position: relative; width: 34px; height: 30px; }
 .shirt { width: 100%; height: 100%; filter: drop-shadow(0 1px 1px rgb(0 0 0 / 22%)); }
 

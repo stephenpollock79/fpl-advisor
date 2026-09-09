@@ -6,10 +6,10 @@
   min-height: 0;
   overflow: auto;
   /* Stops the iOS rubber-band dragging the table off its own background and
-     flashing the page behind it — the white bars at every edge. Contain also keeps
-     the bounce from chaining to the page, which on a screen that must not scroll
-     is the difference between a table scrolling and the app scrolling. */
-  overscroll-behavior: contain;
+     flashing the page behind it — the white bars at every edge. None rather than
+     contain: contain only stops the bounce chaining to the page, and it was the
+     bounce itself that was showing the ground behind the table. */
+  overscroll-behavior: none;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card);
   background: var(--card);
