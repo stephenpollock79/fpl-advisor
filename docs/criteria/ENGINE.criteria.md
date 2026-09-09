@@ -1,54 +1,53 @@
 <!-- DERIVED FILE — DO NOT EDIT. Regenerate with extract-criteria.py. -->
 <!-- source: PRD - The FPL Advisor.md -->
-<!-- source-sha256: 1b3e718f8914f118 -->
+<!-- source-sha256: c1b574d5995bc12d -->
 
 # The recommendation and conviction engine
 
 *Extracted verbatim from the PRD, which remains the single source of truth for every criterion below. Edit the PRD, then regenerate — never edit this file.*
 
+Identifiers in this file: `ENGINE-AC-01` – `ENGINE-AC-05`.
 
 #### The recommendation and conviction engine
 
 This governs every feature below that produces calls — F3 and F4. It does **not** govern F5 or F9: neither the season chip plan nor a chip proposal carries a call or a conviction figure, and both are advice at season scale, excluded from every tally.
 
-**Who does what.** The model does the judging; code does the arithmetic. Five steps:
+**Who does what.** The model proposes and explains; **code computes every figure shown.** Four steps:
 
 1. **The model proposes the week's candidate calls**, reading the squad, fixtures, prices, the injury/team-news sources and the opinion sources named in Section 2.1. It is not restricted to ranking what a formula surfaces — a differential punt, a fixture-swing play or a sell-before-the-price-drop are all legitimate proposals.
-2. **The model returns structured judgement inputs** for every player involved, each with a quoted piece of evidence from the material it was given — Rotation and the two trust factors always; Availability only when it is overriding FPL's own figure (see below).
-3. **Code computes** the edge and the conviction figure from those inputs.
-4. **The model writes the reasoning**, which may reference only dimensions shown on the card. **Enforced, not just instructed:** the reasoning call is given only the field values shown in that card's evaluation table — not the broader evidence/news/opinion context used to produce the judgement inputs — so referencing anything else is a hallucination from nothing, not a citation of real but hidden data. A deterministic keyword check against a blocklist of excluded-field vocabulary is the second-line catch, not a second model call; a flagged line falls back to a templated sentence built from the table's own winning-row highlights rather than retrying the model.
-5. **Code assigns the band and decides what the manager is shown.**
+2. **Code computes** the edge and the conviction figure, from the bought-in projections alone. The model supplies no rating and no number that enters the arithmetic — see *No judgement inputs* below.
+3. **The model writes the reasoning**, which may reference only dimensions shown on the card. **Enforced, not just instructed:** the reasoning call is given only the field values shown in that card's evaluation table — not the broader evidence, news and opinion context the model drew on to propose the candidate — so referencing anything else is a hallucination from nothing, not a citation of real but hidden data. A deterministic keyword check against a blocklist of excluded-field vocabulary is the second-line catch, not a second model call; a flagged line falls back to a templated sentence built from the table's own winning-row highlights rather than retrying the model.
+4. **Code assigns the band and decides what the manager is shown.**
 
-The model never emits a conviction percentage. This is not a claim that the output is deterministic — the model supplies the inputs, so it does shape the number — but it buys three things a bare percentage cannot: the inputs can be constrained to a small labelled scale, which is far more stable across runs than a free-form figure; when the number does move, there is a named input to point at, which is what the refresh diff reports; and the judgement can be checked, because "is there evidence in the supplied material for rating him a major doubt?" is answerable and "is 82% correct?" is not.
+The model never emits a conviction percentage, and no longer supplies anything the percentage is built from. **The figure is determined entirely by published data** — the feed's projections, the fixture list and the squad — so the same inputs produce the same figure on every run, and a figure that moves without an input moving is a defect rather than a judgement that changed. That buys three things a model-emitted percentage cannot: the number is reproducible by hand from figures anyone can look up; when it does move, what moved is a published value the refresh diff can name, not a rating that drifted; and there is no judgement to audit for evidential support, because there is no judgement in the number. What the model still owns — which candidates to propose, and how a call is explained — is checkable on its own terms.
 
-**Contingency.** If this formula does not hold up in practice — surfaced by the week-one calibration pass or the model-stability check — the fallback is letting the model emit the conviction figure itself, anchored to its own prior score the same way refresh anchors judgement inputs, rather than continuing to rework the formula. Recorded so the decision, if it comes up, isn't made from scratch.
+**Contingency.** If this formula does not hold up in practice — surfaced by the week-one calibration pass or the model-stability check — the fallback is letting the model emit the conviction figure itself, anchored to its own prior score the same way refresh anchors the prior recommendation (F6-RS-01), rather than continuing to rework the formula. Recorded so the decision, if it comes up, isn't made from scratch. **It is now a direction being deliberately walked away from rather than a neutral fallback:** the change below takes model judgement *out* of the number, and letting the model emit conviction would put more of it in than the engine has ever had. Reaching for it would be a reversal, and should be argued as one.
 
-**The four judgement inputs**, split by what they actually do:
+**No judgement inputs. The engine had four; it now has none.**
 
-*Value-affecting — these multiply the projection, they are not penalties.*
+The engine was specified to compute `availability × rotation × the feed's projection`, with two further trust factors discounting the result. Measurement of the live feed showed the projection **already prices** both value-affecting factors: a defender ruled out with a back injury projects zero across all six published gameweeks against 4.0 for fit players of his price, and two players with stated return dates project zero for the weeks they miss and switch back on for the weeks after. A fully fit, unflagged player projects 0.7 because he is not expected to start. Each of our multipliers was therefore a **second** discount on a discount already applied, and compounded they put fourteen players at between 3% and 29% of a fit peer of the same price — worst on returning players, who are precisely the transfer candidates.
 
-| Input | Detail |
+**The argument that settles it is not the measurement.** To apply our own availability factor, FFIQ's would first have to be removed — and removing theirs means knowing what it is, which is reverse-engineering a bought-in projection. That is out of scope by 3.4. The measurement only establishes that their discount is real; the impossibility of separating it is what makes the multiplication unfixable rather than mis-tuned.
+
+*What each removed input is replaced by, and why the answers differ.*
+
+| Removed | What happens instead |
 | --- | --- |
-| Availability | Will he be fit to play at all? **Bought, not judged, by default.** FPL's own feed already publishes a `chance_of_playing_next_round` percentage per player — read directly onto the same five-point scale (0 · 25 · 50 · 75 · 100 to out (0) · major doubt (0.25) · even (0.5) · likely (0.75) · nailed on (1.0)), no LLM call needed for the ordinary case. The model overrides this only when fresher evidence from the team-news sources (Premier Fantasy Tools, Premier Injuries) contradicts what FPL's field shows — for example a press conference in the last few hours FPL has not reflected yet — flagged via News freshness, and must cite the contradicting evidence when it does. |
-| Rotation | Fit, but will he start and finish? Same five-point scale and multipliers. Evidence: recent selection pattern, fixture congestion, European or cup involvement, a manager's stated intentions. |
+| **Availability** | Becomes an **exclusion gate applied before scoring**, never a coefficient. FPL is not always behind the feed — thirteen players FPL flagged as injured are projected by the feed at full strength, one of them at his highest figure across six gameweeks while carrying a thigh injury. So **FPL decides who is eligible; the feed decides what the eligible are worth.** Where the two contradict, the player is excluded from being recommended and the reason is shown; his projection is never altered. FPL's availability figure stays on the card as read-only information. Same shape as *fixture count beats projection* in 3.5 — a precedence rule needs no knowledge of what the other source's number already contains, and an arithmetic one does. |
+| **Rotation** | **Dropped entirely — no multiplier and no gate.** A rotation-risky player already carries a low projection, so he loses the comparison unaided; nothing further is required to keep him out of a recommendation. The asymmetry with availability is deliberate and has a reason worth stating: the availability gate exists because FPL sometimes knows sooner, and **FPL publishes no rotation signal at all**, so there is no second source to reconcile and nothing a gate could arbitrate. |
+| **Projection reliability** | **Dropped.** Small samples and returns driven by volatile sources are things a projection model already handles. A haircut on our side is the same double-count a third time, applied to confidence instead of to the number. |
+| **News freshness** | **Dropped as a model judgement.** Lineups are published an hour before kickoff and the deadline falls ninety minutes before the first match, so *lineups unannounced* is true at every deadline of the season — a constant, carrying no information. Price changes belong to money, already excluded from the score. A press conference not yet held resolves itself when FPL's availability field moves. A stale data pull is handled mechanically by F6, not by judgement. |
 
-*Trust-affecting — these reduce confidence in the estimate without changing it.*
+**What the model still does:** propose the week's candidate calls, and write the reasoning. Neither produces a number.
 
-| Input | Detail |
-| --- | --- |
-| Projection reliability | How much weight can the projected figure carry for this player — small sample (a new signing, two games back from injury), or returns driven by volatile sources such as penalties, set pieces or bonus points. |
-| News freshness | Has the information this call rests on already expired — a press conference not yet held, a price change due tonight, lineups unannounced, or simply a stale data pull. |
-
-Each trust factor returns *clear · elevated · unresolved*. There is no fifth factor and the model may not invent one.
-
-Putting availability and rotation inside the points rather than beside them is the whole reason the split works: a player with a 25% chance of starting does not have his projection minus a penalty, he has a quarter of it. A model that judged a player unavailable can never produce a card whose figure recommends buying him — the number is built from the same judgement the reasoning reports, so the two cannot contradict each other.
+**Availability and rotation are still inside the points rather than beside them — the mechanism moved, the principle did not.** They are inside the feed's arithmetic now instead of ours: a player who will not start does not carry his projection minus a penalty, he carries the reduced projection the feed already publishes for him. The property that made the split work is unchanged and is the reason it is worth restating. **The figure can never recommend a player the reasoning calls unavailable**, because the number and the words are built from the same published facts — the feed's own discount, and FPL's availability gate applied before anything is scored. The two cannot contradict each other, and this build adds no third estimate that could make them.
 
 **Computing the edge.**
 
 | Rule | Detail |
 | --- | --- |
 | Projection source | Per-player projected points come from a bought-in, explicitly-licensed feed (see 3.4). No projection model is built in-house. |
-| Effective points | Effective points = availability multiplier × rotation multiplier × the feed's projection. |
+| Effective points | **Effective points = the feed's projection, taken whole.** No multiplier, coefficient or haircut of any kind is applied by this build. The feed already prices availability and expected starting; a second adjustment would be a discount on a discount, and could only be applied correctly by first removing the feed's own — which means reverse-engineering it. Players FPL reports as unavailable are removed by the exclusion gate above *before* anything is scored, so exclusion and scoring never interact. |
 | Horizon | A transfer is a multi-week commitment and is scored over the next three gameweeks, weighted 1.0 / 0.6 / 0.35. A substitution, a captaincy call and a vice call are one-week decisions — the manager re-picks the eleven and the armband every week — and are scored over this gameweek only. |
 | Net | The effective-points difference between the two sides of the call, signed. |
 | Captaincy | Moves one extra copy of a player's points, so the armband's net is the plain difference; with the Triple Captain chip live it moves two, and the net doubles. |
@@ -63,7 +62,6 @@ Putting availability and rotation inside the points rather than beside them is t
 | --- | --- |
 | Base formula | `base = 100 × net ÷ (net + k)`, a curve with diminishing returns that cannot exceed 100. **Net is non-negative by construction, and that is a precondition of the formula rather than a coincidence.** Code compares the incumbent against the best alternative and the winning side *is* the recommendation (see *Which way the recommendation points* below), so the figure is always the edge of the option being recommended. Fed a negative net the curve does not simply go negative: it is undefined at `net = −k`, and below that it returns a large **positive** number that would clamp to 95 and read as *certain* — the exact inversion 3.4's single-source-of-truth contract forbids. The function must therefore reject a negative net rather than compute one; any code path that can hand it one is a defect. |
 | k (per call type) | "The gain that should read as a coin flip" — the cost of taking that action, expressed in points. Set per category because the actions cost different things — see table below. |
-| Trust haircut | The two trust factors then apply a haircut: *elevated* −8, *unresolved* −20 each. |
 | Clamp & bands | Clamp to 5–95. Band edges are exact, so the refresh rule below has something to test against: **certain ≥90 · strong ≥80 and <90 · lean ≥60 and <80 · thin <60**. |
 | Single source of truth | One function produces net, conviction and cash cost per call, and every surface reads from it, so no two surfaces can disagree about a call. |
 | What the bands cost at the starting constants | Stated so the tuning pass has something to test against rather than a feeling. On a transfer (k = 2.0) the bands begin at these nets, in points across the three-gameweek horizon: *lean* at +3.0, *strong* at +8.0, *certain* at +18.0. A realistic transfer edge is perhaps +2 to +6 over three weeks, which reads *thin* or *lean* — so on the starting constants few real transfers would ever be labelled Recommended and the Overview's *Forced and recommended* filter would be near-empty most weeks. That may be honest, or it may mean k is too large for transfers. It is what the week-one pass exists to settle (Section 4, #25), and it is to be checked with a pencil against a plausible week **before** build, not only after a live one. |
@@ -83,13 +81,24 @@ Starting values, set by judgement, to be tuned once against a real gameweek's ca
 | Step | Out — Wood | In — Ekitiké |
 | --- | --- | --- |
 | Feed projection, GW *n* / *n+1* / *n+2* | 2.6 · 2.9 · 2.4 | 4.8 · 5.1 · 4.4 |
-| Availability multiplier (source) | 1.0 — FPL's own `chance_of_playing_next_round` at 100 | 1.0 — same |
-| Rotation multiplier (source) | 0.75 *likely* — model, cited: rested for the cup tie | 1.0 *nailed on* — model, cited: every minute since the move |
-| Effective points per week | 1.95 · 2.18 · 1.80 | 4.80 · 5.10 · 4.40 |
-| Weighted over the horizon (1.0 / 0.6 / 0.35) | 1.95 + 1.31 + 0.63 = **3.89** | 4.80 + 3.06 + 1.54 = **9.40** |
+| Availability gate | Passes — FPL reports him available | Passes — same |
+| Effective points per week | 2.6 · 2.9 · 2.4 — the projection, unmodified | 4.8 · 5.1 · 4.4 — the projection, unmodified |
+| Weighted over the horizon (1.0 / 0.6 / 0.35) | 2.60 + 1.74 + 0.84 = **5.18** | 4.80 + 3.06 + 1.54 = **9.40** |
 
-Net = 9.40 − 3.89 = **+5.51**. No points hit (one free transfer, one call). Base = 100 × 5.51 ÷ (5.51 + 2.0) = **73.4**. Trust factors: projection reliability *elevated* (Ekitiké is eight league games into a new club) − 8; news freshness *clear* − 0. Conviction = **65 · lean**. Above the noise floor of 20, so it renders as a call; below 80, so it is not Recommended and does not enter the *Forced and recommended* filter.
+Net = 9.40 − 5.18 = **+4.22**. No points hit (one free transfer, one call). Conviction = 100 × 4.22 ÷ (4.22 + 2.0) = **67.8 → 68 · lean**. There is no haircut to apply. Above the noise floor of 20, so it renders as a call; below 80, so it is not Recommended and does not enter the *Forced and recommended* filter.
 
-Two things to read off it. A single *elevated* trust factor costs eight points of conviction — most of a band, and enough to move a call across a boundary from just inside *strong* to *lean*, though not in this example. And a swap that nearly doubles a slot's projection still lands in *lean*, which is the calibration question #25 exists to answer.
+Three things to read off it. **Every figure in the table is now either published or arithmetic** — there is no row a model supplies, which is what makes the example checkable by hand rather than merely illustrative. **The two removals pull in opposite directions**, which is worth knowing before anyone reads a moved number as a bug: dropping the multipliers *lowers* the net, because the outgoing player is no longer discounted twice, while dropping the trust haircut *raises* the conviction — this call was 65 under the old arithmetic and is 68 under the new one, having arrived there by a different route. And a swap that nearly doubles a slot's projection **still lands in *lean***, unchanged by any of this, which is the calibration question #25 exists to answer.
 
-**What is deliberately not built.** No projection model of our own. No learned or fitted weights. No calibration against outcomes — with no track record and no backtest in scope, the figure states how strong a call is, not how likely it is to be right, and must be labelled that way. No factor beyond the four above.
+**What is deliberately not built.** No projection model of our own. No learned or fitted weights. No calibration against outcomes — with no track record and no backtest in scope, the figure states how strong a call is, not how likely it is to be right, and must be labelled that way. **No adjustment of the bought-in projection, by any mechanism.** The engine consumes it whole or excludes the player; there is no third option, and any factor proposed in future has to answer the question that removed the last four — how would you apply it without first knowing what the feed has already applied?
+
+**Acceptance criteria.** The engine had none, which is why the slice it governs had nothing to be verified against. These are **baseline, not exhaustive** — the cap is five per feature and the arithmetic has more cases than five. The worked example above and the unit tests carry the detail; these carry the claims that must not change without someone noticing.
+
+| ID | Criterion |
+| --- | --- |
+| **ENGINE-AC-01** | Effective points for a player in a gameweek is the bought-in feed's projection for that player and that gameweek, unmodified. No multiplier, coefficient, weighting or haircut is applied to it anywhere in this build. |
+| **ENGINE-AC-02** | A player FPL reports as unavailable is excluded before scoring and is never recommended, with the reason shown; his projection is not altered, and FPL's availability figure is displayed as read-only information. |
+| **ENGINE-AC-03** | A negative net is rejected rather than computed. No conviction figure is produced for a net below zero, and any code path able to supply one is a defect. |
+| **ENGINE-AC-04** | One function produces net, conviction and band for a call, and every surface displaying any of the three reads that function's output rather than recomputing it. |
+| **ENGINE-AC-05** | Conviction is labelled everywhere it appears as the strength of the call, never as a probability, likelihood or chance of being right. |
+
+**The constants stay starting values, and are not fixed by these criteria.** The three k values (0.5, 0.8, 2.0) and the noise floor of 20 are set by judgement and tuned once against a plausible week with a pencil, per #25 — so no criterion above cites a number that the tuning pass is expected to move. A criterion written on top of a provisional constant becomes false the moment the constant is corrected, and fails as a document edit rather than as a code change.

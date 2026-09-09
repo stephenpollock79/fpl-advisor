@@ -21,9 +21,24 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const CRITERIA_DIR = join(ROOT, 'docs/criteria')
 const MANUAL_REGISTER = join(ROOT, 'docs/manual-coverage.md')
 
-// F7-AC-01, F6-RS-08, F3-UP-04. The suffix set is closed: AC (acceptance),
-// UP (unhappy path), RS (refresh re-scoring, F6 only).
-const IDENTIFIER = /\bF\d-(?:AC|UP|RS)-\d{2}\b/g
+// F7-AC-01, F6-RS-08, F3-UP-04, ENGINE-AC-02. The suffix set is closed: AC
+// (acceptance), UP (unhappy path), RS (refresh re-scoring, F6 only).
+//
+// **ENGINE has no number because it is not a feature.** It governs F3 and F4 and
+// is built as its own slice, so there was no prefix its criteria could take —
+// which is why `ENGINE.criteria.md` carried zero identifiers and the highest-risk
+// slice in the build had nothing a ticket could cite. An invented `ENGINE-AC-01`
+// under the old pattern matched nothing and would have been silently invisible,
+// creating no coverage while looking exactly like coverage.
+//
+// The three patterns below are built from one prefix on purpose. They were three
+// separate copies of the same shape, which is how one gets widened and the other
+// two quietly keep rejecting what it now accepts.
+const PREFIX = String.raw`(?:F\d|ENGINE)`
+const BODY = String.raw`-(?:AC|UP|RS)-\d{2}`
+const IDENTIFIER = new RegExp(String.raw`\b${PREFIX}${BODY}\b`, 'g')
+const DECLARATION = new RegExp(String.raw`^\|\s*\*\*(${PREFIX}${BODY})\*\*\s*\|`)
+const REGISTER_ROW = new RegExp(String.raw`^\|\s*(${PREFIX}${BODY})\s*\|`)
 
 const walk = (dir) =>
   readdirSync(dir).flatMap((entry) => {
@@ -41,7 +56,7 @@ for (const file of readdirSync(CRITERIA_DIR).filter((f) => f.endsWith('.criteria
   // cross-reference in prose ("see F6-AC-05") must not invent one.
   const path = join(CRITERIA_DIR, file)
   for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const declaration = line.match(/^\|\s*\*\*(F\d-(?:AC|UP|RS)-\d{2})\*\*\s*\|/)
+    const declaration = line.match(DECLARATION)
     if (declaration) declared.set(declaration[1], file)
   }
 }
@@ -60,7 +75,7 @@ try {
   // criterion CANNOT be checked here reads to a naive grep as a claim that it has
   // been. That is not hypothetical — it happened, and moved F7 from 2 to 5.
   for (const line of readFileSync(MANUAL_REGISTER, 'utf8').split('\n')) {
-    const row = line.match(/^\|\s*(F\d-(?:AC|UP|RS)-\d{2})\s*\|/)
+    const row = line.match(REGISTER_ROW)
     if (row) {
       claim(row[1], 'docs/manual-coverage.md')
       continue
