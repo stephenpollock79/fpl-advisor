@@ -68,3 +68,88 @@ export async function resolveTeam(fplTeamId: number): Promise<LinkedTeam> {
 export async function confirmTeam(fplTeamId: number): Promise<void> {
   await post('/api/team-link/confirm', { fplTeamId })
 }
+
+/** One fixture for one player in one gameweek. */
+export type WorldFixture = {
+  opponentClubId: number
+  opponentShortName: string
+  isHome: boolean
+  difficulty: number
+}
+
+export type WorldPlayer = {
+  playerId: number
+  surname: string
+  shirtNumber: number | null
+  clubId: number
+  clubShortName: string
+  position: "GKP" | "DEF" | "MID" | "FWD"
+  isStarter: boolean
+  benchOrder: 0 | 1 | 2 | 3 | null
+  isCaptain: boolean
+  isVice: boolean
+  status: string
+  chanceOfPlayingNextRound: number | null
+  nowCostTenths: number
+  form: number | null
+  selectedByPercent: number | null
+  seasonPoints: number | null
+  transfersIn: number | null
+  transfersOut: number | null
+  /** One figure for the gameweek, already covering however many matches it holds. */
+  projectedPoints: number
+  /** None for a blank, one normally, two for a double. */
+  fixtures: WorldFixture[]
+  /** This gameweek and the two after. Null is a blank; an array is a double. */
+  nextThree: (number | number[] | null)[]
+}
+
+export type World = {
+  gameweek: { id: number; name: string; deadlineTime: string }
+  lastScoredGameweek: number | null
+  snapshot: {
+    id: string
+    source: string
+    capturedAt: string
+    bankTenths: number
+    freeTransfers: number
+    chipsRemaining: Record<string, string>
+  }
+  players: WorldPlayer[]
+  blanks: number
+  doubles: number
+  attribution: { name: string; href: string }
+}
+
+/**
+ * The single read every screen re-derives from.
+ *
+ * One call, because the client holds the world and recomputes locally. On a first
+ * open the server fetches both feeds before answering, so this can take a few
+ * seconds — that is the Thinking state F6 and F8 build, and until then the screen
+ * simply says it is loading.
+ */
+export async function fetchWorld(signal?: AbortSignal): Promise<World> {
+  const response = await fetch("/api/world", { signal })
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>
+    throw new ApiError(String(payload["error"] ?? `http_${response.status}`))
+  }
+  return (await response.json()) as World
+}
+
+/**
+ * Ask for a six-digit code.
+ *
+ * **The response is identical whether or not the address has access** (F7-AC-02,
+ * F7-AC-05, F7-UP-01) — the server returns the same body either way and this
+ * cannot tell the difference, which is the point.
+ */
+export async function requestCode(email: string): Promise<void> {
+  await post("/api/auth/request-code", { email })
+}
+
+/** Exchange the code for a session. The cookie is set by the server. */
+export async function verifyCode(email: string, code: string): Promise<void> {
+  await post("/api/auth/verify", { email, code })
+}

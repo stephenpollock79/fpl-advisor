@@ -10,6 +10,8 @@ import { authenticateRequest } from './auth/session.js'
 import { fetchEntry } from './fpl/entry.js'
 import { saveLink } from './team-link/link.js'
 import { teamLinkRoutes } from './team-link/routes.js'
+import { worldRoutes } from './world/routes.js'
+import { worldDeps } from './world/wire.js'
 import { declaredVariables, loadEnv } from './env.js'
 import { configureSupabase } from './supabase.js'
 
@@ -66,6 +68,7 @@ app.get('/api/health', (c) =>
 
 app.route('/', authRoutes(env))
 app.route('/', teamLinkRoutes({ fetchEntry, authenticate: authenticateRequest, saveLink }))
+app.route('/', worldRoutes(worldDeps(authenticateRequest)))
 
 // Every other /api path is a JSON 404. Without this the SPA fallback below
 // would answer a mistyped fetch with index.html, and the caller would fail on

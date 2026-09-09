@@ -139,4 +139,45 @@ export async function seedTwoAccounts(db: TestDb): Promise<void> {
       ('hash-of-a-cookie-for-A', '${USER_A}', 'refresh-token-for-A', now() + interval '30 days'),
       ('hash-of-a-cookie-for-B', '${USER_B}', 'refresh-token-for-B', now() + interval '30 days');
   `)
+
+  await seedSquads(db)
+}
+
+/**
+ * A squad each, so the generic isolation tests have something to fail on.
+ *
+ * Every user-posture table needs a row per account, or "user A cannot read B's
+ * rows" passes against two empty tables and proves nothing. That is the same
+ * shape of false pass as asserting a policy exists rather than that isolation
+ * holds, which is what this suite was written to avoid — so the seed grows
+ * whenever a user table does.
+ *
+ * The reference rows exist only to satisfy foreign keys. They are the world, not
+ * anyone's data, and they are deliberately identical for both accounts: two
+ * managers owning the same player is the ordinary case, and a seed that gave them
+ * different players would let a test pass because the rows happened not to
+ * collide rather than because a policy stopped them.
+ */
+async function seedSquads(db: TestDb): Promise<void> {
+  await db.sql(`
+    insert into public.gameweek (id, name, deadline_time, is_next)
+    values (5, 'Gameweek 5', now() + interval '2 days', true);
+
+    insert into public.club (id, name, short_name) values (1, 'Arsenal', 'ARS');
+
+    insert into public.player (id, club_id, position, first_name, surname, shirt_number)
+    values (101, 1, 'MID', 'Bukayo', 'Saka', 7);
+
+    insert into public.squad_snapshot
+      (id, user_id, gameweek, source, bank_tenths, free_transfers, chips_remaining)
+    values
+      ('aaaaaaaa-0000-0000-0000-00000000000a', '${USER_A}', 5, 'fpl_deadline', 12, 1, '{}'::jsonb),
+      ('bbbbbbbb-0000-0000-0000-00000000000b', '${USER_B}', 5, 'fpl_deadline', 30, 2, '{}'::jsonb);
+
+    insert into public.squad_player
+      (snapshot_id, user_id, player_id, is_starter, bench_order, is_captain)
+    values
+      ('aaaaaaaa-0000-0000-0000-00000000000a', '${USER_A}', 101, true, null, true),
+      ('bbbbbbbb-0000-0000-0000-00000000000b', '${USER_B}', 101, true, null, false);
+  `)
 }

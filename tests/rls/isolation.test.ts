@@ -195,3 +195,53 @@ describe('ADR 0007 · the service key cannot reach user data, by grant', () => {
     }
   })
 })
+
+describe('F1 · the reference tables the world lives in', () => {
+  it('F7-AC-11: reference tables are unreachable as anon and as authenticated', async () => {
+    const reference = tables.filter((t) => t.posture === 'reference')
+    expect(reference.length, 'no reference tables found — the filter is wrong').toBeGreaterThan(0)
+
+    for (const { table } of reference) {
+      // RLS on with no policy denies both roles, and the grants are withheld as
+      // well, so neither mechanism is the single point of failure. Nothing reads
+      // these from a browser (ADR 0007) — if that ever changes, the select policy
+      // is decided per table in a migration, not discovered here.
+      for (const role of ['anon', 'authenticated'] as const) {
+        await expect(
+          db.as(role, USER_A, `select * from public.${table} limit 1`),
+          `${table}: reachable as ${role}`,
+        ).rejects.toThrow()
+      }
+    }
+  })
+
+  it('F7-AC-11: the service key can read reference data, which is the half that must work', async () => {
+    // The mirror of the test above. Withholding every grant would also pass
+    // "unreachable as anon", and would break the app instead of protecting it —
+    // which is precisely what dev did before the grants migration existed.
+    for (const { table } of tables.filter((t) => t.posture === 'reference')) {
+      await expect(
+        db.as('service_role', USER_A, `select * from public.${table} limit 1`),
+        `${table}: the server cannot read its own reference data`,
+      ).resolves.toBeDefined()
+    }
+  })
+})
+
+describe('F1 · a squad row cannot claim an owner its snapshot disagrees with', () => {
+  it('F7-AC-11: squad_player.user_id is pinned to the snapshot by foreign key', async () => {
+    // squad_player carries user_id so the generic isolation tests above can read
+    // it the same way they read every other user table. That duplication is only
+    // safe because it cannot diverge: the foreign key points at the snapshot's
+    // (id, user_id) pair, so a row naming the wrong owner is rejected by the
+    // database rather than by a policy anyone has to write correctly.
+    await expect(
+      db.sql(`
+        insert into public.squad_player (snapshot_id, user_id, player_id, is_starter, bench_order)
+        values ('aaaaaaaa-0000-0000-0000-00000000000a', '${USER_B}', 101, false, 0)
+      `),
+      'a squad_player row claimed an owner its snapshot does not have',
+    ).rejects.toThrow()
+  })
+})
+

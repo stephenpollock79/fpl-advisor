@@ -105,7 +105,7 @@ export function isSecureRequest(url: string, forwardedProto: string | undefined)
   try {
     const { protocol, hostname } = new URL(url)
     if (protocol === 'https:') return true
-    return !(hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]')
+    return !isThisNetwork(hostname)
   } catch {
     return true
   }
@@ -184,4 +184,34 @@ async function freshAccessToken(session: SessionRow): Promise<string | null> {
     new Date((data.session.expires_at ?? 0) * 1000).toISOString(),
   )
   return data.session.access_token
+}
+
+/**
+ * Is this address on the machine or the local network?
+ *
+ * Used only to decide whether a **direct, plain-http** request may drop the
+ * cookie's Secure flag. It is not a security boundary — the branch above gives
+ * `x-forwarded-proto` the last word, so a proxy always wins and production, which
+ * always arrives through one, never reaches this function's http path.
+ *
+ * Localhost alone was not enough. A phone on the same Wi-Fi reaches the dev
+ * server by LAN address, and marking that cookie Secure makes the browser discard
+ * it silently: the session row is created, the cookie never lands, and the screen
+ * says "not signed in" with nothing anywhere to say why. Cost an evening on
+ * 2026-09-09 before the request-code logging made it findable.
+ */
+function isThisNetwork(hostname: string): boolean {
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') return true
+  // mDNS names, which is how a Mac answers to its own hostname on a home network.
+  if (hostname.endsWith('.local')) return true
+
+  const parts = hostname.split('.').map(Number)
+  if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false
+
+  const [a, b] = parts as [number, number, number, number]
+  // The three private IPv4 ranges, RFC 1918.
+  if (a === 10) return true
+  if (a === 192 && b === 168) return true
+  if (a === 172 && b >= 16 && b <= 31) return true
+  return false
 }

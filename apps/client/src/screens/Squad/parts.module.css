@@ -1,0 +1,106 @@
+/* Shared pieces. Values from docs/design/handoff/README.md. */
+
+/* Fixture difficulty 1->5: green, amber, red (F1-AC-11). Each carries an ink, a
+   tint and a border, and the two grounds below pick which of them they use. */
+.kind  { --pill-ink: #0a6e3d; --pill-tint: rgb(16 152 90 / 14%); --pill-edge: #86be9f; }
+.even  { --pill-ink: #8a6a28; --pill-tint: rgb(224 169 36 / 22%); --pill-edge: rgb(194 130 15 / 55%); }
+.tough { --pill-ink: #a32c3c; --pill-edge: #f0d3d7; --pill-tint: rgb(224 58 78 / 14%); }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--pill-ink, var(--muted));
+  border: 1px solid var(--pill-edge, var(--border-light));
+  white-space: nowrap;
+}
+
+/* In the stat table it takes a tint of its own colour, as the design draws it. */
+.tinted { background: var(--pill-tint, var(--warm-2)); }
+
+/* On grass that tint leaves almost no contrast, so there it takes a solid ground
+   and carries the difficulty in its border and ink. Same information, legible on
+   both. */
+.onPitch { background: var(--card); }
+
+/* A blank is grey on a dashed border, on either ground. The marker is NOT dimmed:
+   dimming means rejected or spent, and borrowing that here would be untrue. */
+.blank { color: var(--muted); border-style: dashed; border-color: var(--border-strong); background: transparent; }
+
+.double { color: var(--green-dark); font-weight: 800; }
+
+/* Three bars — stat table only, never a pitch slot (F1-AC-21). */
+.bars { display: flex; gap: 3px; margin-top: 4px; }
+
+.bar { width: 15px; height: 4px; border-radius: 2px; background: var(--pill-ink, var(--border-strong)); }
+.barSplit { display: flex; gap: 1px; width: 15px; height: 4px; }
+.barHalf { flex: 1; height: 100%; border-radius: 2px; background: var(--pill-ink); }
+.barBlank { background: transparent; border: 1px dashed var(--border-strong); height: 6px; }
+
+.marker {
+  position: absolute;
+  top: -5px;
+  right: -9px;
+  padding: 1px 4px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: #fff;
+  border: 1.5px solid var(--card);
+}
+
+.injured { background: var(--red-disc); }
+.doubt { background: #e0a924; color: #3a3630; }
+
+.armband {
+  position: absolute;
+  top: -5px;
+  left: -7px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.captain { background: var(--ink); color: #fff; }
+
+/* padding-top reserves the space the captain and availability badges overhang
+   into. Without it they reach into the row above and sit on its fixture pill. */
+.slot { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 66px; padding-top: 6px; }
+
+/* In a bench card the card owns the spacing — see PlayerSlot. */
+.slotTight { padding-top: 0; }
+.kit { position: relative; width: 34px; height: 30px; }
+.shirt { width: 100%; height: 100%; filter: drop-shadow(0 1px 1px rgb(0 0 0 / 22%)); }
+
+.shirtNumber {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.surname {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink);
+  max-width: 66px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

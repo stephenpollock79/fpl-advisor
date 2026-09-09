@@ -73,6 +73,19 @@ CLAUDE.md's *Data rules* section is the authority and is not restated. What the 
 - **Attribution is a licence condition.** A visible link to fantasyfootballiq.app ships with the
   squad screen (STE-53, slice 3).
 
+**A third source, for one field only.** F1-AC-10 asks each player slot to show a shirt
+number and neither feed has one — FPL carries `squad_number` and it is null for all 654 players,
+and FFIQ has no number-shaped field at all (STE-112). The Premier League public API does carry
+them, and the join is exact: FPL ships `opta_code` on every element and the Premier League ships
+the same identifier as `altIds.opta`. Measured 2026-09-09, 530 of 654 matched and **253 of the
+254 players with ninety minutes or more**.
+
+**It is not a feed and must not become one.** A shirt number changes about once a season, so
+`ensureShirtNumbers` fetches only when the numbers are largely missing: it runs once and then
+stops. No schedule, no manual step, and no twenty-one extra requests on every open. It also fails
+soft — a blank kit is a cosmetic loss, and an unreachable third source must never take down a read
+of the world.
+
 **Two FFIQ fields that look more informative than they are.** Both established by STE-54, settled
 2026-09-08, and recorded here because the failure mode in each is silence.
 
@@ -183,6 +196,7 @@ and there never will be.
 | Column | Type | Notes |
 | --- | --- | --- |
 | `snapshot_id` | `uuid` | |
+| `user_id` | `uuid` | **Denormalised from the snapshot, and unable to disagree with it.** Added 2026-09-09 (STE-99). The isolation suite reads every user-posture table generically and expects a `user_id`; an exception here would need a special case in the one mechanism that catches a future table forgetting its policy. The duplication is safe because the foreign key is on the *pair* — `(snapshot_id, user_id)` references `squad_snapshot (id, user_id)` — so a row naming the wrong owner cannot be written at all. |
 | `player_id` | `int` | FPL's own player id. |
 | `is_starter` | `bool` | Eleven true, four false (F1-AC-01, F1-AC-02). |
 | `bench_order` | `int` null | 0 for the substitute goalkeeper, 1–3 for the outfield bench. |
@@ -447,6 +461,29 @@ nobody notices. Confirm it against the PRD before slice 5, or record it as a dec
 0010's mechanism. Either identifiers are added to PRD 3.2 and the criteria regenerated, or it is
 recorded that the worked example plus the unit tests are the standard. Not settleable here — the
 criteria files are derived and this repo must not edit them.
+
+---
+
+### 8.4 Free transfers remaining are derived, not read — **STE-110, before the MVP cut, 15 September**
+
+F1-AC-07 puts the free-transfer count in the header. The Balance beside it is read straight
+from `entry_history.bank`, already in tenths. **The transfer balance is in no public endpoint.**
+
+**The discriminating check, already run on 2026-09-09:** both
+`entry/{id}/event/{gw}/picks/` and `entry/{id}/history/` carry `event_transfers` — transfers
+*made* per gameweek — and neither carries the balance remaining. The authenticated `my-team`
+endpoint does report it, and this project does not use it (F7-AC-13).
+
+So slice 3 reconstructs it: one earned per gameweek after the first, minus those used, carried
+over, floored at zero, capped at five, with wildcard and free-hit gameweeks exempt because they
+grant unlimited transfers. The arithmetic is unit-tested and correct for the rules as they stand.
+
+**The quiet failure is the cap.** It was two until 2024/25 and is five now. A rule change makes
+the header confidently wrong with nothing on screen to say so — and every test still passes,
+because the tests assert the reconstruction rather than the truth. The fix that removes the
+guesswork is reading the count from the F2 screenshot, which displays it and which the app
+already parses (slice 9). Until then the derivation stands and must not be mistaken for a feed
+value.
 
 ---
 

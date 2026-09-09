@@ -82,3 +82,50 @@ the guarantee is currently a UI convention wearing the shape of a mechanism, and
 that distinction is the whole reason this file exists. Slice 10 (STE-68) owns the
 hardening pass where it would be closed.
 
+
+**F1-AC-07 — the free-transfer figure is tested, and the tests cannot see the risk.**
+`tests/squad/snapshot.test.ts` covers the accrual, the deduction, the cap, the floor
+and the wildcard exemption. Every one of those passes against the rule as it stands
+today, which is the whole problem: **no public FPL endpoint reports the balance**, so
+the figure is reconstructed rather than read, and the tests assert the reconstruction
+rather than the truth.
+
+If FPL changes the accumulation rule — the cap was two until 2024/25 — the suite stays
+green and the header goes quietly wrong. That is the same shape as asserting a policy
+exists rather than that isolation holds. **F1-AC-07 must not be read as fully
+verified**, and the check that would settle it is reading the count from the F2
+screenshot, which states it. STE-110 owns the decision; `docs/specs/architecture.md`
+§8.4 carries the detail.
+
+**F1-AC-10 — closed 2026-09-09.** This entry recorded that no data source had a
+shirt number: FPL leaves `squad_number` null for all 654 players and FFIQ has no
+number-shaped field. That was true of the two feeds and still is. It was not true
+of the world — the Premier League public API carries the numbers and joins to FPL
+exactly on `opta_code`, so 530 players now have one and every regular starter
+does (STE-112). Kept rather than deleted, because the reasoning that the criterion
+could not be met was the thing that was wrong, and the correction is the useful
+part of the record.
+
+**F1-AC-12 — the injury and doubt markers have never been seen.** The code renders
+a red INJ marker and an amber percentage, and both appear in the design prototype.
+**Neither has appeared in the real app**, because every player in the squad has
+been fully fit on every read so far. The criterion is built and unobserved: a wrong
+colour, a clipped badge or a marker in the wrong corner would all have passed every
+check made today.
+
+It cannot be forced honestly, since the app shows what the feed says. This closes
+the first week a squad member picks up a knock, and not before.
+
+**F1-UP-01 and F1-UP-02 — the blank and double states are tested and unseen.** The
+arithmetic is covered thoroughly against fabricated fixtures: a blank projects zero
+whatever the projections feed carries, a double is never summed, and either is
+logged. **What no test covers is what they look like.** The NO GAME pill on its
+dashed border, the empty dashed difficulty track, the green multiplier and the
+corner count on the pitch have all rendered only in code — gameweek 4 has no blanks
+and no doubles, and the ingestion log said so by staying silent.
+
+This is the case PRD 3.5 warns about, seen from the other side: a structure that
+passes a normal week and fails the first exceptional one. The tests cover the
+structure. The appearance waits for a real blank, which this early in a season
+means waiting.
+
