@@ -76,7 +76,7 @@ export type World = {
   attribution: { name: string; href: string }
 }
 
-export function assembleWorld(parts: {
+export type WorldParts = {
   gameweek: GameweekRow
   lastScored: GameweekRow | null
   snapshot: World['snapshot']
@@ -86,7 +86,9 @@ export function assembleWorld(parts: {
   fixtures: FixtureRow[]
   projections: ProjectionRow[]
   states: PlayerStateRow[]
-}): World {
+}
+
+export function assembleWorld(parts: WorldParts): World {
   const playerById = new Map(parts.players.map((p) => [p.id, p]))
   const clubById = new Map(parts.clubs.map((c) => [c.id, c]))
   const stateById = new Map(parts.states.map((s) => [s.playerId, s]))
