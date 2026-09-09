@@ -1,0 +1,234 @@
+/*
+ * Link FPL team. Values from docs/design/handoff/README.md, screen 2.
+ * The handoff is authoritative for HOW — colour, type, spacing, anatomy.
+ */
+
+.screen {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100dvh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid var(--green);
+  object-fit: cover;
+}
+
+.wordmark {
+  font-family: var(--font-wordmark);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 27px;
+  color: var(--green-dark);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 4px 0 0;
+  color: var(--ink);
+}
+
+.body {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+/* "Where to find it" */
+.where {
+  background: var(--warm-2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wherePath {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  word-break: break-all;
+}
+
+.whereId {
+  color: var(--green-dark);
+  font-weight: 700;
+}
+
+.field {
+  height: 48px;
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-field);
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  text-align: center;
+  color: var(--ink);
+}
+
+.primary {
+  height: 48px;
+  width: 100%;
+  border-radius: var(--radius-field);
+  background: var(--warm-1);
+  border: 2px solid var(--green-soft-border);
+  color: var(--green-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primarySolid {
+  composes: primary;
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--card);
+}
+
+.primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.secondary {
+  height: 44px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Confirm — FOUND · IS THIS YOU? */
+.found {
+  background: var(--green-tint);
+  border: 1px solid var(--green-tint-border);
+  border-radius: var(--radius-card);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.foundLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--green-dark);
+}
+
+.teamName {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.gridLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gridValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.footerRow {
+  border-top: 1px solid var(--green-tint-border);
+  padding-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.idValue {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* Inline error — never a toast. */
+.error {
+  background: var(--red-card);
+  border: 1px solid var(--red-card-border);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.errorDisc {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--red-disc);
+  color: var(--card);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.errorText {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--red-text);
+}
+
+.footNote {
+  margin-top: auto;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+  text-align: center;
+}
+
+.spacer {
+  height: 12px;
+}

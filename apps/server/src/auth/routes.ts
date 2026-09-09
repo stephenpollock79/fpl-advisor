@@ -14,7 +14,7 @@ import { Hono } from 'hono'
 import type { Env } from '../env.js'
 import { authClient, userClient } from '../supabase.js'
 import {
-  cacheAccessToken,
+  authenticateRequest,
   clearedCookieHeader,
   cookieHeader,
   createSession,
@@ -22,7 +22,6 @@ import {
   isSecureRequest,
   readCookie,
   revoke,
-  slide,
 } from './session.js'
 
 /**
@@ -103,17 +102,12 @@ export function authRoutes(env: Env) {
   })
 
   app.get('/api/me', async (c) => {
-    const token = readCookie(c.req.header('Cookie'))
-    const session = token ? await findSession(token) : null
+    // authenticateRequest slides the thirty-day window as a side effect, which is
+    // F7-AC-10 and is why no route resolves a session by hand.
+    const session = await authenticateRequest(c.req.header('Cookie'))
     if (!session) return c.json({ error: 'not_signed_in' }, 401)
 
-    const accessToken = await freshAccessToken(session)
-    if (!accessToken) return c.json({ error: 'not_signed_in' }, 401)
-
-    // Every authenticated request renews the window. This is F7-AC-10.
-    await slide(session.id)
-
-    const { data } = await userClient(accessToken)
+    const { data } = await userClient(session.accessToken)
       .from('manager')
       .select('user_id, fpl_team_id, team_name, manager_name, overall_rank')
       .maybeSingle()
@@ -122,28 +116,4 @@ export function authRoutes(env: Env) {
   })
 
   return app
-}
-
-/** The cached token while it lives; a refresh when it does not. */
-async function freshAccessToken(session: {
-  id: string
-  supabase_access_token: string | null
-  access_token_expires_at: string | null
-  supabase_refresh_token: string
-}): Promise<string | null> {
-  const expiry = session.access_token_expires_at
-  const stillValid = expiry !== null && Date.parse(expiry) - Date.now() > 60_000
-  if (stillValid && session.supabase_access_token) return session.supabase_access_token
-
-  const { data } = await authClient().auth.refreshSession({
-    refresh_token: session.supabase_refresh_token,
-  })
-  if (!data?.session) return null
-
-  await cacheAccessToken(
-    session.id,
-    data.session.access_token,
-    new Date((data.session.expires_at ?? 0) * 1000).toISOString(),
-  )
-  return data.session.access_token
 }

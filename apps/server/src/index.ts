@@ -6,6 +6,10 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { engineIdentity } from '@fpl/engine'
 import { Hono } from 'hono'
 import { authRoutes } from './auth/routes.js'
+import { authenticateRequest } from './auth/session.js'
+import { fetchEntry } from './fpl/entry.js'
+import { saveLink } from './team-link/link.js'
+import { teamLinkRoutes } from './team-link/routes.js'
 import { declaredVariables, loadEnv } from './env.js'
 import { configureSupabase } from './supabase.js'
 
@@ -61,6 +65,7 @@ app.get('/api/health', (c) =>
 )
 
 app.route('/', authRoutes(env))
+app.route('/', teamLinkRoutes({ fetchEntry, authenticate: authenticateRequest, saveLink }))
 
 // Every other /api path is a JSON 404. Without this the SPA fallback below
 // would answer a mistyped fetch with index.html, and the caller would fail on
