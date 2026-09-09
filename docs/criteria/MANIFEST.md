@@ -1,6 +1,6 @@
 <!-- DERIVED FILE — DO NOT EDIT. Regenerate with extract-criteria.py. -->
 <!-- source: PRD - The FPL Advisor.md -->
-<!-- source-sha256: 1b3e718f8914f118 -->
+<!-- source-sha256: 10545b1711fe1650 -->
 
 # Criteria files
 
@@ -8,7 +8,7 @@ Per-feature extracts of PRD section 3.2. A ticket cites a criterion by identifie
 
 | File | Section | Words | Criteria |
 | --- | --- | --- | --- |
-| `ENGINE.criteria.md` | The recommendation and conviction engine | 2375 | 0 |
+| `ENGINE.criteria.md` | The recommendation and conviction engine | 3228 | 5 |
 | `F1.criteria.md` | F1 · Squad state — knowing what is actually in the team | 834 | 26 |
 | `F2.criteria.md` | F2 · Correcting the squad from two screenshots | 687 | 11 |
 | `F3.criteria.md` | F3 · Transfer and substitution calls | 1825 | 40 |
@@ -20,4 +20,4 @@ Per-feature extracts of PRD section 3.2. A ticket cites a criterion by identifie
 | `F8.criteria.md` | F8 · Assistant Overview — the week in one read | 1533 | 38 |
 | `NFR.criteria.md` | Non-functional requirements | 843 | 0 |
 
-Full PRD for comparison: 22,741 words.
+Full PRD for comparison: 23,594 words.
