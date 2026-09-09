@@ -246,8 +246,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
-  padding: 3px 2px 4px;
+  /* One number, used twice: the label sits the same distance from the top of the
+     card as the shirt sits from the label. */
+  gap: 5px;
+  padding: 5px 2px 5px;
   border-radius: 10px;
   background: var(--warm-2);
   border: 1px solid var(--border-light);

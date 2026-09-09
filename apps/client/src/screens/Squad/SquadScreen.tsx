@@ -198,7 +198,7 @@ function Pitch({ world }: { world: World }) {
               <div className={styles.benchSlot}>
                 {BENCH_SLOTS[i]} · {p.position}
               </div>
-              <PlayerSlot player={p} />
+              <PlayerSlot player={p} tight />
             </div>
           ))}
         </div>

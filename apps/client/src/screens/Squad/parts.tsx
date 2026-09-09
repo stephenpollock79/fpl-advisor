@@ -163,13 +163,18 @@ function Shirt({ shortName, number }: { shortName: string; number: number | null
  * pill under that. **No price** — the component is not given one, so it cannot
  * show one by accident.
  *
+ * `tight` drops the slot’s own top padding, which exists on the pitch to give the
+ * captain and availability badges somewhere to overhang. In a bench card the card
+ * owns the spacing, and two sources of padding is how the label ended up nearer
+ * the top of the card than the shirt was to the label.
+ *
  * **No bench badge here.** A bench player's position is obvious from being in the
  * bench card; the S / S1 / S2 / S3 badges belong in the stat table, where the
  * fifteen are one list and nothing else says who is on the bench (F1-AC-18).
  */
-export function PlayerSlot({ player }: { player: WorldPlayer }) {
+export function PlayerSlot({ player, tight = false }: { player: WorldPlayer; tight?: boolean }) {
   return (
-    <div className={styles.slot}>
+    <div className={`${styles.slot} ${tight ? styles.slotTight : ''}`}>
       <div className={styles.kit}>
         <Shirt shortName={player.clubShortName} number={player.shirtNumber} />
         <AvailabilityMarker player={player} />
