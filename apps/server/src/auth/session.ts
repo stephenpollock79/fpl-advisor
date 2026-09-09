@@ -9,7 +9,7 @@
  */
 
 import { createHash, randomBytes } from 'node:crypto'
-import { sessionClient } from '../supabase.js'
+import { authClient, sessionClient } from '../supabase.js'
 
 export const COOKIE_NAME = 'gaffer_session'
 export const WINDOW_DAYS = 30
@@ -140,4 +140,48 @@ export function readCookie(header: string | undefined): string | null {
     if (name === COOKIE_NAME) return rest.join('=') || null
   }
   return null
+}
+
+/** Who a request is, and the token that lets it read their rows. Always travels whole. */
+export type AuthenticatedUser = { userId: string; accessToken: string }
+
+/**
+ * The signed-in user behind a cookie, with a token that can actually read their
+ * rows — and the window slid forward, because every authenticated request renews
+ * it (F7-AC-10).
+ *
+ * This is the single answer to "who is this request", so a route never has to
+ * assemble it from parts and no route can accidentally skip the slide.
+ */
+export async function authenticateRequest(
+  cookie: string | undefined,
+): Promise<AuthenticatedUser | null> {
+  const token = readCookie(cookie)
+  const session = token ? await findSession(token) : null
+  if (!session) return null
+
+  const accessToken = await freshAccessToken(session)
+  if (!accessToken) return null
+
+  await slide(session.id)
+  return { userId: session.user_id, accessToken }
+}
+
+/** The cached token while it lives; a refresh when it does not. */
+async function freshAccessToken(session: SessionRow): Promise<string | null> {
+  const expiry = session.access_token_expires_at
+  const stillValid = expiry !== null && Date.parse(expiry) - Date.now() > 60_000
+  if (stillValid && session.supabase_access_token) return session.supabase_access_token
+
+  const { data } = await authClient().auth.refreshSession({
+    refresh_token: session.supabase_refresh_token,
+  })
+  if (!data?.session) return null
+
+  await cacheAccessToken(
+    session.id,
+    data.session.access_token,
+    new Date((data.session.expires_at ?? 0) * 1000).toISOString(),
+  )
+  return data.session.access_token
 }

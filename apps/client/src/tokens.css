@@ -1,0 +1,81 @@
+/*
+ * The design system's values as custom properties, so the palette has one
+ * definition rather than one per component (architecture §11).
+ *
+ * Values are taken verbatim from docs/design/handoff/README.md, which is the
+ * authority for token values. This file carries only what slice 2's screen uses;
+ * STE-104 lands the rest with the squad screen.
+ *
+ * Two things deliberately NOT done here. No replacement tokens are invented for
+ * the contrast failures docs/design/TOKENS.md measures — that file says so
+ * explicitly and the disagreement between the Accessibility NFR and the fixed
+ * palette is STE-79's to settle, not a component's. And nothing here encodes
+ * behaviour: the handoff is authoritative for HOW, never WHAT.
+ */
+
+:root {
+  --screen: #faf8f3;
+  --card: #ffffff;
+  --warm-1: #f7f4ee;
+  --warm-2: #f3f0e9;
+
+  --border-light: #dfdace;
+  --border-strong: #d5cfc2;
+
+  --ink: #23211d;
+  --ink-2: #3a3630;
+  --ink-3: #46433d;
+  --muted: #6a655c;
+
+  --green: #10985a;
+  --green-dark: #0a6e3d;
+  --green-text: #0e8a4e;
+  --green-tint: rgb(16 152 90 / 10%);
+  --green-tint-border: rgb(16 152 90 / 32%);
+  --green-soft-border: #bfdccb;
+
+  --red-disc: #e03a4e;
+  --red-card: #fdf3f4;
+  --red-card-border: #f0d3d7;
+  --red-text: #a32c3c;
+
+  --radius-field: 10px;
+  --radius-card: 14px;
+
+  --font-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-wordmark: 'Lobster Two', Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--screen);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-text-size-adjust: 100%;
+}
+
+/*
+ * Portrait phone only, 390x844. No desktop layout and no breakpoints, ever —
+ * that is a hard constraint of the handoff, not a starting point.
+ */
+#root {
+  max-width: 390px;
+  margin: 0 auto;
+  min-height: 100dvh;
+}
+
+/*
+ * The Accessibility NFR requires a visible focus state on every interactive
+ * element. The design material is a static export and shows none, so this is the
+ * project's own, applied once rather than per component.
+ */
+:focus-visible {
+  outline: 2px solid var(--green-dark);
+  outline-offset: 2px;
+}

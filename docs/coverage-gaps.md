@@ -56,3 +56,26 @@ usable oracle for whether an address has access.
 asserting the bodies match would pass while the criterion is false — the same
 shape as asserting a policy exists rather than that isolation holds. Recorded in
 full on STE-68, which owns the fix.
+
+**F7-AC-15 — only the first half exists.** The criterion is "onboarding is one
+screen and one run: the team link on first log in, **then the first advice run**,
+which behaves exactly like the start of a new gameweek." Slice 2 builds the link
+screen and gates it on `needsTeamLink`, so the one-screen half holds and there is
+no second onboarding state. The run does not exist — accepting the team lands on a
+placeholder, and the Thinking state arrives with F6 and F8. **F7-AC-15 must not be
+ticked off against slice 2**, and no test names it.
+
+**F7-AC-14 — the confirm step is enforced in the client, not the server.**
+`tests/team-link/routes.test.ts` proves that `resolve` stores nothing and that
+`confirm` writes what FPL returns rather than what the browser posted. What it does
+*not* prove is the criterion's own wording — "the identifier is confirmed **before**
+it is linked". Nothing binds a `confirm` to a prior `resolve`: no token, no cached
+candidate, no state on the row. A direct POST to `confirm` links without the team
+ever having been shown back.
+
+The route is behind a session and this is a single-user app, so nobody but Stephen
+can reach it — which is why it was left rather than answered with a nonce flow. But
+the guarantee is currently a UI convention wearing the shape of a mechanism, and
+that distinction is the whole reason this file exists. Slice 10 (STE-68) owns the
+hardening pass where it would be closed.
+
