@@ -99,6 +99,37 @@ of the world.
   the confidence flag that would have made the rotation decision go the other way, and it is not
   one. Do not build on it without first re-checking that it ever goes false.
 
+**What the projected number already contains — measured 2026-09-09, and it changes the arithmetic
+above it.** The figure is not a raw expectation waiting for our adjustments; **it already prices
+whether the player is expected to play.**
+
+- **A player known to be out projects zero, across every gameweek he misses.** Saliba, a starting
+  defender with an open-ended back injury, reads `0` in all six gameweeks against 4.0 for fit
+  players of the same position and price.
+- **It tracks return dates rather than flagging a status.** Doku, expected back 13 September, reads
+  `0, 0.9, 0.9, 1.2, 0.9, 0.9`; Mateta, expected back 11 October, reads `0, 0, 0, 1.1, 1.6, 1.1`.
+  Zero for the weeks missed, switched on for the weeks after.
+- **It prices rotation too.** Bruno Guimarães is fully fit and unflagged by FPL, and projects 0.7
+  because he is not expected to start.
+
+**So an availability or rotation multiplier applied on top is a second discount, not a first.** The
+two feeds are independent estimates of the same quantity, and multiplying them compounds: fourteen
+players in GW4 would have landed between 3% and 29% of what a fit player of their price projects.
+It bites hardest on returning players, who are exactly the transfer candidates. Ruled 2026-09-10
+(STE-60): **the feed's number is taken whole and never scaled.**
+
+**The one thing the feed is not, is fresh on fitness.** Thirteen players FPL flagged as injured were
+projected at full strength — Gakpo at 6.0 with a thigh injury, his highest of six gameweeks. The
+file is generated at a moment; team news lands until the deadline. **FPL is authoritative on whether
+a player is available; FFIQ is authoritative on what he is worth if he plays.** Where they
+contradict each other the player is excluded from being recommended, never re-scored — the same
+shape as the fixture-count rule above, and for the same reason: a precedence rule needs no knowledge
+of what the other source's number contains, and an arithmetic one does.
+
+**And that is why no adjustment is possible even in principle.** To apply our own availability
+factor we would first have to remove theirs, and removing theirs means knowing what it is —
+reverse-engineering a bought-in projection, which §12 puts out of scope.
+
 `predicted_starter = false` on an otherwise available player is used as **a fact shown on the card
 and passed to the reasoning call** — not as a fifth judgement input and not as a substitute for the
 rotation rating. It adds no elicitation, so the four-input cap holds.
