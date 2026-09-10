@@ -18,8 +18,8 @@ const sub = (playerId: number, projection: number, eligible = true): BenchCandid
   availability: eligible ? { eligible: true } : { eligible: false, reason: 'injured' },
 })
 
-describe('F3-AC-04 · bench order follows the projection', () => {
-  it('F3-AC-04: the highest projection is first in line', () => {
+describe('ENGINE-AC-06, F3-AC-04 · bench order follows the projection', () => {
+  it('ENGINE-AC-06, F3-AC-04: the highest projection is first in line', () => {
     expect(benchOrder([sub(1, 1.5), sub(2, 7.0), sub(3, 4.7)]).map((p) => p.playerId)).toEqual([
       2, 3, 1,
     ])
@@ -31,7 +31,7 @@ describe('F3-AC-04 · bench order follows the projection', () => {
     ])
   })
 
-  it('F3-AC-04: a player who cannot play covers nothing, so he goes last', () => {
+  it('ENGINE-AC-06: a player who cannot play covers nothing, so he goes last', () => {
     expect(
       benchOrder([sub(1, 1.5), sub(2, 9.9, false), sub(3, 4.7)]).map((p) => p.playerId),
     ).toEqual([3, 1, 2])

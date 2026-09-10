@@ -1,12 +1,12 @@
 <!-- DERIVED FILE — DO NOT EDIT. Regenerate with extract-criteria.py. -->
 <!-- source: PRD - The FPL Advisor.md -->
-<!-- source-sha256: 977e8a74715776e5 -->
+<!-- source-sha256: 9a70aa8a1d36604f -->
 
 # The recommendation and conviction engine
 
 *Extracted verbatim from the PRD, which remains the single source of truth for every criterion below. Edit the PRD, then regenerate — never edit this file.*
 
-Identifiers in this file: `ENGINE-AC-01` – `ENGINE-AC-05`.
+Identifiers in this file: `ENGINE-AC-01` – `ENGINE-AC-06`.
 
 #### The recommendation and conviction engine
 
@@ -42,7 +42,7 @@ The engine was specified to compute `availability × rotation × the feed's proj
 
 **Availability and rotation are still inside the points rather than beside them — the mechanism moved, the principle did not.** They are inside the feed's arithmetic now instead of ours: a player who will not start does not carry his projection minus a penalty, he carries the reduced projection the feed already publishes for him. The property that made the split work is unchanged and is the reason it is worth restating. **The figure can never recommend a player the reasoning calls unavailable**, because the number and the words are built from the same published facts — the feed's own discount, and FPL's availability gate applied before anything is scored. The two cannot contradict each other, and this build adds no third estimate that could make them.
 
-**Who holds the armband, and what order the bench sits in.** Stated here because it was written down nowhere: the engine picks the holders, and it picks them by projection. **The captain is the eligible player with the highest projected points for the gameweek; the vice is the second-highest.** The same rule orders the outfield bench — highest projection first in line for an auto-substitution, next-highest second — and any player the availability gate has excluded sits last, behind every eligible one. *Eligible* means the availability gate above has been passed; *projected points* means the feed's projection for this gameweek alone, because the armband and the bench are one-week decisions re-taken every week. The captaincy ceiling tie-break below is the only thing that displaces this ranking, and it only decides which challenger is put up against the incumbent, never whether a change is recommended. Ruled 2026-09-10 (#80, #81); it governs F3's bench-order call and F4's two calls, which is why it is here rather than in either.
+**Who holds the armband, and what order the bench sits in.** Stated here because it was written down nowhere: the engine picks the holders, and it picks them by projection. **The captain is the eligible player with the highest projected points for the gameweek; the vice is the second-highest.** The same rule orders the outfield bench — highest projection first in line for an auto-substitution, next-highest second — and any player the availability gate has excluded sits last, behind every eligible one. *Eligible* means the availability gate above has been passed; *projected points* means the feed's projection for this gameweek alone, because the armband and the bench are one-week decisions re-taken every week. The captaincy ceiling tie-break below is the only thing that displaces this ranking, and it only decides which challenger is put up against the incumbent, never whether a change is recommended. Ruled 2026-09-10 (#80, #81); it governs F3's bench-order call and F4's two calls, which is why it is here rather than in either. Stated as **ENGINE-AC-06** below, because a rule that lives only in prose cannot be named by a test and does not appear in the coverage report at all — not as covered, not as uncovered.
 
 **Computing the edge.**
 
@@ -93,7 +93,9 @@ Three things to read off it. **Every figure in the table is now either published
 
 **What is deliberately not built.** No projection model of our own. No learned or fitted weights. No calibration against outcomes — with no track record and no backtest in scope, the figure states how strong a call is, not how likely it is to be right, and must be labelled that way. **No adjustment of the bought-in projection, by any mechanism.** The engine consumes it whole or excludes the player; there is no third option, and any factor proposed in future has to answer the question that removed the last four — how would you apply it without first knowing what the feed has already applied?
 
-**Acceptance criteria.** The engine had none, which is why the slice it governs had nothing to be verified against. These are **baseline, not exhaustive** — the cap is five per feature and the arithmetic has more cases than five. The worked example above and the unit tests carry the detail; these carry the claims that must not change without someone noticing.
+**Acceptance criteria.** The engine had none, which is why the slice it governs had nothing to be verified against. These are **baseline, not exhaustive** — the arithmetic has more cases than are listed here. The worked example above and the unit tests carry the detail; these carry the claims that must not change without someone noticing.
+
+**There are six, and the cap is five per feature. The sixth is over the line deliberately.** The reasoning is recorded because the same argument will be made again. The cap exists so that criteria stay the claims that must not silently change, with detail pushed into the tests — and `ENGINE-AC-06` is exactly such a claim: a rule the engine already implements, which sat in prose where the coverage mechanism could not see it, and which a second selection signal could be mixed into without anything failing or anything on screen looking wrong. **Refusing it because of the cap would discard the thing the cap protects in order to protect the count.** The cost, stated rather than hidden: this is a precedent, and a seventh is harder to refuse than the sixth was. The test for a seventh is the one this passed — is it a claim that would otherwise change in silence? — and not that the count has already been broken once.
 
 | ID | Criterion |
 | --- | --- |
@@ -102,5 +104,6 @@ Three things to read off it. **Every figure in the table is now either published
 | **ENGINE-AC-03** | A negative net is rejected rather than computed. No conviction figure is produced for a net below zero, and any code path able to supply one is a defect. |
 | **ENGINE-AC-04** | One function produces net, conviction and band for a call, and every surface displaying any of the three reads that function's output rather than recomputing it. |
 | **ENGINE-AC-05** | Conviction is labelled everywhere it appears as the strength of the call, never as a probability, likelihood or chance of being right. |
+| **ENGINE-AC-06** | **The armband and the bench order are decided by projected points alone.** The captain is the eligible player with the highest projected points for the gameweek, the vice is the second-highest, and the outfield bench is ordered by the same figure with players the availability gate excluded placed last. **No second signal enters that ordering** — not ownership, form, price, fixture difficulty, nor any figure or opinion the model returns. The captaincy ceiling tie-break above is the single stated exception: it is bounded to choosing which challenger is put up against the incumbent, uses only the two published signals it names, and never decides whether a change is recommended. |
 
 **The constants are no longer starting values, and are still not fixed by these criteria.** The three k values (substitution 0.5, captain/vice 0.5, transfer 2.0) and the noise floor of 20 were tuned on 2026-09-10 against GW4 on the real squad and are now fixed (#25, closed). No criterion above cites one of them, which was deliberate while they could still move and is worth keeping now that they cannot: a criterion written on top of a constant becomes false the moment the constant is corrected, and fails as a document edit rather than as a code change — which is exactly what the armband's move from 0.8 to 0.5 would otherwise have done to four statements in this section.
