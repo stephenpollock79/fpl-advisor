@@ -32,22 +32,24 @@ const player = (
   ...extra,
 })
 
-describe('F4-AC-01 · captain and vice come off the projection', () => {
-  it('F4-AC-01: the captain is the highest projection and the vice is the second-highest', () => {
+describe('ENGINE-AC-06, F4-AC-01 · captain and vice come off the projection', () => {
+  it('ENGINE-AC-06, F4-AC-01: the captain is the highest projection and the vice is the second-highest', () => {
     const armband = chooseArmband([player(1, 6.4), player(2, 7.7), player(3, 7.0)])
 
     expect(armband.captainId).toBe(2)
     expect(armband.viceId).toBe(3)
   })
 
-  it('F4-AC-01: no probability is applied to either — the ordering is the projection itself', () => {
+  it('ENGINE-AC-06: no second signal enters the ordering — the projection alone decides', () => {
     const armband = chooseArmband([
       player(1, 7.7, { position: 'FWD' }),
       player(2, 7.0, { takesPenalties: true }),
     ])
 
-    // The penalty taker would win a tie-break. He is not in one, so the plain
-    // projection decides and he is the vice.
+    // The penalty taker and the forward are the two published signals the
+    // ceiling tie-break reads. Neither is in the window, so neither counts:
+    // ENGINE-AC-06 admits the tie-break as its single exception and bounds it
+    // to a near-tie. Outside that, the projection alone decides.
     expect(armband.captainId).toBe(1)
     expect(armband.viceId).toBe(2)
   })
@@ -59,7 +61,7 @@ describe('F4-AC-01 · captain and vice come off the projection', () => {
 })
 
 describe('ENGINE-AC-02, F4-AC-07 · an excluded player wears neither armband', () => {
-  it('ENGINE-AC-02: the highest projection in the squad is skipped when he fails the gate', () => {
+  it('ENGINE-AC-02, ENGINE-AC-06: the highest projection in the squad is skipped when he fails the gate', () => {
     const armband = chooseArmband([
       player(1, 9.9, { availability: { eligible: false, reason: 'injured' } }),
       player(2, 7.7),
@@ -93,7 +95,7 @@ describe('F4-AC-12 · the ceiling tie-break, and only inside the noise floor', (
     expect(armband.captainByCeiling).toBe(true)
   })
 
-  it('F4-AC-12: outside the floor the higher projection wins and the tie-break never runs', () => {
+  it('ENGINE-AC-06, F4-AC-12: outside the floor the higher projection wins and the tie-break never runs', () => {
     const outside = noiseFloorNet(kFor('captain')) * 2
     const armband = chooseArmband([
       player(1, 7.2, { position: 'DEF' }),
