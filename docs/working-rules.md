@@ -24,6 +24,16 @@ generated from the Build Plan in Stephen's vault.
 **P3. Read order from the plan, write state to Linear.** One direction each. Linear due dates are
 set *from* the plan, never the reverse. Neither restates the other.
 
+**The plan owns order, including the order of work within a day**, and the day sections' checkboxes
+are how that order is displayed. Ticking one records that the plan's sequence advanced, not that a
+ticket changed status: **Linear remains the only authority on state, and where the two disagree
+Linear is right.**
+
+*Added 2026-09-10.* Read without this, the sentence above condemns those checkboxes as the plan
+restating state — which is how they sat unticked through a day that completed in full, and how a
+later session talks itself into deleting them. They earn their place because Linear cannot express
+what the plan can: a ticket's status says nothing about whether it came first or third that day.
+
 **P4. Never take a slice out of order.** To change the order or a date: propose it with reasoning,
 stop, and wait. On agreement, hand Stephen a prompt to paste into Cowork (P9) — the plan is edited
 in the vault and the derived file regenerates. You cannot edit it yourself.
