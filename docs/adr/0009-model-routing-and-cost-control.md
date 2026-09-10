@@ -21,9 +21,9 @@ cap would be reached by accident rather than by use.
 
 | Rule | Detail |
 | --- | --- |
-| Routing | **Filtering and extraction go to Haiku; judgement and reasoning go to Sonnet.** The candidate-proposal sweep reads a lot and decides little; the judgement and reasoning steps read little and decide a lot. |
+| Routing | **Filtering and extraction go to Haiku; the reasoning call goes to Sonnet.** The candidate-proposal sweep reads a lot and decides little; the reasoning step reads little and has to word it well. There is no judgement call to route — the engine has no model-supplied inputs (STE-60). |
 | Never raw | **`bootstrap-static` never enters a prompt.** It is roughly 700 players of full records. Sending it costs about **$2 a call against a ~$0.07 budget** for a properly shaped one — a single mistake that consumes 4% of the season's cap. Prompts are built from projected, named fields, never from a feed response passed through. |
-| Cache | Cache what is stable within a gameweek: fixtures, the projection set, and any judgement whose evidence has not moved. F6-RS-08 already requires the strongest form of this — **if no new evidence has landed, the model is not called at all.** |
+| Cache | Cache what is stable within a gameweek: fixtures, the projection set, and any stored call whose evidence has not moved. F6-RS-08 already requires the strongest form of this — **if no new evidence has landed, the model is not called at all.** |
 | Logging | **Tokens and cost are recorded per run from the first commit**, per call and per step (ADR 0008). |
 
 ## Consequences

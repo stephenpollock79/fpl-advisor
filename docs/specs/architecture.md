@@ -36,7 +36,7 @@ browser ──── same-origin ────▶ Hono server ─────▶ 
    │          /api/*              │
    │                              ├──▶ FPL public API          — fixtures, players, gameweeks
    │                              ├──▶ Fantasy Football IQ     — projected points
-   │                              └──▶ Anthropic (Agent SDK)   — candidates, judgement, reasoning
+   │                              └──▶ Anthropic (Agent SDK)   — candidates, reasoning
    └── engine (imported as source, runs in both) ──┘
 ```
 
@@ -278,8 +278,8 @@ slice before a table shape follows from them, and guessing at columns now would 
 - **Does this table survive at all?** The model still proposes candidates, still quotes evidence
   and still writes the reasoning. What it no longer does is emit anything that enters a number. If
   the quoted evidence is still carried forward between runs, something stores it — F6-RS-01 and
-  F6-RS-08 depend on exactly that, and *carrying judgement forward* is how the refresh diff avoids
-  re-spending a model call.
+  F6-RS-08 depend on exactly that, and *carrying the stored evidence forward* is how the refresh
+  diff avoids re-spending a model call.
 - **Does the availability override survive?** Availability is now an exclusion gate read from FPL.
   The criteria allowed the model to override it with cited evidence when a press conference had
   outrun the feed. That is a freshness argument and it is still sound, but it puts model judgement
@@ -288,8 +288,9 @@ slice before a table shape follows from them, and guessing at columns now would 
 **Nothing needs migrating.** This table was deliberately left for the slice that uses it (§9), so
 it has never been created.
 
-This table is what F6-RS-01 and F6-RS-08 mean by carrying judgement forward: if the evidence diff
-finds nothing, these rows are reused and the conviction figure is byte-identical.
+This table is what F6-RS-01 and F6-RS-08 mean by carrying the prior run forward: if the evidence
+diff finds nothing, these rows are reused and no model call is made. The conviction figure is
+byte-identical either way, since it is arithmetic over published inputs that have not moved.
 
 **`call`** — one call, as produced by one run.
 
@@ -438,33 +439,38 @@ from the cause.
 
 ## 7 · The advice pipeline
 
-Five steps, from the engine criteria. What this document adds is where each one runs and what it
-costs.
+Four steps, from the engine criteria, preceded by the fetch and diff this document adds. What it
+adds beyond the criteria is where each step runs and what it costs.
 
 | # | Step | Where | Model |
 | --- | --- | --- | --- |
 | 0 | Fetch feeds, write `feed_read` and `player_state`, **diff the evidence** | server | none |
 | 1 | Propose the week's candidate calls | server, via ADR 0008 | Haiku |
-| 2 | Return structured judgement inputs per player, each with quoted evidence | server | Sonnet |
-| 3 | **Compute** effective points, net, conviction, band, cost | `packages/engine` | none |
-| 4 | Write the reasoning, from the card's own field values only | server | Sonnet |
-| 5 | **Assign** the band and decide what is shown | `packages/engine` | none |
+| 2 | **Compute** effective points, net, conviction, band, cost | `packages/engine` | none |
+| 3 | Write the reasoning, from the card's own field values only | server | Sonnet |
+| 4 | **Assign** the band and decide what is shown | `packages/engine` | none |
 
-Step 0 is the gate: **if it finds nothing, steps 1, 2 and 4 do not run at all** and the stored
-judgement is reused (F6-RS-08). Most refreshes should therefore cost nothing.
+**There is no judgement step, and its absence is the design** (STE-60, 2026-09-10). The model is on
+either side of the arithmetic and never inside it.
 
-Steps 3 and 5 are the engine, and the engine is called by both F3 and F4 — one function producing
+Step 0 is the gate: **if it finds nothing, steps 1 and 3 do not run at all** and the stored calls and
+the evidence behind them are reused (F6-RS-08). Most refreshes should therefore cost nothing.
+
+Steps 2 and 4 are the engine, and the engine is called by both F3 and F4 — one function producing
 net, conviction and band, never a variation implemented twice. If a feature needs a difference, it
 is a parameter.
 
-Step 4's input is **only the field values shown on that card's evaluation table** — not the evidence,
-news or opinion context used in step 2. That is the enforcement, not an instruction: referencing
-anything else becomes a hallucination from nothing rather than a citation of real but hidden data. A
-deterministic keyword check against excluded-field vocabulary is the second-line catch, and a
-flagged line falls back to a templated sentence rather than a retry.
+Step 3's input is **only the field values shown on that card's evaluation table** — not the evidence,
+news or opinion context the model drew on in step 1. That is the enforcement, not an instruction:
+referencing anything else becomes a hallucination from nothing rather than a citation of real but
+hidden data. A deterministic keyword check against excluded-field vocabulary is the second-line
+catch, and a flagged line falls back to a templated sentence rather than a retry.
 
-**The model never emits a conviction percentage.** This does not make the output deterministic — the
-model supplies the inputs — and no code comment or user-facing string should claim it does.
+**The model never emits a conviction percentage, and supplies nothing that enters one.** Every figure
+shown is arithmetic over published data, so the same inputs produce the same figure on every run —
+a figure that moves without an input moving is a defect. What is *not* reproducible is which
+candidates step 1 proposes and how step 3 words a call. No code comment or user-facing string should
+blur the two, in either direction.
 
 ---
 

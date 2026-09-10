@@ -66,7 +66,10 @@ vault. If a criterion looks wrong, say so — do not fix it here, because the fi
   must never be labelled as one — there is no calibration and no backtest.
 - **Net** — the projected-points difference between the two sides of a call.
 - **Balance** — the manager's bank. **NBal** — Balance minus the cost of the calls currently in scope.
-- **Effective points** — availability multiplier × rotation multiplier × the feed's projection.
+- **Effective points** — the feed's projection, taken whole. **Nothing this build multiplies it by.**
+  The feed already prices availability and expected starting, so a second adjustment would be a discount
+  on a discount — and could only be applied correctly by reverse-engineering theirs. Players FPL reports
+  unavailable are excluded before scoring, never scaled.
 - **Chip** — a one-use special move. Four of them. The engine does not govern chip features.
 
 ## Data rules — get these wrong and the app looks like it works
@@ -101,11 +104,16 @@ And two gameweek rules that are pure foot-guns:
 
 ## Architecture invariants
 
-**The model judges; code calculates.** The model proposes candidate calls and returns structured judgement
-inputs with quoted evidence; **code** computes the edge and the conviction figure; the model writes the
-reasoning; **code** assigns the band and decides what is shown. The model never emits a conviction
-percentage. This does not make the output deterministic — the model supplies the inputs — and no code
-comment or user-facing string should claim it does.
+**The model proposes and explains; code computes every figure shown.** The model proposes candidate calls
+and writes the reasoning. **Code** computes the edge, the conviction figure and the band from published data
+alone — the feed's projections, the fixture list and the squad. The model emits no conviction percentage and
+no rating that enters the arithmetic.
+
+**So the figure is reproducible by hand**: the same published inputs give the same number every run, and a
+figure that moves without an input moving is a defect rather than a judgement that changed. **This reverses
+what this file said until 2026-09-10**, when the engine still had four judgement inputs and the output was
+explicitly not deterministic — older material will read the other way, and STE-60 carries why it changed.
+What stays model-owned is which candidates to propose and how a call is explained; neither produces a number.
 
 **One engine, two consumers.** One function produces net, conviction and band, and both F3 and F4 call it.
 It is headless and unit-tested before any UI exists. Never compute conviction, net or a band inside a
