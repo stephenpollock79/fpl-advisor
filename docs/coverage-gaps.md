@@ -160,3 +160,33 @@ grant on user data — so the cross-check covers the reference and service table
 and not the user ones. The convention that schema changes never happen through
 the console is what carries that case, and a convention is not a mechanism.
 
+
+
+**ENGINE-AC-04 — the automated half is internal consistency, not agreement
+between surfaces.** The criterion has two halves: one function produces net,
+conviction and band, and *every surface displaying any of the three reads that
+function's output rather than recomputing it*. `tests/engine/worked-example.test.ts`
+proves the first half — the three figures come out of one `evaluateCall` and
+agree with each other — and cannot prove the second, because no surface exists
+yet. **The half that is unproven is the half the criterion was written for.** A
+component that recomputed a band from a stored conviction would pass every test
+in the engine suite while producing exactly the disagreement between two screens
+that the rule forbids.
+
+*Home: STE-62, slice 5.* That is where conviction first renders, and the check
+is not another engine test — it is that F3's components take net, conviction and
+band as values and hold no arithmetic over them.
+
+**ENGINE-AC-05 — nothing renders conviction yet, so nothing can be checked.**
+Conviction must be labelled everywhere it appears as the strength of the call,
+never as a probability, likelihood or chance of being right. There is no
+calibration and no backtest behind the figure, which is why the wording is a
+requirement rather than a preference. It is a rule about words on a screen, and
+slice 4 builds no screen.
+
+Deliberately **not** entered in `docs/manual-coverage.md`: that register holds
+criteria that have been verified, and an entry made in advance would turn the
+coverage figure into a claim about the future.
+
+*Home: STE-62, slice 5*, as the first slice that puts the figure in front of
+anyone.
