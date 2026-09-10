@@ -141,17 +141,28 @@ comments in the migrations — the same source the pglite suite classifies by �
 a user table with no seed recipe **fails** the run rather than being skipped.
 Dev and prod both passed 28/28 across all three user tables.
 
-**What remains open, and it is narrower.** Prod cannot currently be re-checked
-for `squad_snapshot` and `squad_player`. Both point at reference rows, prod's
-reference tables are empty until an ingest runs there, and the script may not
+**That gap closed on 2026-09-10, and how it closed is the point.** Prod could
+not previously be re-checked for `squad_snapshot` and `squad_player`. Both point
+at reference rows, prod's reference tables were empty, and the script may not
 create them: those tables grant the service key `select, insert, update` and no
-`delete`, so a seeded row cannot be removed again. That is the grant working as
-designed — ingestion upserts and never deletes — and weakening it so a test can
-tidy up would trade a real constraint for a convenience. **The prod run above
-did seed, and could not clean up after itself; the rows were removed separately
-and the script was changed to refuse rather than seed.** Prod becomes verifiable
-again the moment it holds reference data, which it needs before the app works
-there at all.
+`delete`, so a seeded row could not be removed again. That is the grant working
+as designed — ingestion upserts and never deletes — and weakening it so a test
+could tidy up would have traded a real constraint for a convenience. **An
+earlier prod run did seed, could not clean up after itself, and the rows were
+removed separately; the script was then changed to refuse rather than seed.**
+
+**STE-113 loaded prod through the app's own ingestion path** — a first sign-in on
+gaffercalls.com, which fetches both feeds and writes the reference tables before
+answering — and `node scripts/live-rls-check.mjs --project=prod` then ran to
+completion for the first time: **28 of 28, all three user tables covered**,
+including that the service key cannot reach any of them and that both throwaway
+accounts were deleted afterwards. Prod was deliberately **not** loaded by copying
+rows out of dev: that would have produced tables that look right while proving
+nothing about the path that has to keep them current.
+
+**It stays a point-in-time check.** Nothing in CI can re-run it — it needs
+credentials and it writes to a real project — so the standing instruction is
+unchanged: re-run it against both projects whenever a user-data table is added.
 
 One thing the extended check still cannot see: a **user** table created outside a
 migration. It cross-checks the project's tables against the migrations, but that
