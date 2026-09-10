@@ -37,9 +37,9 @@ Three conditions travel with it, and they are build requirements rather than pre
    on a train and costs money in CI.
 
 **What the model is allowed to do is fixed by CLAUDE.md's architecture invariant and is not
-re-litigated here.** The model proposes candidates, returns structured judgement inputs with quoted
-evidence, and writes the reasoning. Code computes net, conviction and band. The model never emits a
-conviction percentage.
+re-litigated here.** The model proposes candidates and writes the reasoning. Code computes net,
+conviction and band from published data alone — no model-supplied value enters any figure shown. The
+model never emits a conviction percentage.
 
 **Every model call is recorded against its run** — model identifier, step, input and output tokens,
 and cost — from the first commit. See ADR 0009 for why the figure has to exist before there is a
