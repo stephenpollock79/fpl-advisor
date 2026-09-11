@@ -87,6 +87,7 @@ export function AssistantScreen({
   const [holdCleared, setHoldCleared] = useState(false)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     setDecisions(initialDecisions(world.decisions))
@@ -132,6 +133,7 @@ export function AssistantScreen({
     const before = decisions
     setDecisions(apply(decisions))
     setError(null)
+    setNotice(null)
     try {
       await saveDecision(key, state)
     } catch {
@@ -144,7 +146,23 @@ export function AssistantScreen({
     if (!current) return
     if (state === 'pending') {
       // Later: it stays pending and the next undecided call comes up (F3-AC-07).
-      setCursor((c) => c + 1)
+      if (pending.length > 1) {
+        setCursor((c) => c + 1)
+        return
+      }
+      // The last undecided card in this tab has nowhere to advance to, and doing
+      // nothing reads as a broken control. Until the Overview exists (slice 8,
+      // STE-122), go to the other tab if it has calls waiting, or say so.
+      const here = TABS.find((t) => t.category === tab)
+      const next = TABS.find((t) => t.category !== tab && pendingIn(t.category).length > 0)
+      if (next) {
+        setTab(next.category)
+        setCursor(0)
+        setHoldCleared(false)
+        setNotice(`${here?.noun ?? 'That call'} left for later — ${next.noun.toLowerCase()} next.`)
+        return
+      }
+      setNotice('Left for later — it will be here when you come back.')
       return
     }
     // The decided card leaves the pending list, so the same position now holds
@@ -246,6 +264,7 @@ export function AssistantScreen({
                 setTab(t.category)
                 setCursor(0)
                 setHoldCleared(false)
+                setNotice(null)
               }}
               type="button"
             >
@@ -286,6 +305,12 @@ export function AssistantScreen({
       {error ? (
         <p className={styles.error} role="alert">
           {error}
+        </p>
+      ) : null}
+
+      {notice ? (
+        <p className={styles.notice} role="status">
+          {notice}
         </p>
       ) : null}
 
