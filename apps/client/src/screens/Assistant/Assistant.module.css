@@ -10,10 +10,10 @@
   padding:
     calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
     calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
-  /* The small viewport, not the dynamic one: Chrome on iOS slides its toolbar in
-     and out as you scroll, and a screen sized to the dynamic viewport resized under
-     the finger each time, stalling the table's scroll (STE-121). Safari never showed
-     it. The small viewport does not move with the toolbar. */
+  /* The small viewport, not the dynamic one, so the screen does not resize as a
+     browser's toolbar slides in and out. Chosen while chasing a scroll stall
+     (STE-121) that turned out to be the Google app's in-app browser, not Chrome —
+     so it fixed nothing there, and Chrome and Safari both scroll cleanly with it. */
   height: 100svh;
   overflow: hidden;
 }
