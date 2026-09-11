@@ -249,6 +249,32 @@ test('F3-AC-18: the flag reads WATCH with no qualifier, and FORCED outranks it',
   await expect(page.getByText('WATCH', { exact: true })).toHaveCount(0)
 })
 
+test('F3-AC-07: Later on the last undecided transfer leaves it pending and moves to the other tab', async ({ page }) => {
+  // Until the Overview exists, the last card's Later has to go somewhere (STE-122).
+  await open(page)
+
+  await page.getByRole('button', { name: /Select/ }).click()
+  await expect(page.getByTestId('in-name')).toHaveText('Striker')
+  await page.getByRole('button', { name: /Later/ }).click()
+
+  await expect(page.getByRole('tab', { name: /Sub/ })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByTestId('in-name')).toHaveText('Rogers')
+  await expect(page.getByRole('status')).toHaveText('Transfers left for later — substitutions next.')
+  // Still pending: the Transfer tab still counts it.
+  await expect(page.getByRole('tab', { name: /Transfer/ })).toContainText('1')
+})
+
+test('F3-AC-07: Later on the only undecided call left anywhere says so, and leaves it pending', async ({ page }) => {
+  await open(page, {}, world.calls.filter((c) => c.key === 'substitution:upgrade:out=557:in=40'))
+
+  await page.getByRole('tab', { name: /Sub/ }).click()
+  await page.getByRole('button', { name: /Later/ }).click()
+
+  await expect(page.getByRole('status')).toHaveText('Left for later — it will be here when you come back.')
+  await expect(page.getByTestId('in-name')).toHaveText('Rogers')
+  await expect(page.getByRole('tab', { name: /Sub/ })).toContainText('1')
+})
+
 test('F3-UP-05: a category with nothing worth changing says so, rather than showing an empty list', async ({ page }) => {
   await open(page, {}, world.calls.filter((c) => c.category === 'substitution'))
 

@@ -10,7 +10,11 @@
   padding:
     calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
     calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
-  height: 100dvh;
+  /* The small viewport, not the dynamic one: Chrome on iOS slides its toolbar in
+     and out as you scroll, and a screen sized to the dynamic viewport resized under
+     the finger each time, stalling the table's scroll (STE-121). Safari never showed
+     it. The small viewport does not move with the toolbar. */
+  height: 100svh;
   overflow: hidden;
 }
 
@@ -58,6 +62,9 @@
 .negative { color: var(--red-text); }
 
 .error { margin: 0; padding: 8px 10px; border-radius: 9px; background: var(--red-card); border: 1px solid var(--red-card-border); color: var(--red-text); font-size: 12px; }
+
+/* A passing note — neutral, not an error. Clears on the next decision or tab. */
+.notice { margin: 0; padding: 8px 10px; border-radius: 9px; background: var(--warm-1); border: 1px solid var(--border-light); color: var(--ink-3); font-size: 12px; }
 
 .content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
