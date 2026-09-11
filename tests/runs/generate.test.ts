@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 import type { CardPlayer } from '../../packages/engine/src/index.js'
 import type { PlanPlayer, SquadEntry } from '../../apps/server/src/calls/plan.js'
 import { type ModelPort, mockModel } from '../../apps/server/src/model/client.js'
-import { generateWeek } from '../../apps/server/src/runs/generate.js'
+import { type CardInfo, generateWeek } from '../../apps/server/src/runs/generate.js'
 
 const fit = { eligible: true } as const
 let nextId = 1
@@ -57,7 +57,7 @@ const build = () => {
   ]
   const pool = [player('Gross', 'MID', 16, 6.0, 56), player('Winger', 'MID', 17, 5.8, 55)]
   const everyone = [...squad, ...pool]
-  const card = (p: Named): CardPlayer & { name: string; club: string; status: string } => ({
+  const card = (p: Named): CardInfo => ({
     name: p.name,
     club: `C${String(p.clubId)}`,
     status: 'a',
@@ -149,6 +149,25 @@ describe('One run, end to end', () => {
       pointsHit: 0,
       k: 0.5,
     })
+  })
+
+  it('F3-AC-17: WATCH is set on a transfer FPL expects to move tonight, with its reason — never on a substitution', async () => {
+    const { plan, cards, id } = build()
+    const rising = { likelihoodTonight: 5, locked: false }
+    // Gross is the transfer's incoming player; Rogers the substitution's.
+    for (const name of ['Gross', 'Rogers']) {
+      const c = cards.get(id(name))
+      if (c) cards.set(id(name), { ...c, priceSignal: rising })
+    }
+    const { calls } = await generateWeek({ plan, cards, model: mockModel() })
+
+    const transfer = calls.find((c) => c.inPlayerId === id('Gross'))
+    expect(transfer?.watch).toBe(true)
+    expect(transfer?.watchReason).toBe("FPL expects Gross's price to rise tonight — buying today avoids paying £0.1m more.")
+
+    const sub = calls.find((c) => c.inPlayerId === id('Rogers'))
+    expect(sub?.watch).toBe(false)
+    expect(sub?.watchReason).toBeNull()
   })
 
   it('positions follow the plan\'s order, so the screen shows what the plan chose', async () => {

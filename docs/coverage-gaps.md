@@ -221,8 +221,10 @@ counted covered because a test names it, and each test proves one half:
 - `F3-AC-06` — the bench-order call leads the Sub category in a blank week
   (`tests/calls/plan.test.ts`). The editorial stating the consequence is F8's.
   *Home: STE-66, slice 8.*
-- `F3-AC-17` — *Forced* is built and tested; *Watch* has a slot and nothing sets
-  it, because neither of its triggers has a data source. *Home: STE-117.*
+- `F3-AC-17` — *Forced* is built and tested. *Watch*'s **price** trigger is built
+  (2026-09-11), from FPL's own forecast in `bootstrap-static`: set on a transfer when
+  either player is at FPL's strongest likelihood of a change tonight and not locked.
+  The **press-conference** trigger has no data source. *Home: STE-117.*
 - `F3-AC-29` — the shortlist count and the status bar's NBal update
   (`tests/client/calls.test.ts`). The selected filter's scenario and the priority
   tally live on the Overview. *Home: STE-66, slice 8.*

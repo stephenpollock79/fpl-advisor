@@ -54,11 +54,14 @@ export function HeadToHead({
   const { call, out, into, figures } = shown
   const [pickerSide, setPickerSide] = useState<'out' | 'in' | null>(null)
   const [explained, setExplained] = useState(false)
+  const [whyWatch, setWhyWatch] = useState(false)
   const [drag, setDrag] = useState({ dx: 0, dy: 0 })
   const start = useRef<{ x: number; y: number } | null>(null)
 
   const isForced = figures.reading === 'call' && figures.isForced
-  const flag = isForced ? 'FORCED' : call.watch ? 'WATCH' : null
+  // At most one flag, and FORCED outranks WATCH (F3-AC-17). WATCH reads WATCH with
+  // no qualifier; its reason is one tap away (F3-AC-18).
+  const watchReason = isForced ? null : figures.watchReason
 
   // Swipes start anywhere on the card except the table, which scrolls.
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
@@ -133,8 +136,24 @@ export function HeadToHead({
               </span>
             )}
           </span>
-          {flag ? <span className={flag === 'FORCED' ? styles.flagForced : styles.flagWatch}>{flag}</span> : null}
+          {isForced ? <span className={styles.flagForced}>FORCED</span> : null}
+          {watchReason ? (
+            <button
+              className={styles.flagWatch}
+              onClick={() => setWhyWatch((v) => !v)}
+              aria-expanded={whyWatch}
+              type="button"
+            >
+              WATCH
+            </button>
+          ) : null}
         </div>
+
+        {watchReason && whyWatch ? (
+          <p data-testid="watch-reason" className={styles.watchNote}>
+            {watchReason}
+          </p>
+        ) : null}
 
         {pickerSide && picker ? (
           <div className={styles.picker}>

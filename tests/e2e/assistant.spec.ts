@@ -239,11 +239,15 @@ test('F3-UP-06: rejecting every call is a legitimate answer — each category re
   await expect(page.getByText('Substitutions decided')).toBeVisible()
 })
 
-test('F3-AC-18: the flag reads WATCH with no qualifier, and FORCED outranks it', async ({ page }) => {
+test('F3-AC-18: the flag reads WATCH with no qualifier, its reason is one tap away, and FORCED outranks it', async ({ page }) => {
   const [t1, t2, ...rest] = world.calls
-  await open(page, {}, [{ ...t1, watch: true }, { ...t2, watch: true, isForced: true }, ...rest])
+  const reason = "FPL expects Groß's price to rise tonight — buying today avoids paying £0.1m more."
+  await open(page, {}, [{ ...t1, watch: true, watchReason: reason }, { ...t2, watch: true, watchReason: reason, isForced: true }, ...rest])
 
   await expect(page.getByText('WATCH', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('watch-reason')).toHaveCount(0)
+  await page.getByRole('button', { name: 'WATCH' }).click()
+  await expect(page.getByTestId('watch-reason')).toHaveText(reason)
   await page.getByRole('button', { name: /Later/ }).click()
   await expect(page.getByText('FORCED', { exact: true })).toBeVisible()
   await expect(page.getByText('WATCH', { exact: true })).toHaveCount(0)

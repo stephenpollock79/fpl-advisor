@@ -23,6 +23,7 @@ import {
   callKey,
   evaluateCall,
   evaluationRows,
+  priceWatch,
   templateReasoning,
   transferCostTenths,
 } from '@fpl/engine'
@@ -56,6 +57,13 @@ export function cardPlayer(p: WorldPlayer): CardPlayer {
 export const rowsFor = (out: WorldPlayer, into: WorldPlayer): EvaluationRow[] =>
   evaluationRows(cardPlayer(out), cardPlayer(into))
 
+/** A player's price signal for WATCH, with FPL's lock read against the clock here. */
+const priceSignalFor = (p: WorldPlayer) => ({
+  name: p.surname,
+  likelihoodTonight: p.priceLikelihoodTonight ?? null,
+  locked: p.priceLockedUntil != null && Date.parse(p.priceLockedUntil) > Date.now(),
+})
+
 /** Everything the card's summary strip, table, breakdown and reasoning block show. */
 export type CardFigures =
   | {
@@ -70,6 +78,8 @@ export type CardFigures =
       reasoning: string
       rows: EvaluationRow[]
       breakdown: Breakdown
+      /** Why WATCH is set, or null (STE-117). FORCED outranks it on screen. */
+      watchReason: string | null
     }
   | {
       /** The swap is no better, or too little better to tell (the noise floor). */
@@ -79,6 +89,7 @@ export type CardFigures =
       reasoning: string
       rows: EvaluationRow[]
       breakdown: Breakdown
+      watchReason: string | null
     }
 
 /** The figures exactly as the run stored them. */
@@ -95,6 +106,7 @@ export function storedFigures(call: WorldCall, out: WorldPlayer, into: WorldPlay
     reasoning: call.reasoning,
     rows: rowsFor(out, into),
     breakdown: call.breakdown,
+    watchReason: call.watch ? call.watchReason : null,
   }
 }
 
@@ -121,6 +133,8 @@ export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: World
 
   const rows = rowsFor(out, into)
   const reasoning = templateReasoning(rows, out.surname, into.surname)
+  // The swapped pair is its own transfer, so WATCH is read for it afresh.
+  const watchReason = priceWatch(priceSignalFor(out), priceSignalFor(into))
   // Every value here is the engine's output or a published figure it was given.
   const breakdown: Breakdown = {
     weights: [...TRANSFER_HORIZON_WEIGHTS],
@@ -139,6 +153,7 @@ export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: World
       reasoning,
       rows,
       breakdown,
+      watchReason,
     }
   }
 
@@ -154,6 +169,7 @@ export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: World
     reasoning,
     rows,
     breakdown,
+    watchReason,
   }
 }
 

@@ -310,7 +310,8 @@ byte-identical either way, since it is arithmetic over published inputs that hav
 | `k_used` | `numeric` | 0.5 for a substitution, bench order, captain and vice; 2.0 for a transfer (tuned 2026-09-10, STE-60). Shown in the breakdown (F3-AC-30, F4-AC-11). |
 | `cost_tenths` | `int` | Transfers only; £0.00 for substitutions and captaincy (F3-AC-28). |
 | `is_forced` | `bool` | **A property of the call, never derived from conviction** (F3-AC-17, F8-AC-03). |
-| `watch_flag` | `bool` | Set by code, never by the model, and never from conviction (F3-AC-17, F3-AC-18). |
+| `watch_flag` | `bool` | Set by code, never by the model, and never from conviction (F3-AC-17, F3-AC-18). On a transfer only, when FPL's own forecast in `bootstrap-static` rates either player's price change tonight at its strongest likelihood (±5) and the price is not locked (STE-117). The press-conference trigger has no source. |
+| `watch_reason` | `text` null | Why WATCH is set, shown one tap away on the card (F3-AC-18). Null when it is not set. |
 | `is_reading` | `bool` | A keep reading — no change, nothing to do. Excluded from every tally (F4-AC-02, F4-AC-03). |
 | `reasoning` | `text` | Four lines maximum, from the constrained call (F3-AC-22). |
 | `breakdown` | `jsonb` | Every value already computed in the pipeline. **Nothing is calculated when this is displayed** (F3-AC-31). |

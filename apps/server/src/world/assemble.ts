@@ -70,6 +70,10 @@ export type WorldPlayer = {
   purchasePriceTenths: number | null
   /** FPL's selling price, from the engine (F3-AC-25). Never computed in the client. */
   sellingPriceTenths: number | null
+  /** FPL's likelihood of a price change tonight, −5 to +5 (STE-117). */
+  priceLikelihoodTonight: number | null
+  /** When FPL's lock on this player's price lifts, after a recent change. */
+  priceLockedUntil: string | null
 }
 
 export type WorldCall = {
@@ -86,6 +90,8 @@ export type WorldCall = {
   costTenths: number
   isForced: boolean
   watch: boolean
+  /** Why WATCH is set, one tap away (F3-AC-18). Null when it is not. */
+  watchReason: string | null
   reasoning: string
   reasoningSource: 'model' | 'template'
   breakdown: unknown
@@ -189,6 +195,8 @@ export function assembleWorld(parts: WorldParts): World {
       nextThree: difficultyStrip(parts.fixtures, player.clubId, parts.gameweek.id, clubById),
       purchasePriceTenths: purchase,
       sellingPriceTenths: purchase === null || nowCostTenths === 0 ? null : sellingPriceTenths(purchase, nowCostTenths),
+      priceLikelihoodTonight: state?.priceChangeLikelihoodTonight ?? null,
+      priceLockedUntil: state?.priceChangeLockedUntil ?? null,
     }
   }
 
