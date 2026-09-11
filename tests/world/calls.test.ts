@@ -66,6 +66,7 @@ const call: WorldCall = {
   costTenths: 0,
   isForced: false,
   watch: false,
+  watchReason: null,
   reasoning: 'Rogers over Tzolis.',
   reasoningSource: 'template',
   breakdown: { net: 4.6 },

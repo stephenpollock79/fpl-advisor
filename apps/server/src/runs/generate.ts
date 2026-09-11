@@ -16,17 +16,27 @@ import {
   type AvailabilityVerdict,
   type Band,
   type CardPlayer,
+  type PriceSignal,
   TRANSFER_HORIZON_WEIGHTS,
   evaluationRows,
   horizonTotal,
   horizonWeightsFor,
+  priceWatch,
 } from '@fpl/engine'
 import { type PlanInput, type PlanPlayer, type PlannedCall, planWeek } from '../calls/plan.js'
 import type { ModelCallRecord, ModelPort, ShortPlayer } from '../model/client.js'
 import { finalReasoning } from '../model/reasoning.js'
 
 /** What the card shows for one player, plus the names the reasoning and the shortlist use. */
-export type CardInfo = CardPlayer & { name: string; club: string; status: string }
+export type CardInfo = CardPlayer & {
+  name: string
+  club: string
+  status: string
+  /** FPL's forecast for tonight's price change, for the WATCH flag (STE-117). */
+  priceSignal?: PriceSignal
+}
+
+const NO_SIGNAL: PriceSignal = { likelihoodTonight: null, locked: false }
 
 export type BreakdownSide = {
   playerId: number
@@ -61,8 +71,14 @@ export type StoredCall = {
   pointsHit: number
   costTenths: number
   isForced: boolean
-  /** Nothing sets it: neither trigger has a data source (STE-117). */
-  watch: false
+  /**
+   * Set by code when FPL expects a price on either side of a transfer to move
+   * tonight (STE-117). Never on a substitution, never from conviction. The
+   * press-conference trigger has no source yet.
+   */
+  watch: boolean
+  /** Why, one tap away on the card (F3-AC-18). Null when WATCH is not set. */
+  watchReason: string | null
   reasoning: string
   reasoningSource: 'model' | 'template'
   breakdown: Breakdown
@@ -116,6 +132,16 @@ export async function generateWeek(input: {
       return weights.length === 1 ? [p.hasFixture ? (p.projections[0] ?? 0) : 0] : p.projections.slice(0, weights.length)
     }
     const line = lines[position]
+    const outCard = card(call.outPlayerId)
+    const inCard = card(call.inPlayerId)
+    // Money moves only on a transfer, so only a transfer can be caught by a price change.
+    const watchReason =
+      call.category === 'transfer'
+        ? priceWatch(
+            { name: outCard.name, ...(outCard.priceSignal ?? NO_SIGNAL) },
+            { name: inCard.name, ...(inCard.priceSignal ?? NO_SIGNAL) },
+          )
+        : null
 
     return {
       key: call.key,
@@ -130,7 +156,8 @@ export async function generateWeek(input: {
       pointsHit: call.outcome.pointsHit,
       costTenths: call.outcome.costTenths,
       isForced: call.outcome.isForced,
-      watch: false,
+      watch: watchReason !== null,
+      watchReason,
       reasoning: line?.text ?? '',
       reasoningSource: line?.source ?? 'template',
       breakdown: {

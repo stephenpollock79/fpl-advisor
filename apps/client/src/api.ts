@@ -108,6 +108,10 @@ export type WorldPlayer = {
   purchasePriceTenths: number | null
   /** FPL's selling price, computed by the server's engine call. Never computed here. */
   sellingPriceTenths: number | null
+  /** FPL's likelihood of a price change tonight, −5 to +5. */
+  priceLikelihoodTonight: number | null
+  /** When FPL's lock on this player's price lifts. */
+  priceLockedUntil: string | null
 }
 
 /** Each value the *How this was calculated* panel shows (F3-AC-30). Nothing in it is computed on display. */
@@ -135,6 +139,8 @@ export type WorldCall = {
   costTenths: number
   isForced: boolean
   watch: boolean
+  /** Why WATCH is set, one tap away (F3-AC-18). Null when it is not. */
+  watchReason: string | null
   reasoning: string
   reasoningSource: 'model' | 'template'
   breakdown: Breakdown

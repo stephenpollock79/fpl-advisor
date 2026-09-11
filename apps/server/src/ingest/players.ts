@@ -42,6 +42,12 @@ export type PlayerStateRow = {
    * (STE-87). Optional: rows read before slice 5 do not carry it.
    */
   costChangeStartTenths?: number | null
+  /** FPL's progress toward a price change, as published. Optional, as above. */
+  priceChangePercent?: number | null
+  /** FPL's likelihood of a change tonight, −5 to +5 (STE-117). */
+  priceChangeLikelihoodTonight?: number | null
+  /** FPL has locked this player's price until this moment, after a recent change. */
+  priceChangeLockedUntil?: string | null
 }
 
 type BootstrapPayload = {
@@ -67,6 +73,9 @@ type BootstrapPayload = {
     transfers_in: number | null
     transfers_out: number | null
     cost_change_start?: number | null
+    price_change_percent?: string | number | null
+    price_change_projections?: { offset: number; projected_percent: string | number; likelihood: number }[] | null
+    price_change_locked_until?: string | null
   }[]
 }
 
@@ -133,6 +142,10 @@ export function toPlayerStateRows(
     transfersIn: e.transfers_in,
     transfersOut: e.transfers_out,
     costChangeStartTenths: e.cost_change_start ?? null,
+    priceChangePercent: numberOrNull(e.price_change_percent),
+    // Tonight is projection offset 0. Read by offset, never by position.
+    priceChangeLikelihoodTonight: e.price_change_projections?.find((p) => p.offset === 0)?.likelihood ?? null,
+    priceChangeLockedUntil: e.price_change_locked_until ?? null,
   }))
 }
 

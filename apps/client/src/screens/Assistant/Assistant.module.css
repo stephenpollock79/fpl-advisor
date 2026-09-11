@@ -127,7 +127,9 @@
 .flagForced,
 .flagWatch { margin-left: auto; padding: 2px 7px; border-radius: 5px; font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.1em; }
 .flagForced { background: var(--red-disc); color: #fff; }
-.flagWatch { background: #f2b33d; color: #3d2a05; }
+/* A button, because its reason is one tap away (F3-AC-18). */
+.flagWatch { background: #f2b33d; color: #3d2a05; border: none; cursor: pointer; }
+.watchNote { margin: 0; padding: 6px 14px; background: #fdf4df; border-bottom: 1px solid #ecd6a6; font-size: 11px; line-height: 1.35; color: #5a3f0a; }
 
 .table { flex: 1; min-height: 0; overflow-y: auto; }
 .row {

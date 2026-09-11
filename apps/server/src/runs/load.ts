@@ -76,7 +76,7 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
     everyRow<Row>((from, to) =>
       reference
         .from('player_state')
-        .select('player_id, status, chance_of_playing_next_round, now_cost_tenths, form, selected_by_percent, season_points, transfers_in, transfers_out')
+        .select('player_id, status, chance_of_playing_next_round, now_cost_tenths, form, selected_by_percent, season_points, transfers_in, transfers_out, price_change_likelihood_tonight, price_change_locked_until')
         .eq('feed_read_id', readId)
         .range(from, to),
     ),
@@ -108,6 +108,9 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
 
   const planPlayers = new Map<number, PlanPlayer>()
   const cards = new Map<number, CardInfo>()
+  // The engine has no clock (ADR 0006), so whether FPL's price lock is still in
+  // force is decided here, once, for the whole run.
+  const now = Date.now()
 
   for (const p of players) {
     const id = p['id'] as number
@@ -153,6 +156,12 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
       seasonPoints: num(state['season_points']),
       transfersIn: num(state['transfers_in']),
       transfersOut: num(state['transfers_out']),
+      priceSignal: {
+        likelihoodTonight: num(state['price_change_likelihood_tonight']),
+        locked:
+          typeof state['price_change_locked_until'] === 'string' &&
+          Date.parse(state['price_change_locked_until']) > now,
+      },
     })
   }
 

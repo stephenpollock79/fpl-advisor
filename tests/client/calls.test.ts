@@ -41,6 +41,8 @@ const player = (id: number, surname: string, projection: number, extra: Partial<
   nextThree: [2, 2, 2],
   purchasePriceTenths: null,
   sellingPriceTenths: null,
+  priceLikelihoodTonight: null,
+  priceLockedUntil: null,
   ...extra,
 })
 
@@ -58,6 +60,7 @@ const call = (key: string, category: WorldCall['category'], costTenths = 0): Wor
   costTenths,
   isForced: false,
   watch: false,
+  watchReason: null,
   reasoning: 'x',
   reasoningSource: 'template',
   breakdown: { weights: [1], out: { playerId: 1, projections: [1], gate: { eligible: true }, total: 1 }, in: { playerId: 2, projections: [2], gate: { eligible: true }, total: 2 }, net: 1, pointsHit: 0, k: 0.5 },
@@ -80,6 +83,15 @@ describe('F3-AC-24 · swapping a candidate recomputes through the engine', () =>
     const out = player(1, 'Better', 6.0, { sellingPriceTenths: 60 })
     const worse = player(2, 'Worse', 2.0)
     expect(recomputeTransfer(call('transfer:out=1:in=2', 'transfer'), out, worse)?.reading).toBe('no_change')
+  })
+
+  it('F3-AC-17: a swapped-in candidate FPL expects to rise tonight sets WATCH on the recomputed card; a locked one does not', () => {
+    const out = player(1, 'MidB', 5.0, { sellingPriceTenths: 50 })
+    const rising = player(2, 'Konsa', 6.0, { priceLikelihoodTonight: 5 })
+    const locked = player(3, 'Hall', 6.0, { priceLikelihoodTonight: 5, priceLockedUntil: '2999-01-01T00:00:00Z' })
+
+    expect(recomputeTransfer(call('t', 'transfer'), out, rising)?.watchReason).toMatch(/^FPL expects Konsa's price to rise tonight/)
+    expect(recomputeTransfer(call('t', 'transfer'), out, locked)?.watchReason).toBeNull()
   })
 
   it('F3-AC-25: an outgoing player with no recoverable selling price cannot be scored', () => {

@@ -104,6 +104,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     costTenths: c['cost_tenths'] as number,
     isForced: c['is_forced'] as boolean,
     watch: c['watch_flag'] as boolean,
+    watchReason: (c['watch_reason'] as string | null) ?? null,
     reasoning: c['reasoning'] as string,
     reasoningSource: c['reasoning_source'] as WorldCall['reasoningSource'],
     breakdown: c['breakdown'],
@@ -123,7 +124,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
 
   const stateQuery = reference
     .from('player_state')
-    .select('feed_read_id, player_id, status, news, news_added, chance_of_playing_next_round, now_cost_tenths, form, selected_by_percent, season_points, transfers_in, transfers_out, cost_change_start_tenths')
+    .select('feed_read_id, player_id, status, news, news_added, chance_of_playing_next_round, now_cost_tenths, form, selected_by_percent, season_points, transfers_in, transfers_out, cost_change_start_tenths, price_change_likelihood_tonight, price_change_locked_until')
     .in('player_id', playerIds)
 
   const [{ data: playerRows }, { data: clubRows }, { data: fixtureRows }, { data: projectionRows }, { data: stateRows }] =
@@ -190,6 +191,8 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
       transfersIn: s['transfers_in'] as number | null,
       transfersOut: s['transfers_out'] as number | null,
       costChangeStartTenths: s['cost_change_start_tenths'] as number | null,
+      priceChangeLikelihoodTonight: (s['price_change_likelihood_tonight'] as number | null) ?? null,
+      priceChangeLockedUntil: (s['price_change_locked_until'] as string | null) ?? null,
     })),
     calls,
     decisions: ((decisionRows ?? []) as Row[]).map((d) => ({
