@@ -13,8 +13,8 @@
   padding:
     calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
     calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
-  /* The small viewport — see Assistant.module.css and STE-121. The dynamic one
-     resized as Chrome on iOS moved its toolbar, stalling the stat table's scroll. */
+  /* The small viewport, so the screen does not resize as a browser's toolbar
+     moves — see Assistant.module.css and STE-121. */
   height: 100svh;
   overflow: hidden;
 }
