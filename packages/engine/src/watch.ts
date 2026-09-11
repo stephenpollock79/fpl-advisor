@@ -56,3 +56,36 @@ export const priceWatch = (
 
   return null
 }
+
+const HOUR = 3_600_000
+const DAY = 24 * HOUR
+/** FPL's overnight price update, on the London clock: 01:30. */
+const UPDATE_LONDON = 1.5 * HOUR
+
+/** 01:00 UTC on a month's last Sunday — when UK clocks change. */
+const lastSundayAtOne = (year: number, month: number): number => {
+  const lastDay = new Date(Date.UTC(year, month + 1, 0))
+  return Date.UTC(year, month, lastDay.getUTCDate() - lastDay.getUTCDay(), 1)
+}
+
+/** London's lead on UTC at an instant: an hour in summer time, none otherwise. */
+const londonOffset = (ms: number): number => {
+  const year = new Date(ms).getUTCFullYear()
+  return ms >= lastSundayAtOne(year, 2) && ms < lastSundayAtOne(year, 9) ? HOUR : 0
+}
+
+/**
+ * Whether a forecast read at `readAtMs` is still about tonight at `nowMs`.
+ *
+ * FPL's "tonight" ends at its overnight update. A forecast read before the most
+ * recent 01:30 UK describes a night that has passed, and a card still saying
+ * "tonight" on it would be stating something false. Both instants come from the
+ * caller, who has the clock (ADR 0006).
+ */
+export const forecastCurrent = (readAtMs: number, nowMs: number): boolean => {
+  const offset = londonOffset(nowMs)
+  const londonNow = nowMs + offset
+  let update = Math.floor(londonNow / DAY) * DAY + UPDATE_LONDON
+  if (update > londonNow) update -= DAY
+  return readAtMs >= update - offset
+}

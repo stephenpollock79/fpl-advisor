@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { WATCH_LIKELIHOOD, priceWatch } from '../../packages/engine/src/index.js'
+import { WATCH_LIKELIHOOD, forecastCurrent, priceWatch } from '../../packages/engine/src/index.js'
 
 const quiet = (name: string) => ({ name, likelihoodTonight: 0, locked: false })
 const signal = (name: string, likelihoodTonight: number | null, locked = false) => ({ name, likelihoodTonight, locked })
@@ -37,6 +37,23 @@ describe('F3-AC-17 · WATCH on a price expected to move tonight', () => {
     expect(priceWatch(signal('A', 4), signal('B', -4))).toBeNull()
     expect(priceWatch(quiet('A'), signal('B', 5, true))).toBeNull()
     expect(priceWatch(signal('A', null), signal('B', null))).toBeNull()
+  })
+
+  it('F3-AC-17: a forecast is tonight\'s only until FPL\'s next overnight update, 01:30 UK — summer time', () => {
+    const at = (iso: string) => Date.parse(iso)
+    // September is BST, so 01:30 in London is 00:30 UTC.
+    expect(forecastCurrent(at('2026-09-11T15:00:00Z'), at('2026-09-11T23:59:00Z'))).toBe(true)
+    expect(forecastCurrent(at('2026-09-11T23:59:00Z'), at('2026-09-12T00:29:00Z'))).toBe(true)
+    expect(forecastCurrent(at('2026-09-11T15:00:00Z'), at('2026-09-12T00:31:00Z'))).toBe(false)
+    // Read after the update, it is the next night's forecast and holds all day.
+    expect(forecastCurrent(at('2026-09-12T00:45:00Z'), at('2026-09-12T20:00:00Z'))).toBe(true)
+  })
+
+  it('F3-AC-17: the same rule in winter, when 01:30 UK is 01:30 UTC', () => {
+    const at = (iso: string) => Date.parse(iso)
+    expect(forecastCurrent(at('2026-12-01T12:00:00Z'), at('2026-12-02T01:29:00Z'))).toBe(true)
+    expect(forecastCurrent(at('2026-12-01T12:00:00Z'), at('2026-12-02T01:31:00Z'))).toBe(false)
+    expect(forecastCurrent(at('2026-12-02T00:45:00Z'), at('2026-12-02T01:00:00Z'))).toBe(true)
   })
 
   it('ENGINE-AC-05: the reason never uses probability words beside the strength figure', () => {

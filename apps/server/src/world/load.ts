@@ -18,7 +18,7 @@ import type { AuthenticatedUser } from '../auth/session.js'
 import { referenceClient, userClient } from '../supabase.js'
 import { toGameweekRows, gameweekToAdviseOn, lastScoredGameweek } from '../ingest/gameweeks.js'
 import type { WorldCall, WorldParts } from './assemble.js'
-import { latestReadId } from './reads.js'
+import { latestRead } from './reads.js'
 
 type Row = Record<string, unknown>
 
@@ -120,7 +120,8 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
   ].filter((id) => !squadIds.includes(id))
   const playerIds = [...squadIds, ...candidateIds]
   const horizon = [gameweek.id, gameweek.id + 1, gameweek.id + 2]
-  const readId = await latestReadId('fpl_bootstrap')
+  const read = await latestRead('fpl_bootstrap')
+  const readId = read?.id ?? null
 
   const stateQuery = reference
     .from('player_state')
@@ -201,5 +202,6 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     })),
     candidateIds,
     lastRunAt: (run?.['finished_at'] as string | undefined) ?? null,
+    priceForecastReadAt: read?.fetchedAt ?? null,
   }
 }

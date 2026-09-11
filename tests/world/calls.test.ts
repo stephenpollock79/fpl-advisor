@@ -92,6 +92,7 @@ const world = () =>
     decisions: [{ callKey: call.key, state: 'selected' }],
     candidateIds: [124],
     lastRunAt: '2026-09-11T15:00:00Z',
+    priceForecastReadAt: '2026-09-11T14:59:00Z',
   })
 
 describe('What the world carries for the calls', () => {
@@ -130,5 +131,9 @@ describe('What the world carries for the calls', () => {
 
   it('F6-AC-14: the last-run time is carried through as given — the loader reads it from succeeded runs only', () => {
     expect(world().lastRunAt).toBe('2026-09-11T15:00:00Z')
+  })
+
+  it('F3-AC-17: the time of the FPL read behind the players\' figures reaches the client, so WATCH can tell a stale "tonight"', () => {
+    expect(world().priceForecastReadAt).toBe('2026-09-11T14:59:00Z')
   })
 })

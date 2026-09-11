@@ -111,7 +111,10 @@ const world = {
     call(3, 'substitution:doubt:out=423:in=112', 'substitution', 'doubt_swap', 423, 112, 3, 86, 'strong', 0, 'VanHecke over Shaw: 4.7 projected points this gameweek against 1.7.'),
   ],
   decisions: {},
-  lastRunAt: '2026-09-11T15:00:00Z',
+  // Relative to the clock, not fixed: WATCH hides a forecast from before FPL's
+  // last overnight update, so a fixed date would fail this suite the next day.
+  lastRunAt: new Date().toISOString(),
+  priceForecastReadAt: new Date(Date.now() - 60_000).toISOString(),
   blanks: 0,
   doubles: 0,
   attribution: { name: 'Fantasy Football IQ', href: 'https://fantasyfootballiq.app' },

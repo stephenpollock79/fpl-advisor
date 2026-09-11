@@ -13,7 +13,9 @@ import {
   recomputeTransfer,
   restoredSwaps,
   shortlistCount,
+  storedFigures,
   undecided,
+  watchFreshness,
 } from '../../apps/client/src/calls/view'
 
 const player = (id: number, surname: string, projection: number, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
@@ -72,7 +74,7 @@ describe('F3-AC-24 · swapping a candidate recomputes through the engine', () =>
   it('F3-AC-24: net, conviction, band, cost and the line all move with the swap', () => {
     const tzolis = player(557, 'Tzolis', 2.4, { nowCostTenths: 64, sellingPriceTenths: 65 })
     const gross = player(124, 'Groß', 6.0, { nowCostTenths: 56 })
-    const figures = recomputeTransfer(call('transfer:out=557:in=999', 'transfer'), tzolis, gross)
+    const figures = recomputeTransfer(call('transfer:out=557:in=999', 'transfer'), tzolis, gross, true)
 
     // 3.6 a week over 1.0 / 0.6 / 0.35 is 7.02; 100 × 7.02 ÷ 9.02 is 77.8 → 78, lean.
     expect(figures).toMatchObject({ reading: 'call', net: 7.02, conviction: 78, band: 'lean', costTenths: -9 })
@@ -82,7 +84,7 @@ describe('F3-AC-24 · swapping a candidate recomputes through the engine', () =>
   it('F3-AC-24: a swap that is no better reads as no change, never as a weak call', () => {
     const out = player(1, 'Better', 6.0, { sellingPriceTenths: 60 })
     const worse = player(2, 'Worse', 2.0)
-    expect(recomputeTransfer(call('transfer:out=1:in=2', 'transfer'), out, worse)?.reading).toBe('no_change')
+    expect(recomputeTransfer(call('transfer:out=1:in=2', 'transfer'), out, worse, true)?.reading).toBe('no_change')
   })
 
   it('F3-AC-17: a swapped-in candidate FPL expects to rise tonight sets WATCH on the recomputed card; a locked one does not', () => {
@@ -90,12 +92,48 @@ describe('F3-AC-24 · swapping a candidate recomputes through the engine', () =>
     const rising = player(2, 'Konsa', 6.0, { priceLikelihoodTonight: 5 })
     const locked = player(3, 'Hall', 6.0, { priceLikelihoodTonight: 5, priceLockedUntil: '2999-01-01T00:00:00Z' })
 
-    expect(recomputeTransfer(call('t', 'transfer'), out, rising)?.watchReason).toMatch(/^FPL expects Konsa's price to rise tonight/)
-    expect(recomputeTransfer(call('t', 'transfer'), out, locked)?.watchReason).toBeNull()
+    expect(recomputeTransfer(call('t', 'transfer'), out, rising, true)?.watchReason).toMatch(/^FPL expects Konsa's price to rise tonight/)
+    expect(recomputeTransfer(call('t', 'transfer'), out, locked, true)?.watchReason).toBeNull()
+  })
+
+  it('F3-AC-17: a forecast from before FPL\'s last overnight update sets no WATCH on a swap', () => {
+    const out = player(1, 'MidB', 5.0, { sellingPriceTenths: 50 })
+    const rising = player(2, 'Konsa', 6.0, { priceLikelihoodTonight: 5 })
+    expect(recomputeTransfer(call('t', 'transfer'), out, rising, false)?.watchReason).toBeNull()
   })
 
   it('F3-AC-25: an outgoing player with no recoverable selling price cannot be scored', () => {
-    expect(recomputeTransfer(call('t', 'transfer'), player(1, 'A', 2), player(2, 'B', 6))).toBeNull()
+    expect(recomputeTransfer(call('t', 'transfer'), player(1, 'A', 2), player(2, 'B', 6), true)).toBeNull()
+  })
+})
+
+describe('F3-AC-17 · WATCH says "tonight" only while the forecast is tonight\'s', () => {
+  // 11 Sep is summer time: FPL's 01:30 UK update is 00:30 UTC.
+  const evening = Date.parse('2026-09-11T20:00:00Z')
+  const nextDay = Date.parse('2026-09-12T09:00:00Z')
+  const world = (priceForecastReadAt: string | null, lastRunAt: string | null) => ({ priceForecastReadAt, lastRunAt })
+
+  it('F3-AC-17: a run read today keeps its stored flag and lets swaps set one', () => {
+    expect(watchFreshness(world('2026-09-11T15:00:00Z', '2026-09-11T15:01:00Z'), evening)).toEqual({ stored: true, swapped: true })
+  })
+
+  it('F3-AC-17: after the overnight update, neither the stored flag nor a swap says "tonight"', () => {
+    expect(watchFreshness(world('2026-09-11T15:00:00Z', '2026-09-11T15:01:00Z'), nextDay)).toEqual({ stored: false, swapped: false })
+  })
+
+  it('F3-AC-17: a fetch newer than the run leaves the stored flag unbacked, while swaps read the new one', () => {
+    expect(watchFreshness(world('2026-09-12T08:00:00Z', '2026-09-11T15:01:00Z'), nextDay)).toEqual({ stored: false, swapped: true })
+  })
+
+  it('F3-AC-17: no fetch on record, no WATCH', () => {
+    expect(watchFreshness(world(null, null), evening)).toEqual({ stored: false, swapped: false })
+  })
+
+  it('F3-AC-17: a stored flag is hidden when its forecast has gone stale', () => {
+    const c = { ...call('t', 'transfer'), watch: true, watchReason: "FPL expects Konsa's price to rise tonight — buying today avoids paying £0.1m more." }
+    const [out, into] = [player(1, 'MidB', 5.0), player(2, 'Konsa', 6.0)]
+    expect(storedFigures(c, out, into, true).watchReason).toBe(c.watchReason)
+    expect(storedFigures(c, out, into, false).watchReason).toBeNull()
   })
 })
 

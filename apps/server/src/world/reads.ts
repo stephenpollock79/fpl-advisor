@@ -13,16 +13,21 @@
 
 import { referenceClient } from '../supabase.js'
 
-export async function latestReadId(source: 'fpl_bootstrap' | 'ffiq'): Promise<string | null> {
+export async function latestRead(source: 'fpl_bootstrap' | 'ffiq'): Promise<{ id: string; fetchedAt: string } | null> {
   const { data, error } = await referenceClient()
     .from('feed_read')
-    .select('id')
+    .select('id, fetched_at')
     .eq('source', source)
     .eq('succeeded', true)
     .order('fetched_at', { ascending: false })
     .limit(1)
   if (error) throw new Error(`could not find the latest ${source} read: ${error.message}`)
-  return (data as { id: string }[] | null)?.[0]?.id ?? null
+  const row = (data as { id: string; fetched_at: string }[] | null)?.[0]
+  return row ? { id: row.id, fetchedAt: row.fetched_at } : null
+}
+
+export async function latestReadId(source: 'fpl_bootstrap' | 'ffiq'): Promise<string | null> {
+  return (await latestRead(source))?.id ?? null
 }
 
 const PAGE = 1000
