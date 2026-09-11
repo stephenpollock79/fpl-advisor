@@ -153,3 +153,21 @@ nobody wrote: it looks checkable, and is not.
 The ticket route is for work that genuinely belongs to a later slice, and it costs a
 sentence saying which slice and why.
 
+## H. Tickets
+
+*Section H added 2026-09-11, after 31 tickets were found in Linear's "No milestone" lane.
+`slice-tickets` required a milestone; nothing covered tickets logged in passing.*
+
+**P15. Every ticket has a milestone from the moment it exists.** Whoever creates a ticket —
+a slice ticket, or one logged under G11 or G20 — sets its milestone in the same call:
+
+- **the milestone of the work it was found in**, or
+- ***Post MVP*, when Stephen has ruled it for after the MVP.**
+
+Fetch milestones live with `list_milestones`; never hardcode an id. Where the right one is
+unclear, use the milestone of the work in hand and say so in the reply.
+
+**Moving an open ticket to a different milestone later is a scope change**, and is asked
+first (Linear conventions, *Ask first*). Filing a finished ticket where its work happened is
+bookkeeping, and is not.
+

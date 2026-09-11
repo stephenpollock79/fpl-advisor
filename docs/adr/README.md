@@ -2,23 +2,15 @@
 
 Numbering, so the first four are not renumbered later.
 
-**0001, 0002 and 0003 are numbers, not files.** They are reserved for conversions of entries already
-written up in the vault Decision Log — the reasoning exists, it just needs the ADR shape — and none
-of the three has been written yet. The *Status* column below says which are real, because a table
-that lists ten ADRs when seven exist is exactly the unresolvable pointer CLAUDE.md's citation rule
-forbids.
-
-**Until they are written, cite the rule and not the number.** The decisions themselves are already
-stated in `CLAUDE.md`: data source ownership under *Data rules*, Railway under *Stack*, and no
-scheduled job under *Do not*. An agent needing to act on one of the three reads it there. ADR 0004
-and ADR 0005 each carry a `Related: ADR 0002` line that currently resolves to nothing — left in
-place rather than deleted, because the reference is correct and it is the file that is missing.
+**0001, 0002 and 0003 are conversions of Decision Log entries** (#68, #69, #70) that predate the
+repo. Their decisions were made on 2026-09-03; the files were written on 2026-09-11 (STE-89), which
+is why they are dated later than 0004 and 0005, which cite 0002.
 
 | ADR | Subject | Status |
 | --- | --- | --- |
-| 0001 | Data source ownership — FPL owns fixtures, FFIQ owns the number | **Not written.** Reserved. Rule is in `CLAUDE.md`, *Data rules*. Decision Log #68 |
-| 0002 | Deploy target: Railway, with Replit as fallback | **Not written.** Reserved. Rule is in `CLAUDE.md`, *Stack*. Decision Log #69 |
-| 0003 | No scheduled refresh; gameweek boundaries read from the feed | **Not written.** Reserved. Rule is in `CLAUDE.md`, *Do not* and *Data rules*. Decision Log #70 |
+| 0001 | Data source ownership — FPL owns fixtures, FFIQ owns the number | Accepted 2026-09-03, written 2026-09-11. Decision Log #68 |
+| 0002 | Deploy target: Railway, with Replit as fallback | Accepted 2026-09-03, written 2026-09-11. Decision Log #69 |
+| 0003 | No scheduled refresh; gameweek boundaries read from the feed | Accepted 2026-09-03, written 2026-09-11. Decision Log #70 |
 | 0004 | Development and deploy workflow | New, 2026-09-03 |
 | 0005 | Framework and rendering approach | New, 2026-09-03 |
 | 0006 | Repo layout and the engine boundary | New, 2026-09-03 |
