@@ -13,11 +13,13 @@
     "start": "pnpm --filter @fpl/server start",
     "test": "vitest run",
     "coverage:criteria": "node scripts/criteria-coverage.mjs",
+    "e2e": "playwright test",
     "typecheck": "tsc -p packages/engine/tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit",
     "check:rls-live": "node scripts/live-rls-check.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "1.55.1",
     "@types/node": "^22.20.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"

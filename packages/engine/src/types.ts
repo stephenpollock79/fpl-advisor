@@ -47,7 +47,9 @@ export type CallIdentity =
   | { readonly type: 'transfer'; readonly outPlayerId: number; readonly inPlayerId: number }
   | {
       readonly type: 'substitution'
-      readonly variant: 'forced' | 'doubt'
+      /** `upgrade` is a fit starter for a better bench player — neither forced
+       *  nor doubt, and GW4's biggest substitution (ruled 2026-09-11, STE-116). */
+      readonly variant: 'forced' | 'doubt' | 'upgrade'
       readonly outPlayerId: number
       readonly inPlayerId: number
     }
@@ -79,6 +81,13 @@ export type CallInput = {
   readonly tripleCaptain?: boolean
   /** Required on a transfer, meaningless on everything else. */
   readonly money?: Money
+  /**
+   * The incumbent cannot score this week for a reason the availability gate
+   * does not see — his club has no fixture. The caller states it from the
+   * fixture table, never from the projection, and it makes the call forced
+   * exactly as a gate exclusion does (F3-AC-03, "an unplayable starter").
+   */
+  readonly incumbentUnplayable?: boolean
 }
 
 type Totals = {

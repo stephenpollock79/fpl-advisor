@@ -33,12 +33,12 @@ const CHIPS: [string, string][] = [
 /** Bench slot labels: the substitute keeper, then outfield one, two, three. */
 const BENCH_SLOTS = ['GK', '1', '2', '3']
 
-export function SquadScreen({ world }: { world: World }) {
+export function SquadScreen({ world, onAssistant }: { world: World; onAssistant: () => void }) {
   const [mode, setMode] = useState<'pitch' | 'stat'>('pitch')
 
   return (
     <main className={styles.screen}>
-      <Header world={world} />
+      <Header world={world} onAssistant={onAssistant} />
 
       <div className={styles.modes} role="tablist">
         {(['pitch', 'stat'] as const).map((m) => (
@@ -72,7 +72,7 @@ export function SquadScreen({ world }: { world: World }) {
  * because it is the app's primary navigation and its absence misreads the screen,
  * and it is disabled because a control that looks live and is not is worse.
  */
-function Header({ world }: { world: World }) {
+function Header({ world, onAssistant }: { world: World; onAssistant: () => void }) {
   const { snapshot, gameweek } = world
 
   return (
@@ -84,14 +84,9 @@ function Header({ world }: { world: World }) {
           <span className={styles.sectionOn} role="tab" aria-selected="true">
             Squad
           </span>
-          <button
-            className={styles.sectionOff}
-            role="tab"
-            aria-selected="false"
-            disabled
-            title="The Assistant arrives with slice 8"
-            type="button"
-          >
+          {/* The Assistant opens on its Transfer and Sub tabs (slice 5). Its
+              Overview is F8 and arrives with slice 8. */}
+          <button className={styles.sectionOff} role="tab" aria-selected="false" onClick={onAssistant} type="button">
             Assistant
           </button>
         </div>

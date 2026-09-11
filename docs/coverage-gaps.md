@@ -188,6 +188,12 @@ that the rule forbids.
 is not another engine test — it is that F3's components take net, conviction and
 band as values and hold no arithmetic over them.
 
+*Closed 2026-09-11 (slice 5).* `tests/client/surface-rules.test.ts` reads the
+source of every screen and fails on any value import from the engine, and fails
+first if the Assistant screen is missing, so it cannot pass by scanning nothing.
+Screens receive figures from `apps/client/src/calls/`, which takes them from the
+run or from `evaluateCall`.
+
 **ENGINE-AC-05 — nothing renders conviction yet, so nothing can be checked.**
 Conviction must be labelled everywhere it appears as the strength of the call,
 never as a probability, likelihood or chance of being right. There is no
@@ -201,3 +207,24 @@ coverage figure into a claim about the future.
 
 *Home: STE-62, slice 5*, as the first slice that puts the figure in front of
 anyone.
+
+*Automated half closed 2026-09-11 (slice 5).* The figure is labelled *strength*,
+and `tests/client/surface-rules.test.ts` fails on probability vocabulary in any
+string the Assistant can show; the model's own reasoning line is held to the same
+list before it is used (`apps/server/src/model/reasoning.ts`). **What a scan cannot
+see is how the screen reads to a person** — that half is item 7 of slice 5's manual
+checklist, and enters `docs/manual-coverage.md` only once run.
+
+**F3-AC-06, F3-AC-17, F3-AC-29 — named by tests, and only half built.** Each is
+counted covered because a test names it, and each test proves one half:
+
+- `F3-AC-06` — the bench-order call leads the Sub category in a blank week
+  (`tests/calls/plan.test.ts`). The editorial stating the consequence is F8's.
+  *Home: STE-66, slice 8.*
+- `F3-AC-17` — *Forced* is built and tested; *Watch* has a slot and nothing sets
+  it, because neither of its triggers has a data source. *Home: STE-117.*
+- `F3-AC-29` — the shortlist count and the status bar's NBal update
+  (`tests/client/calls.test.ts`). The selected filter's scenario and the priority
+  tally live on the Overview. *Home: STE-66, slice 8.*
+
+None of the three may be read as met from the coverage figure.

@@ -179,5 +179,26 @@ async function seedSquads(db: TestDb): Promise<void> {
     values
       ('aaaaaaaa-0000-0000-0000-00000000000a', '${USER_A}', 101, true, null, true),
       ('bbbbbbbb-0000-0000-0000-00000000000b', '${USER_B}', 101, true, null, false);
+
+    insert into public.run (id, user_id, gameweek, status)
+    values
+      ('aaaaaaaa-0000-0000-0000-0000000000a1', '${USER_A}', 5, 'succeeded'),
+      ('bbbbbbbb-0000-0000-0000-0000000000b1', '${USER_B}', 5, 'succeeded');
+
+    insert into public.call
+      (user_id, run_id, gameweek, call_key, category, shape, out_player_id, in_player_id,
+       net, conviction, band, k_used, reasoning, reasoning_source, breakdown, position)
+    values
+      ('${USER_A}', 'aaaaaaaa-0000-0000-0000-0000000000a1', 5, 'transfer:out=101:in=101', 'transfer',
+       'transfer', 101, 101, 1.00, 33, 'thin', 2.0, 'seed', 'template', '{}'::jsonb, 0),
+      ('${USER_B}', 'bbbbbbbb-0000-0000-0000-0000000000b1', 5, 'transfer:out=101:in=101', 'transfer',
+       'transfer', 101, 101, 1.00, 33, 'thin', 2.0, 'seed', 'template', '{}'::jsonb, 0);
+
+    -- The same call key for both, deliberately: two managers deciding the same
+    -- call is the ordinary case, and only the policy may keep them apart.
+    insert into public.decision (user_id, gameweek, call_key, state)
+    values
+      ('${USER_A}', 5, 'transfer:out=101:in=101', 'selected'),
+      ('${USER_B}', 5, 'transfer:out=101:in=101', 'rejected');
   `)
 }
