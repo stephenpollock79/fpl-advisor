@@ -21,7 +21,7 @@
 
 import { tmpdir } from 'node:os'
 import { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk'
-import type { Band, EvaluationRow } from '@fpl/engine'
+import { type Band, type EvaluationRow, formatRowValue } from '@fpl/engine'
 import type { TransferProposal } from '../calls/plan.js'
 
 /** Explicit identifiers, never an alias that resolves differently next month. */
@@ -130,7 +130,16 @@ type ResultMessage = {
   result?: string
   structured_output?: unknown
   total_cost_usd?: number
-  modelUsage?: Record<string, { inputTokens: number; outputTokens: number; costUSD: number }>
+  modelUsage?: Record<
+    string,
+    {
+      inputTokens: number
+      outputTokens: number
+      cacheReadInputTokens?: number
+      cacheCreationInputTokens?: number
+      costUSD: number
+    }
+  >
 }
 
 export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
@@ -163,6 +172,10 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
           persistSession: false,
           cwd: tmpdir(),
           maxTurns: schema ? 3 : 1,
+          // Neither call needs to reason at length: one picks from a shortlist,
+          // the other writes two sentences. Thinking left on produced 11,840
+          // output tokens for a three-item list on the first live run.
+          thinking: { type: 'disabled' as const },
           ...(schema ? { outputFormat: { type: 'json_schema' as const, schema } } : {}),
           ...(step === 'reason' ? { effort: 'low' as const } : {}),
         },
@@ -173,9 +186,16 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
         if (message.type === 'result') result = message as ResultMessage
       }
 
-      const usage = Object.entries(result?.modelUsage ?? {})
+      // Cache reads and writes are input the model was sent. Counting only the
+      // uncached remainder recorded 2 tokens for a call that cost $0.42 on the
+      // first live run — the early-warning figure ADR 0009 relies on, hiding the
+      // very growth it exists to show.
+      const usage = Object.entries(result?.modelUsage ?? {}).map(
+        ([id, u]) =>
+          [id, { input: u.inputTokens + (u.cacheReadInputTokens ?? 0) + (u.cacheCreationInputTokens ?? 0), output: u.outputTokens }] as const,
+      )
       const [modelId] = usage.reduce<[string, number]>(
-        (top, [id, u]) => (u.inputTokens + u.outputTokens > top[1] ? [id, u.inputTokens + u.outputTokens] : top),
+        (top, [id, u]) => (u.input + u.output > top[1] ? [id, u.input + u.output] : top),
         ['none', -1],
       )
       const ok = result !== null && result.subtype === 'success' && result.is_error !== true
@@ -186,8 +206,8 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
           step,
           pinned: model,
           modelId,
-          inputTokens: usage.reduce((sum, [, u]) => sum + u.inputTokens, 0),
-          outputTokens: usage.reduce((sum, [, u]) => sum + u.outputTokens, 0),
+          inputTokens: usage.reduce((sum, [, u]) => sum + u.input, 0),
+          outputTokens: usage.reduce((sum, [, u]) => sum + u.output, 0),
           costUsd: result?.total_cost_usd ?? 0,
           ok,
         },
@@ -219,7 +239,7 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
     async writeReasoning(input) {
       // Only what the card shows: its rows and its summary strip.
       const table = input.rows
-        .map((r) => `${r.label}: ${input.outName} ${String(r.out ?? '—')} · ${input.inName} ${String(r.in ?? '—')} · ahead: ${r.winner === 'tie' ? 'level' : r.winner === 'in' ? input.inName : input.outName}`)
+        .map((r) => `${r.label}: ${input.outName} ${formatRowValue(r.key, r.out)} · ${input.inName} ${formatRowValue(r.key, r.in)} · ahead: ${r.winner === 'tie' ? 'level' : r.winner === 'in' ? input.inName : input.outName}`)
         .join('\n')
       const prompt = [
         `Change: ${input.outName} out, ${input.inName} in.`,

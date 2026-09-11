@@ -70,6 +70,12 @@ describe('F3-AC-22, ENGINE-AC-05 · the model\'s line is checked, never trusted'
     expect(out.text).toMatch(/^Rogers over Tzolis/)
   })
 
+  it('F3-AC-22: a line citing price movement falls back — the card shows a price, never where it is heading', () => {
+    // Written by the model on the first live run, 2026-09-11.
+    const line = 'Rogers outscores Tzolis on form, expected points, price rise appeal and transfer momentum this week.'
+    expect(finalReasoning(line, rows, 'Tzolis', 'Rogers').source).toBe('template')
+  })
+
   it('F3-AC-22: a line too long for four lines falls back', () => {
     const out = finalReasoning('Rogers has better form. '.repeat(12), rows, 'Tzolis', 'Rogers')
     expect(out.source).toBe('template')
@@ -126,6 +132,45 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
       costUsd: 0.0031,
       ok: true,
     })
+  })
+
+  it('counts cache reads and writes as input, so context the harness adds shows in the figure', async () => {
+    const withCache = {
+      total_cost_usd: 0.42,
+      modelUsage: {
+        'claude-sonnet-5': {
+          inputTokens: 2,
+          outputTokens: 60,
+          cacheReadInputTokens: 1000,
+          cacheCreationInputTokens: 150000,
+          webSearchRequests: 0,
+          costUSD: 0.42,
+          contextWindow: 1000000,
+          maxOutputTokens: 64000,
+        },
+      },
+    }
+    const model = liveModel({ query: fakeQuery({ result: 'x', ...withCache }), env: {} })
+    const { record } = await model.writeReasoning({ outName: 'A', inName: 'B', rows, summary: { net: 1, strength: 67, band: 'lean' } })
+    expect(record.inputTokens).toBe(151002)
+    expect(record.costUsd).toBe(0.42)
+  })
+
+  it('shows the model prices in pounds, as the card does — never raw tenths', async () => {
+    const captured: Captured[] = []
+    const model = liveModel({ query: fakeQuery({ result: 'x', ...usage('claude-sonnet-5') }, captured), env: {} })
+    await model.writeReasoning({ outName: 'Tzolis', inName: 'Rogers', rows, summary: { net: 4.6, strength: 90, band: 'certain' } })
+    const prompt = String(captured[0]?.prompt)
+    expect(prompt).toContain('price: Tzolis £6.0m · Rogers £6.0m')
+    expect(prompt).not.toMatch(/price: Tzolis 60\b/)
+  })
+
+  it('switches thinking off on both calls', async () => {
+    const captured: Captured[] = []
+    const model = liveModel({ query: fakeQuery({ result: 'x', ...usage('claude-haiku-4-5') }, captured), env: {} })
+    await model.proposeTransfers({ bankTenths: 10, freeTransfers: 1, squad: [], shortlist: [] })
+    await model.writeReasoning({ outName: 'A', inName: 'B', rows, summary: { net: 1, strength: 67, band: 'lean' } })
+    expect(captured.map((c) => c.options['thinking'])).toEqual([{ type: 'disabled' }, { type: 'disabled' }])
   })
 
   it('an override is honoured, and what ran is still read off the SDK rather than the setting', async () => {

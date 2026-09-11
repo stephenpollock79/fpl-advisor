@@ -18,7 +18,6 @@ import {
   type CardPlayer,
   type EvaluationRow,
   type FplStatus,
-  type RowKey,
   TRANSFER_HORIZON_WEIGHTS,
   availabilityOf,
   callKey,
@@ -192,23 +191,5 @@ export const formatMoney = (tenths: number): string =>
 
 export const formatNet = (net: number): string => `${net >= 0 ? '+' : '−'}${Math.abs(net).toFixed(2)}`
 
-/** How one evaluation row's value reads. Formatting only — every value is published or the engine's. */
-export function formatRowValue(key: RowKey, value: number | null): string {
-  if (value === null) return '—'
-  switch (key) {
-    case 'availability':
-      return `${String(value)}%`
-    case 'form':
-    case 'xpts':
-      return value.toFixed(1)
-    case 'price':
-      return formatMoney(value)
-    case 'selected_by':
-      return `${value.toFixed(1)}%`
-    case 'transfers_in':
-    case 'transfers_out':
-      return value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)
-    default:
-      return String(value)
-  }
-}
+/** How one evaluation row's value reads — the engine's, so the card and the reasoning prompt agree. */
+export { formatRowValue } from '@fpl/engine'

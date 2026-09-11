@@ -208,6 +208,19 @@ describe('Model proposals are checked, never trusted', () => {
     expect(transfers).toEqual(['MidB→Winger'])
   })
 
+  it('a proposal the engine scores as no better never suppresses the transfer code would have found', () => {
+    // The second live run's failure: valid, losing proposals left the week with
+    // no transfer at all while a strong one existed.
+    const w = world()
+    const semenyo = w.squad.find((p) => p.name === 'Semenyo')
+    const winger = w.pool.find((p) => p.name === 'Winger')
+    const withLoser = planWeek({ ...w, proposals: [{ outPlayerId: semenyo?.playerId ?? 0, inPlayerId: winger?.playerId ?? 0 }] })
+
+    const transfers = (calls: ReturnType<typeof planWeek>) => calls.filter((c) => c.category === 'transfer').map((c) => c.key)
+    expect(transfers(withLoser)).toEqual(transfers(planWeek(w)))
+    expect(transfers(withLoser).length).toBeGreaterThan(0)
+  })
+
   it('a proposal naming an excluded, unaffordable or unknown player is ignored', () => {
     const w = world()
     const hurt = w.pool.find((p) => p.name === 'Hurt')

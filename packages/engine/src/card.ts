@@ -147,6 +147,37 @@ export const evaluationRows = (out: CardPlayer, into: CardPlayer): EvaluationRow
   ]
 }
 
+const money = (tenths: number): string => `${tenths < 0 ? '−' : ''}£${(Math.abs(tenths) / 10).toFixed(1)}m`
+
+/**
+ * How one row's value reads — on the card, and in the reasoning prompt. One
+ * definition, so the model is shown exactly what the manager is: never a price
+ * in tenths the model then quotes as if it were pounds.
+ */
+export const formatRowValue = (key: RowKey, value: number | null): string => {
+  if (value === null) return '—'
+  switch (key) {
+    case 'availability':
+      return `${String(value)}%`
+    case 'form':
+    case 'xpts':
+      return value.toFixed(1)
+    case 'price':
+      return money(value)
+    case 'selected_by':
+      return `${value.toFixed(1)}%`
+    case 'transfers_in':
+    case 'transfers_out':
+      return value >= 1000 ? `${String(Math.round(value / 1000))}k` : String(value)
+    case 'fixtures':
+      return `difficulty ${Number.isInteger(value) ? String(value) : value.toFixed(1)}`
+    case 'games':
+      return `${String(value)} ${value === 1 ? 'game' : 'games'}`
+    default:
+      return String(value)
+  }
+}
+
 const oxford = (items: readonly string[]): string =>
   items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
 

@@ -37,6 +37,10 @@ const BLOCKLIST: readonly RegExp[] = [
   /\blineups?\b/i,
   /\bpundit/i,
   /\brumou?r/i,
+  // The card shows a price, never its movement — a rise or a fall tonight is
+  // the WATCH flag's business (STE-117), and the model has no source for it.
+  /\bprice[- ](rise|rises|rising|drop|drops|fall|falls|change|changes|movement)\b/i,
+  /\b(rise|rises|rising|drop|drops|fall|falls) in price\b/i,
   // ENGINE-AC-05: strength is not a probability, and no word may make it one.
   /\bchance\b/i,
   /\blikel/i,

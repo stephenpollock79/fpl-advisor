@@ -166,12 +166,19 @@ export function planWeek(input: PlanInput): PlannedCall[] {
     )
   }
 
-  // Checked once, against the squad as it stands. If the model proposed anything
+  // Checked once, against the squad as it stands. **Usable means the engine
+  // scores it as a call** — feasible is not enough. If the model proposed anything
   // usable, those are the transfers on offer; if it proposed nothing usable, code
   // picks, and the plan is the same as it would have been with no model at all.
-  const proposals = (input.proposals ?? []).filter((p) =>
-    transferFeasible(squadById.get(p.outPlayerId), poolById.get(p.inPlayerId)),
-  )
+  //
+  // Feasible-but-losing proposals once counted as usable: on the second live run
+  // (2026-09-11) the model proposed transfers the engine scored as no better, and
+  // they suppressed a +4.93 transfer code had found, leaving the week with none.
+  const proposals = (input.proposals ?? []).filter((p) => {
+    const out = squadById.get(p.outPlayerId)
+    const into = poolById.get(p.inPlayerId)
+    return out !== undefined && into !== undefined && transferFeasible(out, into) && evaluateTransfer(out, into) !== null
+  })
 
   const transferCandidates = (): PlannedCall[] => {
     if (proposals.length > 0) {

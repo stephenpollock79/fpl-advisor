@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { type CardPlayer, evaluationRows, templateReasoning } from '../../packages/engine/src/index.js'
+import { type CardPlayer, evaluationRows, formatRowValue, templateReasoning } from '../../packages/engine/src/index.js'
 
 const tzolis: CardPlayer = {
   availability: { eligible: true },
@@ -93,6 +93,15 @@ describe('F3-AC-19, F3-AC-20 · a winner per row, and honest ties', () => {
   it('F3-AC-19: a player the gate excludes loses availability to one it lets through', () => {
     const hurt = { ...tzolis, availability: { eligible: false, reason: 'injured' } as const, chanceOfPlayingNextRound: 0 }
     expect(evaluationRows(hurt, rogers).find((r) => r.key === 'availability')?.winner).toBe('in')
+  })
+})
+
+describe('F3-AC-16 · how a row reads', () => {
+  it('F3-AC-16: a price reads in pounds, never in the tenths it is stored in', () => {
+    expect(formatRowValue('price', 76)).toBe('£7.6m')
+    expect(formatRowValue('availability', 75)).toBe('75%')
+    expect(formatRowValue('transfers_in', 90000)).toBe('90k')
+    expect(formatRowValue('form', null)).toBe('—')
   })
 })
 
