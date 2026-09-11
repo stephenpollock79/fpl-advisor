@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { type CardPlayer, evaluationRows } from '../../packages/engine/src/index.js'
-import { apiModel, modelFromEnv } from '../../apps/server/src/model/client.js'
+import { PROPOSAL_SCHEMA, apiModel, modelFromEnv } from '../../apps/server/src/model/client.js'
 
 const player = (projection: number): CardPlayer => ({
   availability: { eligible: true },
@@ -90,6 +90,24 @@ describe('ADR 0008, amended · production sends our prompt and nothing else', ()
     expect(proposals).toEqual([{ outPlayerId: 557, inPlayerId: 124 }])
     expect(record.modelId).toBe('claude-haiku-4-5')
     expect((captured[0]?.['output_config'] as { format?: { type?: string } })?.format?.type).toBe('json_schema')
+  })
+
+  it('the proposal schema uses only what structured outputs accept', () => {
+    // `maxItems` in this schema made every production proposal call fail on the
+    // first live run, 2026-09-11. The API refuses array-length, numeric and
+    // string-length constraints; the SDK's helpers strip them, a raw schema does not.
+    const unsupported = /"(maxItems|minItems|minimum|maximum|exclusiveMinimum|exclusiveMaximum|multipleOf|minLength|maxLength|pattern)"/
+    expect(JSON.stringify(PROPOSAL_SCHEMA)).not.toMatch(unsupported)
+    // Every object closes itself, which the API requires.
+    expect(JSON.stringify(PROPOSAL_SCHEMA).match(/"type":"object"/g)?.length).toBe(
+      JSON.stringify(PROPOSAL_SCHEMA).match(/"additionalProperties":false/g)?.length,
+    )
+  })
+
+  it('at most three proposals are taken, whatever comes back', async () => {
+    const four = JSON.stringify({ proposals: [1, 2, 3, 4].map((n) => ({ outPlayerId: n, inPlayerId: n + 100 })) })
+    const { proposals } = await apiModel({ client: fakeClient(answer('claude-haiku-4-5', four)), env: {} }).proposeTransfers(proposing)
+    expect(proposals).toHaveLength(3)
   })
 
   it('a refusal yields nothing and is recorded as failed, so code and the template stand in', async () => {
