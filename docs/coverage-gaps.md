@@ -226,5 +226,9 @@ counted covered because a test names it, and each test proves one half:
 - `F3-AC-29` — the shortlist count and the status bar's NBal update
   (`tests/client/calls.test.ts`). The selected filter's scenario and the priority
   tally live on the Overview. *Home: STE-66, slice 8.*
+- `F3-UP-05` — each Assistant tab states it is clear when it holds no call
+  (`tests/e2e/assistant.spec.ts`, added 2026-09-11 on slice 5's review). The
+  editorial's "why", the call count reading none, the empty tally and identical
+  Before and After are the Overview's. *Home: STE-66, slice 8.*
 
 None of the three may be read as met from the coverage figure.

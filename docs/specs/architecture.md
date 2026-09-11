@@ -93,8 +93,10 @@ of the world.
   always.** It knows nothing about fixtures, so **a club that blanks still carries eleven predicted
   starters.** It must never be read as "will play this gameweek", only "is in the notional XI". Same
   shape as the fixture-count rule above, and it needs the same defensive test against fabricated
-  fixture data. It is also binary with no confidence attached, which is why rotation stays
-  model-judged (§7): a nailed-on starter and a coin-flip both read `true`.
+  fixture data. It is also binary with no confidence attached — a nailed-on starter and a
+  coin-flip both read `true` — so it is shown on the card as a fact and never enters the
+  arithmetic. Rotation needs no input of ours at all: the feed's projection already prices
+  expected starting (STE-60, 2026-09-10; STE-118).
 - **`xi_known` is inert.** `true` for all 654 rows on the day it was checked. It reads exactly like
   the confidence flag that would have made the rotation decision go the other way, and it is not
   one. Do not build on it without first re-checking that it ever goes false.
