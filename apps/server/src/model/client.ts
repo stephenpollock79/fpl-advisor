@@ -96,12 +96,19 @@ type Env = Record<string, string | undefined>
 /** At most this many proposals are asked for; the plan decides how many survive. */
 const MAX_PROPOSALS = 3
 
-const PROPOSAL_SCHEMA = {
+/**
+ * Only what structured outputs accept: no array-length, numeric or string-length
+ * constraints. The SDK's helpers strip those before sending; a raw schema sent
+ * through `messages.create` does not, and `maxItems` here made every production
+ * proposal call fail on the first live run (2026-09-11) — the plan fell back to
+ * code, correctly, and the model took no part. The cap of three is enforced in
+ * `parseProposals` instead.
+ */
+export const PROPOSAL_SCHEMA = {
   type: 'object',
   properties: {
     proposals: {
       type: 'array',
-      maxItems: MAX_PROPOSALS,
       items: {
         type: 'object',
         properties: { outPlayerId: { type: 'integer' }, inPlayerId: { type: 'integer' } },
@@ -171,7 +178,7 @@ const reasoningPrompt = (input: ReasoningInput): string =>
     ),
   ].join('\n')
 
-/** Whatever came back, reduced to well-formed pairs. The plan checks the rest. */
+/** Whatever came back, reduced to at most three well-formed pairs. The plan checks the rest. */
 const parseProposals = (raw: unknown): TransferProposal[] =>
   (Array.isArray(raw) ? raw : [])
     .filter(
@@ -181,6 +188,7 @@ const parseProposals = (raw: unknown): TransferProposal[] =>
         Number.isInteger((p as Record<string, unknown>)['outPlayerId']) &&
         Number.isInteger((p as Record<string, unknown>)['inPlayerId']),
     )
+    .slice(0, MAX_PROPOSALS)
     .map((p) => ({ outPlayerId: p.outPlayerId, inPlayerId: p.inPlayerId }))
 
 /**
