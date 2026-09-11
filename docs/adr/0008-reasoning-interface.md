@@ -45,6 +45,32 @@ model never emits a conviction percentage.
 and cost — from the first commit. See ADR 0009 for why the figure has to exist before there is a
 bill to explain.
 
+## Amendment, 2026-09-11 — two backends behind the one interface (STE-62)
+
+**The Agent SDK is the local backend only. Production calls the Messages API directly.**
+
+Measured on the first live runs of slice 5: the Agent SDK runs the whole Claude Code harness around
+every call, and the harness's context dwarfs the prompt. One reasoning call of about 600 tokens of our
+own arrived at the model as **117,000 to 270,000 input tokens**, and one run cost about $1.44 at list
+price against ADR 0009's guide of about $0.07. Some of that is this machine's plugins and connectors,
+which Railway does not have; the harness's own base prompt is not, and nothing short of a paid
+production run could say how much remained.
+
+So the interface stays one module, and what sits behind it depends on where it runs:
+
+- **Production — an API key is present.** The plain `@anthropic-ai/sdk`, one Messages API request per
+  call, carrying our prompt and nothing else. A run is estimated at about a penny.
+- **Local and evals — no key, by rule.** The Agent SDK, authenticating through the logged-in Claude
+  Code session. Its harness overhead is subscription capacity, never the prepaid balance.
+- **Mock** — unchanged, first-class, no call.
+
+The choice is made from the environment in one place (`modelFromEnv`), and **every call records which
+route it took** alongside the model identifier the provider reports it ran. The three conditions above
+hold on both routes: models pinned explicitly, sweeps batched deliberately, integration tests mocked.
+
+Ruled by Stephen, 2026-09-11, recorded on STE-62. The alternative — keep the Agent SDK in production and
+measure the first run — was put and declined.
+
 ## Consequences
 
 - The interface is swappable, so the delivery rung below a hosted app stays reachable without a

@@ -171,6 +171,37 @@ const SEEDS = {
     }),
     patch: { is_captain: true },
   },
+  run: {
+    row: (ctx) => ({ user_id: ctx.userId, gameweek: ctx.gameweekId, status: 'succeeded' }),
+    // The insert returns the id call then hangs off, pinned by the pair key.
+    capture: (body, ctx) => { ctx.runId = body?.[0]?.id },
+    patch: { status: 'failed' },
+  },
+  call: {
+    row: (ctx) => ({
+      user_id: ctx.userId,
+      run_id: ctx.runId,
+      gameweek: ctx.gameweekId,
+      call_key: 'rls-check',
+      category: 'transfer',
+      shape: 'transfer',
+      out_player_id: ctx.playerId,
+      in_player_id: ctx.playerId,
+      net: 1,
+      conviction: 33,
+      band: 'thin',
+      k_used: 2,
+      reasoning: 'rls check',
+      reasoning_source: 'template',
+      breakdown: {},
+      position: 0,
+    }),
+    patch: { reasoning: 'owned by the other user' },
+  },
+  decision: {
+    row: (ctx) => ({ user_id: ctx.userId, gameweek: ctx.gameweekId, call_key: 'rls-check', state: 'selected' }),
+    patch: { state: 'rejected' },
+  },
 }
 
 const userTables = orderUserTables(declaredUserTables)

@@ -127,3 +127,52 @@ export function freeTransfersRemaining(history: History, gameweek: number): numb
   if (gameweek > 1) balance += 1
   return Math.min(FREE_TRANSFER_CAP, Math.max(0, balance))
 }
+
+/** One row of FPL's public `entry/{id}/transfers/`, narrowed to what is read. */
+export type TransferRecord = {
+  element_in: number
+  element_in_cost: number
+  event: number
+}
+
+/** What bootstrap-static says about a player's price now and since gameweek 1. */
+export type PriceNow = { nowCostTenths: number; costChangeStartTenths: number }
+
+/**
+ * What the manager paid for each player (F3-AC-26), ruled on STE-87.
+ *
+ * The latest `element_in_cost` from `entry/{id}/transfers/` wins — a player sold
+ * and bought back was bought at the second price. A player with no transfer has
+ * been held since gameweek 1, and paid `now_cost − cost_change_start`.
+ *
+ * **Free Hit gameweeks are skipped.** The squad reverts afterwards, so the
+ * transfers recorded against one were never really made and name prices for
+ * players no longer held at them. A Wildcard's transfers are real and count.
+ *
+ * Null where the feed does not price the player at all: an unknown is shown as
+ * one, never guessed at, because the selling price derived from it moves money.
+ */
+export function purchasePrices(
+  playerIds: number[],
+  transfers: TransferRecord[],
+  chips: { name: string; event: number }[],
+  prices: Map<number, PriceNow>,
+): Map<number, number | null> {
+  const freeHits = new Set(chips.filter((c) => c.name === 'freehit').map((c) => c.event))
+
+  const paid = new Map<number, { event: number; cost: number }>()
+  for (const t of transfers) {
+    if (freeHits.has(t.event)) continue
+    const previous = paid.get(t.element_in)
+    if (!previous || t.event >= previous.event) paid.set(t.element_in, { event: t.event, cost: t.element_in_cost })
+  }
+
+  return new Map(
+    playerIds.map((id) => {
+      const bought = paid.get(id)
+      if (bought) return [id, bought.cost]
+      const price = prices.get(id)
+      return [id, price ? price.nowCostTenths - price.costChangeStartTenths : null]
+    }),
+  )
+}

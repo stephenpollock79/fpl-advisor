@@ -8,12 +8,19 @@
  * policies are for — and nothing on screen would look wrong.
  *
  * The split is visible in this file as two different clients, deliberately.
+ *
+ * **Player state is read from the latest successful feed read only.** The table
+ * holds one set per read; reading every set and keeping whichever row came last
+ * would let a stale price or a cleared injury win (world/reads.ts).
  */
 
 import type { AuthenticatedUser } from '../auth/session.js'
 import { referenceClient, userClient } from '../supabase.js'
 import { toGameweekRows, gameweekToAdviseOn, lastScoredGameweek } from '../ingest/gameweeks.js'
-import type { WorldParts } from './assemble.js'
+import type { WorldCall, WorldParts } from './assemble.js'
+import { latestReadId } from './reads.js'
+
+type Row = Record<string, unknown>
 
 export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldParts | null> {
   const reference = referenceClient()
@@ -24,7 +31,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     .select('id, name, deadline_time, is_next, is_current, finished, data_checked')
 
   const gameweeks = toGameweekRows({
-    events: (gameweekRows ?? []).map((g: Record<string, unknown>) => ({
+    events: (gameweekRows ?? []).map((g: Row) => ({
       id: g['id'] as number,
       name: g['name'] as string,
       deadline_time: g['deadline_time'] as string,
@@ -49,32 +56,83 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     .order('captured_at', { ascending: false })
     .limit(1)
 
-  const snapshot = snapshots?.[0] as Record<string, unknown> | undefined
+  const snapshot = snapshots?.[0] as Row | undefined
   if (!snapshot) return null
 
-  const { data: squadRows } = await mine
-    .from('squad_player')
-    .select('player_id, is_starter, bench_order, is_captain, is_vice')
-    .eq('snapshot_id', snapshot['id'] as string)
+  const [{ data: squadRows }, { data: runRows }, { data: decisionRows }] = await Promise.all([
+    mine
+      .from('squad_player')
+      .select('player_id, is_starter, bench_order, is_captain, is_vice, purchase_price_tenths')
+      .eq('snapshot_id', snapshot['id'] as string),
+    // The latest *succeeded* run. A failed run never ages or replaces the
+    // advice (F6-AC-14, NFR Reliability).
+    mine
+      .from('run')
+      .select('id, finished_at')
+      .eq('gameweek', gameweek.id)
+      .eq('status', 'succeeded')
+      .order('finished_at', { ascending: false })
+      .limit(1),
+    mine.from('decision').select('call_key, state').eq('gameweek', gameweek.id),
+  ])
 
-  const squad = (squadRows ?? []).map((r: Record<string, unknown>) => ({
+  const squad = (squadRows ?? []).map((r: Row) => ({
     playerId: r['player_id'] as number,
     isStarter: r['is_starter'] as boolean,
     benchOrder: r['bench_order'] as 0 | 1 | 2 | 3 | null,
     isCaptain: r['is_captain'] as boolean,
     isVice: r['is_vice'] as boolean,
+    purchasePriceTenths: (r['purchase_price_tenths'] as number | null) ?? null,
   }))
 
-  const playerIds = squad.map((s) => s.playerId)
+  const run = (runRows as Row[] | null)?.[0]
+  const { data: callRows } = run
+    ? await mine.from('call').select('*').eq('run_id', run['id'] as string).order('position')
+    : { data: [] as Row[] }
+
+  const calls: WorldCall[] = ((callRows ?? []) as Row[]).map((c) => ({
+    key: c['call_key'] as string,
+    category: c['category'] as WorldCall['category'],
+    shape: c['shape'] as WorldCall['shape'],
+    outPlayerId: c['out_player_id'] as number,
+    inPlayerId: c['in_player_id'] as number,
+    net: Number(c['net']),
+    conviction: c['conviction'] as number,
+    band: c['band'] as WorldCall['band'],
+    k: Number(c['k_used']),
+    pointsHit: c['points_hit'] as number,
+    costTenths: c['cost_tenths'] as number,
+    isForced: c['is_forced'] as boolean,
+    watch: c['watch_flag'] as boolean,
+    reasoning: c['reasoning'] as string,
+    reasoningSource: c['reasoning_source'] as WorldCall['reasoningSource'],
+    breakdown: c['breakdown'],
+    alternatives: (c['alternatives'] as WorldCall['alternatives']) ?? null,
+    position: c['position'] as number,
+  }))
+
+  const squadIds = squad.map((s) => s.playerId)
+  const candidateIds = [
+    ...new Set(
+      calls.flatMap((c) => [c.outPlayerId, c.inPlayerId, ...(c.alternatives?.in ?? []), ...(c.alternatives?.out ?? [])]),
+    ),
+  ].filter((id) => !squadIds.includes(id))
+  const playerIds = [...squadIds, ...candidateIds]
   const horizon = [gameweek.id, gameweek.id + 1, gameweek.id + 2]
+  const readId = await latestReadId('fpl_bootstrap')
+
+  const stateQuery = reference
+    .from('player_state')
+    .select('feed_read_id, player_id, status, news, news_added, chance_of_playing_next_round, now_cost_tenths, form, selected_by_percent, season_points, transfers_in, transfers_out, cost_change_start_tenths')
+    .in('player_id', playerIds)
 
   const [{ data: playerRows }, { data: clubRows }, { data: fixtureRows }, { data: projectionRows }, { data: stateRows }] =
     await Promise.all([
       reference.from('player').select('id, club_id, position, first_name, surname, shirt_number').in('id', playerIds),
       reference.from('club').select('id, name, short_name'),
       reference.from('fixture').select('id, gameweek, home_club, away_club, kickoff, home_difficulty, away_difficulty, finished').in('gameweek', horizon),
-      reference.from('projection').select('gameweek, player_id, projected_points, feed_read_id').eq('gameweek', gameweek.id).in('player_id', playerIds),
-      reference.from('player_state').select('feed_read_id, player_id, status, news, news_added, chance_of_playing_next_round, now_cost_tenths, form, selected_by_percent, season_points, transfers_in, transfers_out').in('player_id', playerIds),
+      reference.from('projection').select('gameweek, player_id, projected_points, feed_read_id').in('gameweek', horizon).in('player_id', playerIds),
+      readId ? stateQuery.eq('feed_read_id', readId) : stateQuery,
     ])
 
   return {
@@ -89,7 +147,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
       chipsRemaining: snapshot['chips_remaining'] as Record<string, string>,
     },
     squad,
-    players: (playerRows ?? []).map((p: Record<string, unknown>) => ({
+    players: (playerRows ?? []).map((p: Row) => ({
       id: p['id'] as number,
       clubId: p['club_id'] as number,
       position: p['position'] as 'GKP' | 'DEF' | 'MID' | 'FWD',
@@ -97,12 +155,12 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
       surname: p['surname'] as string,
       shirtNumber: p['shirt_number'] as number | null,
     })),
-    clubs: (clubRows ?? []).map((c: Record<string, unknown>) => ({
+    clubs: (clubRows ?? []).map((c: Row) => ({
       id: c['id'] as number,
       name: c['name'] as string,
       shortName: c['short_name'] as string,
     })),
-    fixtures: (fixtureRows ?? []).map((f: Record<string, unknown>) => ({
+    fixtures: (fixtureRows ?? []).map((f: Row) => ({
       id: f['id'] as number,
       gameweek: f['gameweek'] as number,
       homeClub: f['home_club'] as number,
@@ -112,13 +170,13 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
       awayDifficulty: f['away_difficulty'] as number,
       finished: f['finished'] as boolean,
     })),
-    projections: (projectionRows ?? []).map((p: Record<string, unknown>) => ({
+    projections: (projectionRows ?? []).map((p: Row) => ({
       gameweek: p['gameweek'] as number,
       playerId: p['player_id'] as number,
       projectedPoints: Number(p['projected_points']),
       feedReadId: p['feed_read_id'] as string,
     })),
-    states: (stateRows ?? []).map((s: Record<string, unknown>) => ({
+    states: (stateRows ?? []).map((s: Row) => ({
       feedReadId: s['feed_read_id'] as string,
       playerId: s['player_id'] as number,
       status: s['status'] as string,
@@ -131,6 +189,14 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
       seasonPoints: s['season_points'] as number | null,
       transfersIn: s['transfers_in'] as number | null,
       transfersOut: s['transfers_out'] as number | null,
+      costChangeStartTenths: s['cost_change_start_tenths'] as number | null,
     })),
+    calls,
+    decisions: ((decisionRows ?? []) as Row[]).map((d) => ({
+      callKey: d['call_key'] as string,
+      state: d['state'] as 'selected' | 'rejected',
+    })),
+    candidateIds,
+    lastRunAt: (run?.['finished_at'] as string | undefined) ?? null,
   }
 }

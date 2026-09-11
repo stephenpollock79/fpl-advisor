@@ -52,7 +52,7 @@
 }
 
 .sectionOn { background: var(--green); color: #fff; }
-.sectionOff { background: transparent; color: var(--muted); cursor: not-allowed; }
+.sectionOff { background: transparent; color: var(--muted); cursor: pointer; }
 
 .facts {
   display: flex;

@@ -8,9 +8,13 @@
  * Every screen reads from here and derives what it shows. Nothing derived is
  * stored — not the formation, not the totals — so nothing can drift from the
  * players it describes.
+ *
+ * `reload` re-reads the world after something changed it on the server — a run
+ * that produced calls. The previous world stays on screen while the new one is
+ * read, so a reload never blanks the page.
  */
 
-import { type ReactNode, createContext, useContext, useEffect, useState } from 'react'
+import { type ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { ApiError, type World, fetchWorld } from '../api'
 
 type State =
@@ -20,9 +24,11 @@ type State =
   | { status: 'failed'; because: string }
 
 const WorldContext = createContext<State>({ status: 'loading' })
+const ReloadContext = createContext<() => void>(() => {})
 
 export function WorldProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -42,11 +48,21 @@ export function WorldProvider({ children }: { children: ReactNode }) {
       })
 
     return () => controller.abort()
-  }, [])
+  }, [version])
 
-  return <WorldContext.Provider value={state}>{children}</WorldContext.Provider>
+  const reload = useCallback(() => setVersion((v) => v + 1), [])
+
+  return (
+    <ReloadContext.Provider value={reload}>
+      <WorldContext.Provider value={state}>{children}</WorldContext.Provider>
+    </ReloadContext.Provider>
+  )
 }
 
 export function useWorld(): State {
   return useContext(WorldContext)
+}
+
+export function useReloadWorld(): () => void {
+  return useContext(ReloadContext)
 }

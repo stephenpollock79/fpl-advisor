@@ -37,6 +37,11 @@ export type PlayerStateRow = {
   seasonPoints: number | null
   transfersIn: number | null
   transfersOut: number | null
+  /**
+   * Movement since gameweek 1, in tenths. `now − this` is the gameweek-1 price
+   * (STE-87). Optional: rows read before slice 5 do not carry it.
+   */
+  costChangeStartTenths?: number | null
 }
 
 type BootstrapPayload = {
@@ -61,6 +66,7 @@ type BootstrapPayload = {
     total_points: number | null
     transfers_in: number | null
     transfers_out: number | null
+    cost_change_start?: number | null
   }[]
 }
 
@@ -126,6 +132,7 @@ export function toPlayerStateRows(
     seasonPoints: e.total_points,
     transfersIn: e.transfers_in,
     transfersOut: e.transfers_out,
+    costChangeStartTenths: e.cost_change_start ?? null,
   }))
 }
 

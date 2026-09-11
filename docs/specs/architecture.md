@@ -232,7 +232,7 @@ and there never will be.
 | `is_starter` | `bool` | Eleven true, four false (F1-AC-01, F1-AC-02). |
 | `bench_order` | `int` null | 0 for the substitute goalkeeper, 1–3 for the outfield bench. |
 | `is_captain`, `is_vice` | `bool` | Never both on one row, never both false across the fifteen. |
-| `purchase_price_tenths` | `int` null | **Nullable, and that is an open question — see §8.1.** F3-AC-26 requires it; the selling price in F3-AC-25 is derived from it, not stored. |
+| `purchase_price_tenths` | `int` null | Recovered as §8.1 records (STE-87). Null only where it cannot be recovered — and then that player is not offered for sale, rather than sold at a guessed price. F3-AC-26 requires it; the selling price in F3-AC-25 is derived from it, never stored. |
 
 Formation is derived from the starting eleven and never stored (F1-AC-03). Squad and bench
 projected-points totals are summed from the players shown and never stored (F1-AC-22).
@@ -247,7 +247,8 @@ projected-points totals are summed from the players shown and never stored (F1-A
 | `status` | `text` | `running`, `succeeded`, `failed`, `cancelled`. |
 | `started_at`, `finished_at` | `timestamptz` | |
 | `feed_read_id`, `squad_snapshot_id` | `uuid` | What this run saw. Makes a call reproducible without re-fetching. |
-| `model_id`, `input_tokens`, `output_tokens`, `cost_usd` | | Per ADR 0008 and 0009, from the first commit. `model_id` is the pinned identifier actually used — the one figure that can prove the evals describe what shipped. |
+| `model_calls` | `jsonb` | One record per model call: step, the pinned identifier, **the identifier the SDK reports it ran**, tokens, cost, and whether it succeeded (ADR 0008, 0009). The reported identifier is the one figure that can prove the evals describe what shipped; the pin is only what was asked for. |
+| `input_tokens`, `output_tokens`, `cost_usd` | | Totals across `model_calls`, from the first commit. |
 
 **The last-run time is `max(finished_at) where status = 'succeeded'`.** Not `max(started_at)`, not
 the last row. F6-AC-14 and F6-UP-01 both turn on this: a failed run must never age the advice, and a
@@ -299,12 +300,12 @@ byte-identical either way, since it is arithmetic over published inputs that hav
 | `id`, `user_id`, `run_id`, `gameweek` | | |
 | `call_key` | `text` | **The stable identity across runs. See §5 — this is the load-bearing column.** |
 | `category` | `text` | `transfer`, `substitution`, `captaincy` (F8-AC-27's three groups). |
-| `shape` | `text` | `transfer`, `forced_swap`, `doubt_swap`, `bench_order`, `captain`, `vice` (F3-AC-03). |
+| `shape` | `text` | `transfer`, `forced_swap`, `doubt_swap`, `upgrade_swap`, `bench_order`, `captain`, `vice` (F3-AC-03). `upgrade_swap` is a fit starter for a better bench player — ruled 2026-09-11, and the criterion's wording is STE-116. |
 | `out_player_id`, `in_player_id` | `int` | For a bench-order call these are the two bench players whose order changes (F3-AC-04). |
 | `net` | `numeric(6,2)` | Signed, and **non-negative by construction** — the winning side is the recommendation. |
 | `conviction` | `int` | 5–95, clamped. |
 | `band` | `text` | `certain` / `strong` / `lean` / `thin`. |
-| `k_used` | `numeric` | 0.5 substitution, 0.8 captain/vice, 2.0 transfer. Shown in the breakdown (F3-AC-30, F4-AC-11). |
+| `k_used` | `numeric` | 0.5 for a substitution, bench order, captain and vice; 2.0 for a transfer (tuned 2026-09-10, STE-60). Shown in the breakdown (F3-AC-30, F4-AC-11). |
 | `cost_tenths` | `int` | Transfers only; £0.00 for substitutions and captaincy (F3-AC-28). |
 | `is_forced` | `bool` | **A property of the call, never derived from conviction** (F3-AC-17, F8-AC-03). |
 | `watch_flag` | `bool` | Set by code, never by the model, and never from conviction (F3-AC-17, F3-AC-18). |
@@ -386,7 +387,7 @@ deterministic string built from what makes a call *the same call*:
 
 ```
 transfer:out=<player>:in=<player>
-substitution:forced|doubt:out=<player>:in=<player>
+substitution:forced|doubt|upgrade:out=<player>:in=<player>
 substitution:bench_order:slots=<a>,<b>
 captaincy:captain:from=<player>:to=<player>
 captaincy:vice:from=<player>:to=<player>
@@ -426,9 +427,9 @@ list rather than inferred from a module graph — that is the point of it (ADR 0
 | `POST /api/team-link/resolve` | Resolves an FPL team id and returns the team for confirmation. **Stores nothing** (F7-AC-14). |
 | `POST /api/team-link/confirm` | Stores the accepted link. |
 | `GET /api/world` | The gameweek, the squad snapshot, fixtures, projections, calls and decisions — everything a screen re-derives from. One call, because the client holds the world. |
-| `POST /api/runs` (SSE) | Starts a run at a scope and streams progress. A hand-written SSE endpoint — no framework supplies this (ADR 0005), and `AbortController` plus request-close is the cancellation (F6-AC-19, F6-AC-20). |
+| `POST /api/runs` | Starts a run. **Plain JSON since slice 5**; F6 makes it a hand-written SSE endpoint that streams progress — no framework supplies this (ADR 0005) — with `AbortController` plus request-close as the cancellation (F6-AC-19, F6-AC-20). |
 | `GET /api/runs/:id/diff` | The post-run diff (F6-AC-11). |
-| `POST /api/decisions` | Records a selection or rejection against a `call_key`. |
+| `POST /api/decisions` | Records a selection or rejection against a `call_key`; `pending` deletes the row, since pending is its absence (F3-AC-01, F3-AC-14). |
 | `POST /api/squad/screenshots` | The two-image parse. All-or-nothing across both (F2-UP-01), then straight into a run (F2-AC-05, F2-AC-06). |
 
 Everything else under `/api/*` is a JSON 404 — already true, and deliberate: without it the SPA
@@ -479,47 +480,28 @@ blur the two, in either direction.
 Named rather than folded in. Each carries a deadline, because a deferral without one is a decision
 made by default.
 
-### 8.1 Where purchase prices come from — **STE-87, before slice 5, Friday 11 September**
+### 8.1 Where purchase prices come from — **closed 2026-09-10 (STE-87), built in slice 5**
 
-F3-AC-25 computes a transfer's cost from the outgoing player's **selling** price, which is the
-purchase price plus half of any profit since, rounded down. F3-AC-26 says purchase prices are
-therefore stored per player. It does not say where they are read from, and this project reads the
-public FPL API only — `entry/{id}/event/{gw}/picks/`, never the authenticated `my-team` endpoint.
+`picks/` carries neither purchase nor selling price. What does, exactly: **`entry/{id}/transfers/`'s
+`element_in_cost`** — the price actually paid, per transfer, with its gameweek — falling back to
+**`now_cost − cost_change_start`** for a player held since gameweek 1. The latest purchase of a
+player wins; **Free Hit gameweeks are skipped**, because the squad reverts and those transfers were
+never really made; Wildcard transfers are real and count. `player_state` stores
+`cost_change_start_tenths` so the fallback has its input.
 
-**The discriminating check, which takes a minute:** fetch
-`https://fantasy.premierleague.com/api/entry/<team-id>/event/<gw>/picks/` and look for
-`purchase_price` or `selling_price` on a pick. If they are there, `squad_player.purchase_price_tenths`
-is populated from the feed and this is closed. If they are not, three options, in the order I would
-take them: read them from the F2 Transfers screenshot, which displays selling price per player and
-which the app already parses; or track purchase price from the first snapshot a player appears in,
-which is correct only for players bought since the app started watching; or treat selling price as
-current price and accept an error of up to a few tenths on transfer cost.
+Recovered at capture (`squad/store.ts`), and backfilled before every run for a squad captured without
+it. **Where a price still cannot be recovered it stays null and that player is not offered for
+sale** — the quiet fallback this section used to warn about, selling at today's price, is not built.
 
-Until it is settled the column is nullable and cost falls back to current price. **That fallback is
-wrong in a specific, quiet way** — it overstates the cost of a player who has risen since purchase —
-so it must not be allowed to become the answer by nobody asking.
+### 8.2 Two probabilities the criteria used but never defined — **closed 2026-09-10 (STE-88)**
 
-### 8.2 Two probabilities the criteria use but never define — **STE-88, before slice 5, Friday 11 September**
-
-A vice call's net is "the difference multiplied by the probability the captain misses" (ENGINE). A
-bench-order call's net is "the difference in their effective points multiplied by the probability an
-auto-sub fires for the slot they cover" (F3-AC-04). Neither probability is specified anywhere.
-
-**This spec's reading no longer works, and that is a live problem for STE-88.** It was: both
-probabilities are already in the model, because the availability multiplier *is* an estimate of the
-probability a player plays — so the captain missing is `1 − availability(captain)`. **There is no
-availability multiplier any more** (STE-60, 2026-09-10). It is an exclusion gate: a player is
-eligible or he is not, and eligibility carries no probability to subtract from.
-
-So both figures are once again unspecified, and the obvious substitute is worse than it looks.
-FPL's `chance_of_playing_next_round` is still a percentage and could be read as one — but the
-reason the multiplier was removed is that the projection **already prices** that probability, so
-multiplying a net by it re-introduces the double-count on a different line. **Answer this in the
-engine slice rather than defaulting past it**, which is what STE-88 exists to prevent.
-
-That reading is consistent and cheap, but it **is a reading**, not a quotation. If it is wrong, the
-vice call's figure is wrong every week in the same direction, which is exactly the kind of thing
-nobody notices. Confirm it against the PRD before slice 5, or record it as a decision here.
+**Neither exists, and neither is replaced by an estimate.** Where the arithmetic names a probability
+no source publishes, the multiplier is dropped: a vice call's net and a bench-order call's net are
+each the **plain difference** (F3-AC-04, ENGINE *Vice armband*). FPL's chance-of-playing figure is not
+used as a substitute, because the projection already prices it and the availability gate already acts
+on it — multiplying by it would re-create the double-count that removed the availability multiplier.
+The captain is the highest eligible projection, the vice the second-highest, and the outfield bench is
+ordered by the same figure with excluded players last (`ENGINE-AC-06`).
 
 ### 8.3 The engine has no acceptance criteria — **before Thursday, already flagged in the Build Plan**
 
@@ -597,7 +579,8 @@ which it could reach one.
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Auth: sending and verifying codes. |
 | `SUPABASE_SERVICE_KEY` | Reference-table reads and the service tables. **Never user data** (§3). |
 | `ANTHROPIC_API_KEY` | The production reasoning path (ADR 0008). Absent locally, where the Claude Code session authenticates instead. |
-| `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON` | The pinned identifiers. Pinned in both paths, recorded per run. |
+| `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON` | Overrides for the pinned identifiers, which are otherwise set in code. Recorded per call, beside the identifier the provider reports it ran. |
+| `MODEL_MODE` | `mock` forces the no-spend route. Otherwise a present `ANTHROPIC_API_KEY` means the direct Messages API, and its absence means the Claude Code session (ADR 0008, amended 2026-09-11). |
 | `SESSION_COOKIE_SECRET` | Signing the session cookie. |
 | `POSTHOG_KEY` | Analytics. |
 | `PORT`, `RAILWAY_GIT_COMMIT_SHA` | Injected by Railway. |

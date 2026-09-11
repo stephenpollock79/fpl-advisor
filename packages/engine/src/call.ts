@@ -60,7 +60,7 @@ export const evaluateCall = (input: CallInput): CallOutcome => {
 
   const shared = { type, key: callKey(input.identity), incumbentTotal, challengerTotal }
   const k = kFor(type)
-  const isForced = !input.incumbent.availability.eligible
+  const isForced = !input.incumbent.availability.eligible || input.incumbentUnplayable === true
 
   const asCall = (settledNet: number): CallOutcome => {
     const conviction = convictionOf(settledNet, k)

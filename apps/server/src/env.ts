@@ -36,7 +36,18 @@ const SPEC: Spec[] = [
     why: 'Reference tables and the session table. Never user data — see ADR 0007.',
   },
   { name: 'SESSION_COOKIE_SECRET', required: true, why: 'Signing the session cookie.' },
-  { name: 'ANTHROPIC_API_KEY', required: false, why: 'Production reasoning path. Slice 4.' },
+  // Read by the model module in production (ADR 0008), and still not required:
+  // it must be absent locally, where the Claude Code session authenticates, so
+  // requiring it would block every local boot. A production run without it fails
+  // its model calls, records them as failed on the run, and falls back to code.
+  {
+    name: 'ANTHROPIC_API_KEY',
+    required: false,
+    why: 'Production model calls, sent directly to the Messages API (ADR 0008, amended). Absent locally by rule.',
+  },
+  { name: 'ANTHROPIC_MODEL_FILTER', required: false, why: 'Overrides the pinned proposal model. Absent means claude-haiku-4-5.' },
+  { name: 'ANTHROPIC_MODEL_REASON', required: false, why: 'Overrides the pinned reasoning model. Absent means claude-sonnet-5.' },
+  { name: 'MODEL_MODE', required: false, why: '`mock` forces the no-spend path (ADR 0008). Anything else is live.' },
   { name: 'POSTHOG_KEY', required: false, why: 'Analytics.' },
   // Not required: absent means 8787, which is a working default rather than a
   // fault. Declared so /api/health can answer "what port is this on" without

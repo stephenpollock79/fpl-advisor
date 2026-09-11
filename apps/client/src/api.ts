@@ -98,11 +98,51 @@ export type WorldPlayer = {
   transfersOut: number | null
   /** One figure for the gameweek, already covering however many matches it holds. */
   projectedPoints: number
+  /** This gameweek and the two after, zero where the club blanks. */
+  projections: number[]
   /** None for a blank, one normally, two for a double. */
   fixtures: WorldFixture[]
   /** This gameweek and the two after. Null is a blank; an array is a double. */
   nextThree: (number | number[] | null)[]
+  /** What the manager paid. Null outside the squad, or where it could not be recovered. */
+  purchasePriceTenths: number | null
+  /** FPL's selling price, computed by the server's engine call. Never computed here. */
+  sellingPriceTenths: number | null
 }
+
+/** Each value the *How this was calculated* panel shows (F3-AC-30). Nothing in it is computed on display. */
+export type Breakdown = {
+  weights: number[]
+  out: { playerId: number; projections: number[]; gate: { eligible: boolean; reason?: string }; total: number }
+  in: { playerId: number; projections: number[]; gate: { eligible: boolean; reason?: string }; total: number }
+  net: number
+  pointsHit: number
+  k: number
+}
+
+/** One call, with the engine's figures exactly as the run stored them (ENGINE-AC-04). */
+export type WorldCall = {
+  key: string
+  category: 'transfer' | 'substitution'
+  shape: 'transfer' | 'forced_swap' | 'doubt_swap' | 'upgrade_swap' | 'bench_order'
+  outPlayerId: number
+  inPlayerId: number
+  net: number
+  conviction: number
+  band: 'certain' | 'strong' | 'lean' | 'thin'
+  k: number
+  pointsHit: number
+  costTenths: number
+  isForced: boolean
+  watch: boolean
+  reasoning: string
+  reasoningSource: 'model' | 'template'
+  breakdown: Breakdown
+  alternatives: { out: number[]; in: number[] } | null
+  position: number
+}
+
+export type DecisionState = 'selected' | 'rejected'
 
 export type World = {
   gameweek: { id: number; name: string; deadlineTime: string }
@@ -116,9 +156,34 @@ export type World = {
     chipsRemaining: Record<string, string>
   }
   players: WorldPlayer[]
+  /** Players outside the squad a call or a picker names. */
+  candidates: WorldPlayer[]
+  /** The latest succeeded run's calls, in the plan's order. */
+  calls: WorldCall[]
+  /** This gameweek's decisions by call key. Pending is no entry (F3-AC-01). */
+  decisions: Record<string, DecisionState>
+  lastRunAt: string | null
   blanks: number
   doubles: number
   attribution: { name: string; href: string }
+}
+
+/**
+ * Generate the week's calls. The server reads both feeds fresh, asks the model
+ * for transfer proposals, computes every figure through the engine and writes
+ * the reasoning — so this can take a while, and says nothing until it is done.
+ * F6 (slice 7) replaces the wait with the streamed Thinking state.
+ */
+export async function startRun(): Promise<{ runId: string; calls: WorldCall[] }> {
+  return post('/api/runs', {})
+}
+
+/**
+ * Record a decision on one call. `pending` removes the decision rather than
+ * storing a third state (F3-AC-01, F3-AC-14).
+ */
+export async function decide(callKey: string, state: DecisionState | 'pending'): Promise<void> {
+  await post('/api/decisions', { callKey, state })
 }
 
 /**

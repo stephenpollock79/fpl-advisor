@@ -173,10 +173,30 @@ describe('ADR 0007 · the service key cannot reach user data, by grant', () => {
                 has_table_privilege('anon',          'public.${table}', 'SELECT') as "anonSelect"`,
       )
       expect(row?.['select'], `${table}: authenticated cannot read its own rows`).toBe(true)
-      // No delete policy exists, so a delete grant would be a privilege with
-      // nothing governing it.
-      expect(row?.['delete'], `${table}: authenticated can delete`).toBe(false)
+      // Delete is granted only where a delete policy governs it. A grant with no
+      // policy is a privilege nothing constrains; a policy with no grant is
+      // security that never runs. `decision` is the one table that needs both —
+      // returning a call to pending review removes its row (F3-AC-14).
+      const [policy] = await db.as<{ n: number }>(
+        'service_role',
+        null,
+        `select count(*)::int as n from pg_policies
+          where schemaname = 'public' and tablename = '${table}' and cmd = 'DELETE'`,
+      )
+      expect(
+        row?.['delete'],
+        `${table}: a delete grant and a delete policy must come together or not at all`,
+      ).toBe((policy?.n ?? 0) > 0)
       expect(row?.['anonSelect'], `${table}: anon was granted a user table`).toBe(false)
+    }
+  })
+
+  it('F7-AC-11, F3-AC-14: where a user may delete, he can delete only his own rows', async () => {
+    for (const { table } of userTables()) {
+      const removed = await db
+        .as('authenticated', USER_A, `delete from public.${table} where user_id = '${USER_B}' returning user_id`)
+        .catch(() => [])
+      expect(removed, `${table}: user A deleted a row belonging to B`).toEqual([])
     }
   })
 
