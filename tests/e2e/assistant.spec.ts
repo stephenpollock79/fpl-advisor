@@ -117,12 +117,16 @@ const world = {
   attribution: { name: 'Fantasy Football IQ', href: 'https://fantasyfootballiq.app' },
 }
 
-async function open(page: Page, decisions: Record<string, string> = {}): Promise<{ posted: { callKey: string; state: string }[] }> {
+async function open(
+  page: Page,
+  decisions: Record<string, string> = {},
+  calls: unknown[] = world.calls,
+): Promise<{ posted: { callKey: string; state: string }[] }> {
   const posted: { callKey: string; state: string }[] = []
   await page.route('**/api/me', (route: Route) =>
     route.fulfill({ json: { manager: { user_id: 'u', fpl_team_id: 6131656, team_name: 'Noggingham Forest', manager_name: 'S', overall_rank: 1 }, needsTeamLink: false } }),
   )
-  await page.route('**/api/world', (route: Route) => route.fulfill({ json: { ...world, decisions } }))
+  await page.route('**/api/world', (route: Route) => route.fulfill({ json: { ...world, decisions, calls } }))
   await page.route('**/api/decisions', async (route: Route) => {
     posted.push(JSON.parse(route.request().postData() ?? '{}') as { callKey: string; state: string })
     await route.fulfill({ json: { ok: true } })
@@ -233,4 +237,22 @@ test('F3-UP-06: rejecting every call is a legitimate answer — each category re
   await expect(page.getByRole('tab', { name: /Transfer/ })).toContainText('Done')
   await expect(page.getByRole('tab', { name: /Sub/ })).toContainText('Done')
   await expect(page.getByText('Substitutions decided')).toBeVisible()
+})
+
+test('F3-AC-18: the flag reads WATCH with no qualifier, and FORCED outranks it', async ({ page }) => {
+  const [t1, t2, ...rest] = world.calls
+  await open(page, {}, [{ ...t1, watch: true }, { ...t2, watch: true, isForced: true }, ...rest])
+
+  await expect(page.getByText('WATCH', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /Later/ }).click()
+  await expect(page.getByText('FORCED', { exact: true })).toBeVisible()
+  await expect(page.getByText('WATCH', { exact: true })).toHaveCount(0)
+})
+
+test('F3-UP-05: a category with nothing worth changing says so, rather than showing an empty list', async ({ page }) => {
+  await open(page, {}, world.calls.filter((c) => c.category === 'substitution'))
+
+  await expect(page.getByText('Transfers · clear')).toBeVisible()
+  await expect(page.getByText(/No transfer is worth making this week/)).toBeVisible()
+  await expect(page.getByRole('tab', { name: /Transfer/ })).toContainText('Clear')
 })

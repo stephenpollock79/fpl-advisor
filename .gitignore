@@ -137,6 +137,11 @@ dist
 !.yarn/sdks
 !.yarn/versions
 
+# Playwright output — written on every `pnpm e2e`, never source. A last-run
+# marker was committed once by accident (slice 5 review, 2026-09-11).
+test-results/
+playwright-report/
+
 # Vite files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*

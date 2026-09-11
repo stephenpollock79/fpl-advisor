@@ -136,7 +136,15 @@ const variantOf = (starter: SquadMember): SubstitutionVariant => {
  * cross-position swap that is legal only alongside another is not produced,
  * because the manager could accept it alone.
  */
-export function substitutions(squad: readonly SquadMember[]): SubstitutionProposal[] {
+export function substitutions(
+  squad: readonly SquadMember[],
+  // Swaps the best eleven needs that could not be paired into ones legal alone.
+  // Under FPL's shape ranges, pairing like-for-like first should always leave the
+  // rest legal — but that is an argument, not a proof, so a dropped swap is
+  // recorded rather than lost in silence (slice 5 review, ruled 2026-09-11).
+  onUnpaired: (outs: number[], ins: number[]) => void = (outs, ins) =>
+    console.warn(`[calls] best eleven needs swaps that are only legal together — out ${outs.join(',')}, in ${ins.join(',')}`),
+): SubstitutionProposal[] {
   const current = squad.filter((m) => m.isStarter)
   const best = new Set(bestEleven(squad).map((m) => m.playerId))
 
@@ -161,6 +169,13 @@ export function substitutions(squad: readonly SquadMember[]): SubstitutionPropos
       shapeIsLegal(current.filter((c) => c.playerId !== out.playerId).concat(m)),
     )
     if (into) take(out, into)
+  }
+
+  if (outs.length > 0 || ins.length > 0) {
+    onUnpaired(
+      outs.map((m) => m.playerId),
+      ins.map((m) => m.playerId),
+    )
   }
 
   return pairs.map(([out, into]) => ({
