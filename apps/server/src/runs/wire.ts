@@ -91,7 +91,9 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
           model_calls: modelCalls,
           input_tokens: modelCalls.reduce((sum, m) => sum + m.inputTokens, 0),
           output_tokens: modelCalls.reduce((sum, m) => sum + m.outputTokens, 0),
-          cost_usd: modelCalls.reduce((sum, m) => sum + m.costUsd, 0),
+          // A call with no price on file adds nothing here; its tokens are still
+          // recorded, and model_calls says which call it was.
+          cost_usd: modelCalls.reduce((sum, m) => sum + (m.costUsd ?? 0), 0),
         })
         .eq('id', runId)
       if (error) throw new Error(`could not finish the run: ${error.message}`)

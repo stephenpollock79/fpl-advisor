@@ -24,6 +24,7 @@ import {
   nbal,
   playerIndex,
   recomputeTransfer,
+  restoredSwaps,
   shortlistCount,
   storedFigures,
   transferKey,
@@ -79,13 +80,18 @@ export function AssistantScreen({
   const players = useMemo(() => playerIndex(world), [world])
   const [tab, setTab] = useState<Category>('transfer')
   const [decisions, setDecisions] = useState<Decisions>(() => initialDecisions(world.decisions))
-  const [swaps, setSwaps] = useState<Record<string, { outId: number; inId: number }>>({})
+  const [swaps, setSwaps] = useState<Record<string, { outId: number; inId: number }>>(() =>
+    restoredSwaps(world.calls, world.decisions),
+  )
   const [cursor, setCursor] = useState(0)
   const [holdCleared, setHoldCleared] = useState(false)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => setDecisions(initialDecisions(world.decisions)), [world.decisions])
+  useEffect(() => {
+    setDecisions(initialDecisions(world.decisions))
+    setSwaps(restoredSwaps(world.calls, world.decisions))
+  }, [world.calls, world.decisions])
 
   const shown = useMemo(
     () =>
@@ -269,7 +275,10 @@ export function AssistantScreen({
         <span>
           <span className={styles.eyebrow}>SHORTLIST</span>
           <span data-testid="shortlist" className={styles.figure}>
-            {shortlistCount(decisions.decisions)}
+            {shortlistCount(
+              shown.map((s) => s.key),
+              decisions.decisions,
+            )}
           </span>
         </span>
       </section>

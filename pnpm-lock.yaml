@@ -54,6 +54,9 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.3.268
         version: 0.3.268(@anthropic-ai/sdk@0.125.0(zod@4.6.2))(@modelcontextprotocol/sdk@1.30.0(zod@4.6.2))(zod@4.6.2)
+      '@anthropic-ai/sdk':
+        specifier: 0.125.0
+        version: 0.125.0(zod@4.6.2)
       '@fpl/engine':
         specifier: workspace:*
         version: link:../../packages/engine

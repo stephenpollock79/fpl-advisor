@@ -117,12 +117,12 @@ const world = {
   attribution: { name: 'Fantasy Football IQ', href: 'https://fantasyfootballiq.app' },
 }
 
-async function open(page: Page): Promise<{ posted: { callKey: string; state: string }[] }> {
+async function open(page: Page, decisions: Record<string, string> = {}): Promise<{ posted: { callKey: string; state: string }[] }> {
   const posted: { callKey: string; state: string }[] = []
   await page.route('**/api/me', (route: Route) =>
     route.fulfill({ json: { manager: { user_id: 'u', fpl_team_id: 6131656, team_name: 'Noggingham Forest', manager_name: 'S', overall_rank: 1 }, needsTeamLink: false } }),
   )
-  await page.route('**/api/world', (route: Route) => route.fulfill({ json: world }))
+  await page.route('**/api/world', (route: Route) => route.fulfill({ json: { ...world, decisions } }))
   await page.route('**/api/decisions', async (route: Route) => {
     posted.push(JSON.parse(route.request().postData() ?? '{}') as { callKey: string; state: string })
     await route.fulfill({ json: { ok: true } })
@@ -193,6 +193,17 @@ test('F3-AC-28: a substitution costs £0.00 and carries no picker', async ({ pag
   await expect(page.getByTestId('in-name')).toHaveText('Rogers')
   await expect(page.getByTestId('cost')).toHaveText('£0.00')
   await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
+})
+
+test('F3-AC-24, F3-AC-27: a decision on a swapped candidate survives a reload, and NBal counts it once', async ({ page }) => {
+  // MidB → Winger was chosen on the picker and selected before this reload.
+  await open(page, { 'transfer:out=7:in=200': 'selected' })
+
+  // So the first transfer card is decided, and the Striker call is next.
+  await expect(page.getByTestId('in-name')).toHaveText('Striker')
+  await expect(page.getByTestId('shortlist')).toHaveText('1')
+  // Balance £1.0m, less Winger's £5.5m against MidB's £5.0m selling price.
+  await expect(page.getByTestId('nbal')).toHaveText('£0.5m')
 })
 
 test('F3-AC-09: there is no remove or delete action — rejecting is the removal mechanism', async ({ page }) => {

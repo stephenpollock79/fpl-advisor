@@ -43,7 +43,7 @@ const SPEC: Spec[] = [
   {
     name: 'ANTHROPIC_API_KEY',
     required: false,
-    why: 'Production model calls — proposing transfers and writing reasoning (ADR 0008). Absent locally by rule.',
+    why: 'Production model calls, sent directly to the Messages API (ADR 0008, amended). Absent locally by rule.',
   },
   { name: 'ANTHROPIC_MODEL_FILTER', required: false, why: 'Overrides the pinned proposal model. Absent means claude-haiku-4-5.' },
   { name: 'ANTHROPIC_MODEL_REASON', required: false, why: 'Overrides the pinned reasoning model. Absent means claude-sonnet-5.' },

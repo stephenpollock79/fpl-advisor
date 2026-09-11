@@ -83,6 +83,7 @@ const build = () => {
 const scriptedModel = (proposals: { outPlayerId: number; inPlayerId: number }[], line: string): ModelPort => {
   const record = (step: 'propose' | 'reason') => ({
     step,
+    via: 'mock' as const,
     pinned: step === 'propose' ? 'claude-haiku-4-5' : 'claude-sonnet-5',
     modelId: step === 'propose' ? 'claude-haiku-4-5' : 'claude-sonnet-5',
     inputTokens: 100,
@@ -91,6 +92,7 @@ const scriptedModel = (proposals: { outPlayerId: number; inPlayerId: number }[],
     ok: true,
   })
   return {
+    backend: 'mock',
     async proposeTransfers() {
       return { proposals, record: record('propose') }
     },

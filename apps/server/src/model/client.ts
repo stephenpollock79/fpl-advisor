@@ -1,10 +1,20 @@
 /**
  * The one module that owns every model call (ADR 0008).
  *
- * Via the Claude Agent SDK, authenticating two ways behind one interface: in
- * production the SDK reads `ANTHROPIC_API_KEY` from the environment and draws on
- * the prepaid balance; locally there is **no key, and none may be created** — the
- * logged-in Claude Code session authenticates instead (CLAUDE.md, *Conventions*).
+ * **One interface, three routes behind it** (amended 2026-09-11, STE-62):
+ *
+ * - **api** — production, where an API key is present. One Messages API request
+ *   per call, carrying our prompt and nothing else. Paid from the prepaid
+ *   balance, and estimated at about a penny a run.
+ * - **agent-sdk** — local and evals, where by rule no key exists. The Claude
+ *   Agent SDK, authenticating through the logged-in Claude Code session. It
+ *   carries the whole harness — 117,000 to 270,000 input tokens a call on the
+ *   first live runs — which is subscription capacity, never the balance. That
+ *   measurement is why production does not take this route.
+ * - **mock** — first-class, no call, no spend.
+ *
+ * **No local API key may be created to make the api route run on a laptop**
+ * (CLAUDE.md, *Conventions*). It would make every local run draw on the balance.
  *
  * Two calls, and neither produces a number the manager is shown:
  *
@@ -14,12 +24,13 @@
  * - **reason** — Sonnet writes one card's line from that card's table values
  *   alone. The line is checked in `reasoning.ts` before it is used.
  *
- * Every call is recorded — the pinned identifier, the model the SDK reports it
- * actually ran, tokens and cost — because the run record is the one place the
- * pin can be checked after the fact. The config is only a claim.
+ * Every call is recorded — the route, the pinned identifier, the model the
+ * provider reports it actually ran, tokens including cache, and cost — because
+ * the run record is the one place the pin can be checked after the fact.
  */
 
 import { tmpdir } from 'node:os'
+import Anthropic from '@anthropic-ai/sdk'
 import { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk'
 import { type Band, type EvaluationRow, formatRowValue } from '@fpl/engine'
 import type { TransferProposal } from '../calls/plan.js'
@@ -28,16 +39,21 @@ import type { TransferProposal } from '../calls/plan.js'
 export const PINNED = { propose: 'claude-haiku-4-5', reason: 'claude-sonnet-5' } as const
 
 export type ModelStep = 'propose' | 'reason'
+export type ModelRoute = 'api' | 'agent-sdk' | 'mock'
 
 export type ModelCallRecord = {
   step: ModelStep
+  /** Which route carried the call. */
+  via: ModelRoute
   /** What this build asked for. */
   pinned: string
-  /** What the SDK reports it ran — the evidence. `mock` or `none` where nothing ran. */
+  /** What the provider reports it ran — the evidence. `mock` or `none` where nothing ran. */
   modelId: string
+  /** Everything the model was sent, cache reads and writes included. */
   inputTokens: number
   outputTokens: number
-  costUsd: number
+  /** An estimate at list price, not a bill. Null where the model has no price on file. */
+  costUsd: number | null
   ok: boolean
 }
 
@@ -70,11 +86,11 @@ export type ReasoningInput = {
 }
 
 export interface ModelPort {
+  readonly backend: ModelRoute
   proposeTransfers(input: ProposalInput): Promise<{ proposals: TransferProposal[]; record: ModelCallRecord }>
   writeReasoning(input: ReasoningInput): Promise<{ text: string; record: ModelCallRecord }>
 }
 
-type QueryFn = typeof sdkQuery
 type Env = Record<string, string | undefined>
 
 /** At most this many proposals are asked for; the plan decides how many survive. */
@@ -103,7 +119,7 @@ const PROPOSE_SYSTEM = [
   `Propose at most ${MAX_PROPOSALS} transfers, strongest first, choosing only pairs from the shortlist given:`,
   'each out player with one of the candidates listed under him.',
   'Projections are points for this gameweek and the two after. A differential or a fixture swing is a legitimate pick.',
-  'Propose none rather than a weak one.',
+  'Propose none rather than a weak one. Answer with the JSON object only.',
 ].join(' ')
 
 const REASON_SYSTEM = [
@@ -113,8 +129,27 @@ const REASON_SYSTEM = [
   'probability or confidence, and must not be described as one. No preamble, no quotation marks.',
 ].join(' ')
 
-const unrecorded = (step: ModelStep, pinned: string, modelId: string, ok: boolean): ModelCallRecord => ({
+/**
+ * List prices, US dollars per million tokens, from the claude-api reference
+ * (cached 2026-06-24). An estimate for the early-warning figure ADR 0009 relies
+ * on, never a bill — the console balance is the bill (P7). A model not listed
+ * records no cost rather than a guessed one.
+ */
+const PRICES: Readonly<Record<string, { input: number; output: number }>> = {
+  'claude-haiku-4-5': { input: 1, output: 5 },
+  'claude-sonnet-5': { input: 2, output: 10 },
+}
+const CACHE_WRITE_MULTIPLIER = 1.25
+const CACHE_READ_MULTIPLIER = 0.1
+
+const pinnedFrom = (env: Env) => ({
+  propose: env['ANTHROPIC_MODEL_FILTER']?.trim() || PINNED.propose,
+  reason: env['ANTHROPIC_MODEL_REASON']?.trim() || PINNED.reason,
+})
+
+const unrecorded = (step: ModelStep, via: ModelRoute, pinned: string, modelId: string, ok: boolean): ModelCallRecord => ({
   step,
+  via,
   pinned,
   modelId,
   inputTokens: 0,
@@ -122,6 +157,117 @@ const unrecorded = (step: ModelStep, pinned: string, modelId: string, ok: boolea
   costUsd: 0,
   ok,
 })
+
+/** Only what the card shows: its rows, as the manager reads them, and its summary strip. */
+const reasoningPrompt = (input: ReasoningInput): string =>
+  [
+    `Change: ${input.outName} out, ${input.inName} in.`,
+    `Net: +${input.summary.net.toFixed(2)} projected points. Strength ${String(input.summary.strength)} (${input.summary.band}).`,
+    ...input.rows.map(
+      (r) =>
+        `${r.label}: ${input.outName} ${formatRowValue(r.key, r.out)} · ${input.inName} ${formatRowValue(r.key, r.in)} · ahead: ${
+          r.winner === 'tie' ? 'level' : r.winner === 'in' ? input.inName : input.outName
+        }`,
+    ),
+  ].join('\n')
+
+/** Whatever came back, reduced to well-formed pairs. The plan checks the rest. */
+const parseProposals = (raw: unknown): TransferProposal[] =>
+  (Array.isArray(raw) ? raw : [])
+    .filter(
+      (p): p is TransferProposal =>
+        typeof p === 'object' &&
+        p !== null &&
+        Number.isInteger((p as Record<string, unknown>)['outPlayerId']) &&
+        Number.isInteger((p as Record<string, unknown>)['inPlayerId']),
+    )
+    .map((p) => ({ outPlayerId: p.outPlayerId, inPlayerId: p.inPlayerId }))
+
+/**
+ * Production: the Messages API, directly. One request per call, our system
+ * prompt and one message — nothing else is sent, which is the whole point.
+ */
+export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env }): ModelPort {
+  const env = opts.env ?? process.env
+  const pinned = pinnedFrom(env)
+  const client = opts.client ?? new Anthropic({ apiKey: env['ANTHROPIC_API_KEY'] })
+
+  async function call(
+    step: ModelStep,
+    system: string,
+    prompt: string,
+  ): Promise<{ text: string | null; record: ModelCallRecord }> {
+    const model = pinned[step]
+    try {
+      const response = await client.messages.create({
+        model,
+        max_tokens: step === 'propose' ? 1024 : 300,
+        system,
+        messages: [{ role: 'user', content: prompt }],
+        // Haiku does not think unless asked and takes no effort setting; Sonnet
+        // is told not to think and to be brief. Neither needs to reason at length.
+        ...(step === 'propose'
+          ? { output_config: { format: { type: 'json_schema' as const, schema: PROPOSAL_SCHEMA } } }
+          : { thinking: { type: 'disabled' as const }, output_config: { effort: 'low' as const } }),
+      })
+
+      const u = response.usage
+      const cacheWrite = u.cache_creation_input_tokens ?? 0
+      const cacheRead = u.cache_read_input_tokens ?? 0
+      const price = PRICES[response.model]
+      const ok = response.stop_reason !== 'refusal'
+      const text = response.content.map((block) => (block.type === 'text' ? block.text : '')).join('')
+
+      return {
+        text: ok ? text : null,
+        record: {
+          step,
+          via: 'api',
+          pinned: model,
+          modelId: response.model,
+          inputTokens: u.input_tokens + cacheWrite + cacheRead,
+          outputTokens: u.output_tokens,
+          costUsd: price
+            ? (u.input_tokens * price.input +
+                cacheWrite * price.input * CACHE_WRITE_MULTIPLIER +
+                cacheRead * price.input * CACHE_READ_MULTIPLIER +
+                u.output_tokens * price.output) /
+              1_000_000
+            : null,
+          ok,
+        },
+      }
+    } catch (cause) {
+      // Recorded and yields nothing. The plan falls back to code and the card to
+      // its template — the week is never withheld because the model was
+      // unreachable or the balance ran out.
+      console.error(`[model] ${step} via api failed`, cause instanceof Error ? cause.message : cause)
+      return { text: null, record: unrecorded(step, 'api', model, 'none', false) }
+    }
+  }
+
+  return {
+    backend: 'api',
+
+    async proposeTransfers(input) {
+      const { text, record } = await call('propose', PROPOSE_SYSTEM, JSON.stringify(input))
+      let parsed: unknown = null
+      try {
+        parsed = text ? (JSON.parse(text) as unknown) : null
+      } catch {
+        parsed = null
+      }
+      return { proposals: parseProposals((parsed as { proposals?: unknown } | null)?.proposals), record }
+    },
+
+    async writeReasoning(input) {
+      const { text, record } = await call('reason', REASON_SYSTEM, reasoningPrompt(input))
+      return { text: text ?? '', record }
+    },
+  }
+}
+
+type QueryFn = typeof sdkQuery
 
 type ResultMessage = {
   type: 'result'
@@ -142,13 +288,10 @@ type ResultMessage = {
   >
 }
 
+/** Local and evals: the Agent SDK, through the logged-in Claude Code session. */
 export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
   const query = opts.query ?? sdkQuery
-  const env = opts.env ?? process.env
-  const pinned = {
-    propose: env['ANTHROPIC_MODEL_FILTER']?.trim() || PINNED.propose,
-    reason: env['ANTHROPIC_MODEL_REASON']?.trim() || PINNED.reason,
-  }
+  const pinned = pinnedFrom(opts.env ?? process.env)
 
   async function call(
     step: ModelStep,
@@ -204,6 +347,7 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
         result: ok ? result : null,
         record: {
           step,
+          via: 'agent-sdk',
           pinned: model,
           modelId,
           inputTokens: usage.reduce((sum, [, u]) => sum + u.input, 0),
@@ -213,41 +357,21 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
         },
       }
     } catch {
-      // A failed call is recorded and yields nothing. The plan then falls back to
-      // code and the card to its template — the week is never withheld because
-      // the model was unreachable or the balance ran out.
-      return { result: null, record: unrecorded(step, model, 'none', false) }
+      return { result: null, record: unrecorded(step, 'agent-sdk', model, 'none', false) }
     }
   }
 
   return {
+    backend: 'agent-sdk',
+
     async proposeTransfers(input) {
       const { result, record } = await call('propose', JSON.stringify(input), PROPOSE_SYSTEM, PROPOSAL_SCHEMA)
       const raw = (result?.structured_output as { proposals?: unknown } | undefined)?.proposals
-      const proposals = (Array.isArray(raw) ? raw : [])
-        .filter(
-          (p): p is TransferProposal =>
-            typeof p === 'object' &&
-            p !== null &&
-            Number.isInteger((p as Record<string, unknown>)['outPlayerId']) &&
-            Number.isInteger((p as Record<string, unknown>)['inPlayerId']),
-        )
-        .map((p) => ({ outPlayerId: p.outPlayerId, inPlayerId: p.inPlayerId }))
-      return { proposals, record }
+      return { proposals: parseProposals(raw), record }
     },
 
     async writeReasoning(input) {
-      // Only what the card shows: its rows and its summary strip.
-      const table = input.rows
-        .map((r) => `${r.label}: ${input.outName} ${formatRowValue(r.key, r.out)} · ${input.inName} ${formatRowValue(r.key, r.in)} · ahead: ${r.winner === 'tie' ? 'level' : r.winner === 'in' ? input.inName : input.outName}`)
-        .join('\n')
-      const prompt = [
-        `Change: ${input.outName} out, ${input.inName} in.`,
-        `Net: +${input.summary.net.toFixed(2)} projected points. Strength ${String(input.summary.strength)} (${input.summary.band}).`,
-        table,
-      ].join('\n')
-
-      const { result, record } = await call('reason', prompt, REASON_SYSTEM)
+      const { result, record } = await call('reason', reasoningPrompt(input), REASON_SYSTEM)
       return { text: result?.result ?? '', record }
     },
   }
@@ -256,16 +380,22 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
 /** The first-class mock path (ADR 0008): no call, no spend, and the plan is code's. */
 export function mockModel(): ModelPort {
   return {
+    backend: 'mock',
     async proposeTransfers() {
-      return { proposals: [], record: unrecorded('propose', 'mock', 'mock', true) }
+      return { proposals: [], record: unrecorded('propose', 'mock', 'mock', 'mock', true) }
     },
     async writeReasoning() {
-      return { text: '', record: unrecorded('reason', 'mock', 'mock', true) }
+      return { text: '', record: unrecorded('reason', 'mock', 'mock', 'mock', true) }
     },
   }
 }
 
-/** `MODEL_MODE=mock` forces the mock path; anything else is live. */
+/**
+ * Which route runs, decided in one place. `MODEL_MODE=mock` forces the mock;
+ * a key means production's direct route; no key means the Claude Code session.
+ */
 export function modelFromEnv(env: Env = process.env): ModelPort {
-  return env['MODEL_MODE']?.trim() === 'mock' ? mockModel() : liveModel({ env })
+  if (env['MODEL_MODE']?.trim() === 'mock') return mockModel()
+  if (env['ANTHROPIC_API_KEY']?.trim()) return apiModel({ env })
+  return liveModel({ env })
 }

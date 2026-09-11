@@ -22,7 +22,7 @@ Build **STE-62** · tests **STE-63** · Friday 11 September · reads `docs/crite
 - `packages/engine` — substitution variant `upgrade`; `evaluateCall` parameter `incumbentUnplayable`.
 - `apps/server/src/squad/snapshot.ts` — `purchasePrices`; `store.ts` reads `entry/{id}/transfers/`.
 - `apps/server/src/calls/` — `legal-xi.ts`, `transfers.ts`, `plan.ts`, `reasoning-template.ts`.
-- `apps/server/src/model/` — the one module; `live` and `mock`.
+- `apps/server/src/model/` — the one module; three routes: `api` in production, `agent-sdk` locally, `mock` (ADR 0008, amended 11 September).
 - `apps/server/src/runs/` — `POST /api/runs`.
 - `apps/server/src/decisions/` — `POST /api/decisions`.
 - `apps/server/src/world/` — calls, decisions and selling prices added to the world.

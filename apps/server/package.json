@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.268",
+    "@anthropic-ai/sdk": "0.125.0",
     "@fpl/engine": "workspace:*",
     "@hono/node-server": "^1.19.5",
     "@supabase/supabase-js": "^2.116.0",

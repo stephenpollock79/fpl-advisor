@@ -6,7 +6,15 @@
 import { describe, expect, it } from 'vitest'
 import type { WorldCall, WorldPlayer } from '../../apps/client/src/api'
 import { decide, defer, initialDecisions, reopen, restore } from '../../apps/client/src/calls/decisions'
-import { clearedLine, formatCost, nbal, recomputeTransfer, shortlistCount, undecided } from '../../apps/client/src/calls/view'
+import {
+  clearedLine,
+  formatCost,
+  nbal,
+  recomputeTransfer,
+  restoredSwaps,
+  shortlistCount,
+  undecided,
+} from '../../apps/client/src/calls/view'
 
 const player = (id: number, surname: string, projection: number, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
   playerId: id,
@@ -93,8 +101,18 @@ describe('F3-AC-27, F3-AC-28 · money', () => {
     expect(formatCost(-9)).toBe('+£0.9m')
   })
 
-  it('F3-AC-29: the shortlist counts selected calls only', () => {
-    expect(shortlistCount({ a: 'selected', b: 'rejected', c: 'selected' })).toBe(2)
+  it('F3-AC-29: the shortlist counts selected calls on screen, and nothing else', () => {
+    expect(shortlistCount(['a', 'b', 'c'], { a: 'selected', b: 'rejected', c: 'selected' })).toBe(2)
+    // A decision with no card behind it is not a call on the shortlist.
+    expect(shortlistCount(['a'], { a: 'selected', orphan: 'selected' })).toBe(1)
+  })
+
+  it('F3-AC-24: a decision on a swapped candidate brings its swap back after a reload', () => {
+    const base = { ...call('transfer:out=7:in=124', 'transfer'), outPlayerId: 7, inPlayerId: 124, alternatives: { out: [6], in: [200] } }
+    expect(restoredSwaps([base], { 'transfer:out=7:in=200': 'selected' })).toEqual({
+      'transfer:out=7:in=124': { outId: 7, inId: 200 },
+    })
+    expect(restoredSwaps([base], {})).toEqual({})
   })
 })
 

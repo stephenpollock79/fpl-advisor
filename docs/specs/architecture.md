@@ -579,7 +579,8 @@ which it could reach one.
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Auth: sending and verifying codes. |
 | `SUPABASE_SERVICE_KEY` | Reference-table reads and the service tables. **Never user data** (§3). |
 | `ANTHROPIC_API_KEY` | The production reasoning path (ADR 0008). Absent locally, where the Claude Code session authenticates instead. |
-| `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON` | The pinned identifiers. Pinned in both paths, recorded per run. |
+| `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON` | Overrides for the pinned identifiers, which are otherwise set in code. Recorded per call, beside the identifier the provider reports it ran. |
+| `MODEL_MODE` | `mock` forces the no-spend route. Otherwise a present `ANTHROPIC_API_KEY` means the direct Messages API, and its absence means the Claude Code session (ADR 0008, amended 2026-09-11). |
 | `SESSION_COOKIE_SECRET` | Signing the session cookie. |
 | `POSTHOG_KEY` | Analytics. |
 | `PORT`, `RAILWAY_GIT_COMMIT_SHA` | Injected by Railway. |

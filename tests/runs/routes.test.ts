@@ -73,6 +73,7 @@ describe('POST /api/runs', () => {
 
   it('a run that fails is marked failed, and stores no calls — the previous advice stands', async () => {
     const broken: ModelPort = {
+      backend: 'mock',
       async proposeTransfers() {
         throw new Error('model unreachable and the fallback broke too')
       },

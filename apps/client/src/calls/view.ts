@@ -165,8 +165,35 @@ export function nbal(bankTenths: number, inScope: { key: string; costTenths: num
   return inScope.reduce((left, c) => (decisions[c.key] === 'selected' ? left - c.costTenths : left), bankTenths)
 }
 
-export const shortlistCount = (decisions: Record<string, DecisionState>): number =>
-  Object.values(decisions).filter((s) => s === 'selected').length
+/**
+ * The shortlist counts selected calls that are on screen (F3-AC-29) — the same
+ * set NBal is computed over, so the two can never disagree about what is in it.
+ */
+export const shortlistCount = (keys: string[], decisions: Record<string, DecisionState>): number =>
+  keys.filter((k) => decisions[k] === 'selected').length
+
+/**
+ * A decision on a swapped candidate is filed under the swapped pair's key, which
+ * no stored call carries. Rebuild the swap from it, so the card that decision
+ * belongs to is shown again after a reload rather than left orphaned. Keys come
+ * from the engine's own function, so nothing here parses one.
+ */
+export function restoredSwaps(
+  calls: WorldCall[],
+  decisions: Record<string, DecisionState>,
+): Record<string, { outId: number; inId: number }> {
+  const swaps: Record<string, { outId: number; inId: number }> = {}
+  for (const call of calls) {
+    if (call.category !== 'transfer' || !call.alternatives || decisions[call.key] !== undefined) continue
+    for (const outId of [call.outPlayerId, ...call.alternatives.out]) {
+      for (const inId of [call.inPlayerId, ...call.alternatives.in]) {
+        const key = transferKey(outId, inId)
+        if (key !== call.key && decisions[key] !== undefined) swaps[call.key] = { outId, inId }
+      }
+    }
+  }
+  return swaps
+}
 
 /** Head to head shows only undecided calls, in the plan's order (F3-AC-13). */
 export const undecided = (calls: WorldCall[], decisions: Record<string, DecisionState>): WorldCall[] =>

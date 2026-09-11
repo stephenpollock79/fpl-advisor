@@ -125,6 +125,7 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
 
     expect(record).toEqual({
       step: 'reason',
+      via: 'agent-sdk',
       pinned: 'claude-sonnet-5',
       modelId: 'claude-sonnet-5',
       inputTokens: 900,
