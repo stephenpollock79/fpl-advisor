@@ -68,9 +68,16 @@ light.
 
 ## D. The Cowork handoff
 
-**P9. The Cowork handoff is for plan changes only** (P4). Not for translation, not for reviews, not
-for checking something against the vault. If you find yourself wanting a second opinion from the
-vault, that is a sign something is missing from this repo — say so.
+**P9. The Cowork handoff is for editing the vault source of a derived file, and nothing else** —
+the Build Plan for order and dates (P4), the PRD for a criterion's wording. Either way the edit
+happens in the vault and the derived file is regenerated here, where P8 checks it (P5). The prompt
+edits the vault only; regenerating and committing stay with the repo session. Not for translation,
+not for reviews, not for checking something against the vault. If you find yourself wanting a
+second opinion from the vault, that is a sign something is missing from this repo — say so.
+
+*Widened 2026-09-11, from plan changes only.* A PRD edit reaches the build the same way a plan
+change does, and the narrower wording left the criteria's one route to change unnamed (STE-116,
+STE-77).
 
 ## E. The slice review
 
