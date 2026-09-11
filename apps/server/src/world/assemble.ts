@@ -121,6 +121,8 @@ export type World = {
   decisions: Record<string, DecisionState>
   /** When the latest succeeded run finished — never a failed one (F6-AC-14). */
   lastRunAt: string | null
+  /** When the FPL read the players' figures come from was taken — WATCH's "tonight" is only as fresh as this. */
+  priceForecastReadAt: string | null
   blanks: number
   doubles: number
   attribution: { name: string; href: string }
@@ -141,6 +143,7 @@ export type WorldParts = {
   /** Ids of non-squad players to carry as candidates. */
   candidateIds?: number[]
   lastRunAt?: string | null
+  priceForecastReadAt?: string | null
 }
 
 export function assembleWorld(parts: WorldParts): World {
@@ -230,6 +233,7 @@ export function assembleWorld(parts: WorldParts): World {
     calls: [...(parts.calls ?? [])].sort((a, b) => a.position - b.position),
     decisions: Object.fromEntries((parts.decisions ?? []).map((d) => [d.callKey, d.state])),
     lastRunAt: parts.lastRunAt ?? null,
+    priceForecastReadAt: parts.priceForecastReadAt ?? null,
     blanks,
     doubles,
     // A licence condition, not a courtesy.

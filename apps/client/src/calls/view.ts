@@ -23,6 +23,7 @@ import {
   callKey,
   evaluateCall,
   evaluationRows,
+  forecastCurrent,
   priceWatch,
   templateReasoning,
   transferCostTenths,
@@ -64,6 +65,26 @@ const priceSignalFor = (p: WorldPlayer) => ({
   locked: p.priceLockedUntil != null && Date.parse(p.priceLockedUntil) > Date.now(),
 })
 
+/**
+ * Whether WATCH may still say "tonight" (F3-AC-17). A forecast read before FPL's
+ * last overnight update is about a night that has passed.
+ *
+ * - `swapped`: a swap reads the players' figures, so it needs the latest read to be current.
+ * - `stored`: a stored flag was set from the read its run made. It stands only
+ *   while that read is the latest — a newer fetch means the run's is unknown, so
+ *   the flag is hidden rather than trusted.
+ */
+export function watchFreshness(
+  world: Pick<World, 'priceForecastReadAt' | 'lastRunAt'>,
+  now: number = Date.now(),
+): { stored: boolean; swapped: boolean } {
+  if (world.priceForecastReadAt === null) return { stored: false, swapped: false }
+  const readAt = Date.parse(world.priceForecastReadAt)
+  const swapped = forecastCurrent(readAt, now)
+  const stored = swapped && world.lastRunAt !== null && readAt <= Date.parse(world.lastRunAt)
+  return { stored, swapped }
+}
+
 /** Everything the card's summary strip, table, breakdown and reasoning block show. */
 export type CardFigures =
   | {
@@ -93,7 +114,7 @@ export type CardFigures =
     }
 
 /** The figures exactly as the run stored them. */
-export function storedFigures(call: WorldCall, out: WorldPlayer, into: WorldPlayer): CardFigures {
+export function storedFigures(call: WorldCall, out: WorldPlayer, into: WorldPlayer, watchCurrent: boolean): CardFigures {
   return {
     reading: 'call',
     net: call.net,
@@ -106,7 +127,7 @@ export function storedFigures(call: WorldCall, out: WorldPlayer, into: WorldPlay
     reasoning: call.reasoning,
     rows: rowsFor(out, into),
     breakdown: call.breakdown,
-    watchReason: call.watch ? call.watchReason : null,
+    watchReason: call.watch && watchCurrent ? call.watchReason : null,
   }
 }
 
@@ -118,7 +139,7 @@ export function storedFigures(call: WorldCall, out: WorldPlayer, into: WorldPlay
  * Null where the swap cannot be scored honestly: an incoming player the gate
  * excludes, or an outgoing one whose selling price could not be recovered.
  */
-export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: WorldPlayer): CardFigures | null {
+export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: WorldPlayer, watchCurrent: boolean): CardFigures | null {
   const outGate = availabilityFor(out)
   const inGate = availabilityFor(into)
   if (!inGate.eligible || out.sellingPriceTenths === null) return null
@@ -134,7 +155,7 @@ export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: World
   const rows = rowsFor(out, into)
   const reasoning = templateReasoning(rows, out.surname, into.surname)
   // The swapped pair is its own transfer, so WATCH is read for it afresh.
-  const watchReason = priceWatch(priceSignalFor(out), priceSignalFor(into))
+  const watchReason = watchCurrent ? priceWatch(priceSignalFor(out), priceSignalFor(into)) : null
   // Every value here is the engine's output or a published figure it was given.
   const breakdown: Breakdown = {
     weights: [...TRANSFER_HORIZON_WEIGHTS],

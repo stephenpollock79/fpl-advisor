@@ -169,6 +169,8 @@ export type World = {
   /** This gameweek's decisions by call key. Pending is no entry (F3-AC-01). */
   decisions: Record<string, DecisionState>
   lastRunAt: string | null
+  /** When the FPL read behind the players' figures was taken. */
+  priceForecastReadAt: string | null
   blanks: number
   doubles: number
   attribution: { name: string; href: string }

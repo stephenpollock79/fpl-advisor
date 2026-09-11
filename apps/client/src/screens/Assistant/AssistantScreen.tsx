@@ -27,6 +27,7 @@ import {
   restoredSwaps,
   shortlistCount,
   storedFigures,
+  watchFreshness,
   transferKey,
 } from '../../calls/view'
 import styles from './Assistant.module.css'
@@ -94,23 +95,24 @@ export function AssistantScreen({
     setSwaps(restoredSwaps(world.calls, world.decisions))
   }, [world.calls, world.decisions])
 
+  const fresh = watchFreshness(world)
   const shown = useMemo(
     () =>
       world.calls.flatMap((call): Shown[] => {
         const storedOut = players.get(call.outPlayerId)
         const storedIn = players.get(call.inPlayerId)
         if (!storedOut || !storedIn) return []
-        const stored: Shown = { call, key: call.key, out: storedOut, into: storedIn, figures: storedFigures(call, storedOut, storedIn), swapped: false }
+        const stored: Shown = { call, key: call.key, out: storedOut, into: storedIn, figures: storedFigures(call, storedOut, storedIn, fresh.stored), swapped: false }
 
         const swap = swaps[call.key]
         if (!swap) return [stored]
         const out = players.get(swap.outId)
         const into = players.get(swap.inId)
-        const figures = out && into ? recomputeTransfer(call, out, into) : null
+        const figures = out && into ? recomputeTransfer(call, out, into, fresh.swapped) : null
         if (!out || !into || !figures) return [stored]
         return [{ call, key: transferKey(out.playerId, into.playerId), out, into, figures, swapped: true }]
       }),
-    [world.calls, swaps, players],
+    [world.calls, swaps, players, fresh.stored, fresh.swapped],
   )
 
   const inCategory = (category: Category) => shown.filter((s) => s.call.category === category)
