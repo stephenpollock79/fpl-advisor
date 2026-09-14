@@ -76,3 +76,30 @@ export function lastScoredGameweek(rows: GameweekRow[]): GameweekRow | null {
   if (scored.length === 0) return null
   return scored.reduce((latest, r) => (r.id > latest.id ? r : latest))
 }
+
+/**
+ * The most recent gameweek whose **deadline** has passed — the newest squad FPL
+ * will disclose.
+ *
+ * **A different question from `lastScoredGameweek`, and the two must not share a
+ * rule.** Points settle late: bonus and corrections land hours after the last
+ * whistle, so a total is read from `data_checked`. **Picks settle early:** they
+ * lock the instant the deadline passes and never move again, so the squad is
+ * read from the deadline.
+ *
+ * Until 2026-09-14 this used `data_checked`, and F1's own happy path says *the
+ * squad as at the last completed deadline*. **The two agreed every day the app
+ * had been alive**, because it had never been open across a deadline — the first
+ * time it was, it showed a squad a whole gameweek out of date, with a correct
+ * deadline above it and nothing on screen suggesting anything was wrong.
+ *
+ * Null before the season's first deadline, when there is no squad to read.
+ */
+export function lastCompletedDeadline(rows: GameweekRow[], nowMs: number): GameweekRow | null {
+  const passed = rows.filter((r) => {
+    const at = Date.parse(r.deadlineTime)
+    return Number.isFinite(at) && at <= nowMs
+  })
+  if (passed.length === 0) return null
+  return passed.reduce((latest, r) => (r.id > latest.id ? r : latest))
+}
