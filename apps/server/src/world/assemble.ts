@@ -19,6 +19,7 @@
  */
 
 import { type Band, type CallIdentity, type FplStatus, availabilityOf, sellingPriceTenths } from '@fpl/engine'
+import { checkGameweek } from '../gameweek/guard.js'
 import { type Recomputed, type SideNow, type StoredFigure, recomputeCall } from '../refresh/recompute.js'
 import type { FixtureRow } from '../ingest/fixtures.js'
 import type { GameweekRow } from '../ingest/gameweeks.js'
@@ -149,6 +150,12 @@ export type World = {
   doubles: number
   attribution: { name: string; href: string }
   /**
+   * **The week being advised on has already been played** (F6-UP-03, STE-65).
+   * Not staleness and not a prompt: the advice is void, and the screen says so
+   * with no way to dismiss it. Absent when the week is fine.
+   */
+  gameweekStop?: { reason: 'deadline_passed' | 'projections_disagree'; gameweek: number; deadline: string }
+  /**
    * Whether the feeds answered on this open (F6-UP-02). False is not an error:
    * the squad, the prices and the decisions are on file and still true, and only
    * what needs a fresh read is frozen. The screen says which.
@@ -176,6 +183,8 @@ export type WorldParts = {
   priceForecastReadAt?: string | null
   /** Which gameweek's picks the snapshot holds. Null on rows written before slice 7. */
   picksFrom?: number | null
+  /** The clock, passed in so the check stays pure (ADR 0006's spirit). */
+  nowMs?: number
 }
 
 export function assembleWorld(parts: WorldParts): World {
@@ -273,6 +282,11 @@ export function assembleWorld(parts: WorldParts): World {
     decisions: Object.fromEntries((parts.decisions ?? []).map((d) => [d.callKey, d.state])),
     lastRunAt: parts.lastRunAt ?? null,
     priceForecastReadAt: parts.priceForecastReadAt ?? null,
+    // **Run here, where the gameweek and the projections are both in hand.**
+    // The check existed from the day this slice landed and nothing called it,
+    // so the failure it was written for — confident advice about a week already
+    // played, with nothing on screen looking wrong — was still uncaught.
+    ...stopFor(parts),
     blanks,
     doubles,
     // A licence condition, not a courtesy.
@@ -431,5 +445,32 @@ function safeRecompute(call: StoredFigure, sides: Map<number, SideNow>): Recompu
       movedBand: false,
       unexecutable: false,
     }
+  }
+}
+
+
+/**
+ * Is the gameweek this world advises on still ahead of us?
+ *
+ * `projectionsCover` is the set of gameweeks the loaded projections actually
+ * carry rows for. A file that does not cover the week being advised on is two
+ * sources contradicting each other rather than one being old, and that is worth
+ * stopping for — but an empty set is *unknown*, and unknown stops nothing.
+ */
+function stopFor(parts: WorldParts): { gameweekStop?: World['gameweekStop'] } {
+  const covered = [...new Set(parts.projections.map((p) => p.gameweek))]
+  const verdict = checkGameweek({
+    gameweek: parts.gameweek.id,
+    deadlineTime: parts.gameweek.deadlineTime,
+    projectionsCover: covered,
+    nowMs: parts.nowMs ?? Date.now(),
+  })
+  if (verdict.ok) return {}
+  return {
+    gameweekStop: {
+      reason: verdict.reason,
+      gameweek: verdict.gameweek,
+      deadline: verdict.reason === 'deadline_passed' ? verdict.deadline : parts.gameweek.deadlineTime,
+    },
   }
 }

@@ -93,8 +93,6 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
         decisions: Object.fromEntries(
           ((decisionRows ?? []) as Record<string, unknown>[]).map((d) => [d['call_key'] as string, d['state'] as DecisionState]),
         ),
-        // The swapped pair's cost, from the prices already in hand.
-        costOfSwap: () => 0,
       }
     },
 
@@ -146,6 +144,7 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
             is_forced: c.isForced,
             is_reading: c.isReading,
             reading_reason: c.readingReason,
+            diff_tag: c.diffTag,
             watch_flag: c.watch,
             watch_reason: c.watchReason,
             reasoning: c.reasoning,

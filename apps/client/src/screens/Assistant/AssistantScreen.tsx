@@ -452,7 +452,32 @@ export function AssistantScreen({
       ) : null}
 
       <section className={styles.content}>
-        {running ? (
+        {/* **A stop, not a prompt** (F6-UP-03, ruled 2026-09-10). A refresh says
+            *there is newer data, want it?* and can reasonably be declined. This
+            says *the week I am advising on has already been played* — there is
+            nothing to weigh, so there is nothing to dismiss, and it replaces the
+            calls rather than sitting over them. Putting the two in the same
+            dismissible sheet teaches the manager to click past a broken state
+            the same way as a routine one. */}
+        {world.gameweekStop ? (
+          <div className={styles.stop} data-testid="gameweek-stop">
+            <div className={styles.stopHead}>Advice out of date</div>
+            <div className={styles.stopBody}>
+              <p>
+                <strong>
+                  Gameweek {world.gameweekStop.gameweek}
+                  {world.gameweekStop.reason === 'deadline_passed' ? ' has already started.' : ' is not covered by the projections.'}
+                </strong>
+              </p>
+              <p>
+                {world.gameweekStop.reason === 'deadline_passed'
+                  ? 'Everything below was worked out for a week you can no longer change, so none of it is advice any more.'
+                  : 'The two data sources disagree about which week this is, so nothing here can be trusted.'}
+              </p>
+              <p className={styles.stopMeta}>Reopen the app once the new gameweek is live and it will work the week out again.</p>
+            </div>
+          </div>
+        ) : running ? (
           <Thinking current={step} scale={scale} gameweekId={world.gameweek.id} onCancel={onCancelRun} />
         ) : noRunYet ? (
           <div className={styles.empty}>

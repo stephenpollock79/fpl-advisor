@@ -318,3 +318,54 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
     expect(h.events).toEqual([])
   })
 })
+
+describe('F6-AC-03, F6-AC-20 · a returning call is labelled, and a cancelled run is not a failed one', () => {
+  const player = (id: number, extra: Record<string, unknown> = {}) => ({
+    playerId: id,
+    status: 'a' as const,
+    news: null,
+    newsAdded: null,
+    chanceOfPlayingNextRound: null,
+    nowCostTenths: 50,
+    ...extra,
+  })
+
+  it('F6-AC-03: a rejected call whose premise moved comes back labelled, never slipped in unmarked', async () => {
+    // The code worked out which calls were returning and then threw it away, so
+    // the manager saw something he had already said no to with nothing saying why.
+    const { plan } = gw4Week()
+    const [tzolis, rogers] = [plan.squad.find((p) => p.name === 'Tzolis'), plan.squad.find((p) => p.name === 'Rogers')]
+    const rejected = {
+      key: `substitution:upgrade:out=${String(tzolis?.playerId ?? 0)}:in=${String(rogers?.playerId ?? 0)}`,
+      category: 'substitution' as const,
+      outPlayerId: tzolis?.playerId ?? 0,
+      inPlayerId: rogers?.playerId ?? 0,
+      costTenths: 0,
+      alternatives: null,
+    }
+    const before = [player(rogers?.playerId ?? 0, { status: 'd', chanceOfPlayingNextRound: 25 })]
+    const after = [player(rogers?.playerId ?? 0)]
+
+    const { post, stored } = harness({
+      refreshInputs: async () => ({
+        before,
+        after,
+        feedReadId: 'r2',
+        calls: [rejected],
+        decisions: { [rejected.key]: 'rejected' },
+      }),
+    })
+    await post()
+
+    const back = (stored[0]?.calls ?? []).find((c) => (c as { key: string }).key === rejected.key)
+    expect(back).toBeDefined()
+    expect((back as { diffTag: string | null }).diffTag).toBe('resurfaced')
+  })
+
+  // **F6-AC-20 is not asserted here, and the reason is the harness.** A
+  // cancellation is the connection closing, and Hono's in-process request cannot
+  // be disconnected: an AbortSignal passed through `app.request`, and a Request
+  // built with one directly, both leave `c.req.raw.signal` unaborted. A test
+  // that passed against this harness would be proving something about the
+  // harness. Recorded in `docs/coverage-gaps.md`, homed on STE-65.
+})
