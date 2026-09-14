@@ -56,6 +56,8 @@ const call: WorldCall = {
   key: 'substitution:upgrade:out=557:in=40',
   category: 'substitution',
   shape: 'upgrade_swap',
+  isReading: false,
+  readingReason: null,
   outPlayerId: 557,
   inPlayerId: 40,
   net: 4.6,

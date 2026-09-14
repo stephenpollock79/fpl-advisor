@@ -78,13 +78,21 @@ export type WorldPlayer = {
 
 export type WorldCall = {
   key: string
-  category: 'transfer' | 'substitution'
-  shape: 'transfer' | 'forced_swap' | 'doubt_swap' | 'upgrade_swap' | 'bench_order'
+  category: 'transfer' | 'substitution' | 'captaincy'
+  shape: 'transfer' | 'forced_swap' | 'doubt_swap' | 'upgrade_swap' | 'bench_order' | 'captain' | 'vice'
   outPlayerId: number
   inPlayerId: number
   net: number
-  conviction: number
-  band: Band
+  /**
+   * A keep reading — the app's answer is *nothing to do* (F4-AC-01, F4-AC-02).
+   * It carries no conviction and no band: rendering one with a percentage is the
+   * weak-change display the criteria forbid, so the fields are null rather than
+   * zero, and every surface has to say which it is holding.
+   */
+  isReading: boolean
+  readingReason: 'incumbent_wins' | 'below_floor' | null
+  conviction: number | null
+  band: Band | null
   k: number
   pointsHit: number
   costTenths: number

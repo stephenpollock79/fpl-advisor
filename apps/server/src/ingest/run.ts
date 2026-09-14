@@ -113,6 +113,7 @@ export async function ingestWorld(log: (message: string) => void = console.warn)
     price_change_percent: s.priceChangePercent,
     price_change_likelihood_tonight: s.priceChangeLikelihoodTonight,
     price_change_locked_until: s.priceChangeLockedUntil,
+    penalties_order: s.penaltiesOrder,
   })))
 
   const horizon = new Set(Array.from({ length: HORIZON }, (_, i) => next.id + i))

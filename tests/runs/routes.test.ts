@@ -68,7 +68,10 @@ describe('POST /api/runs', () => {
     expect(run?.calls.length).toBeGreaterThan(0)
     // One proposal, then one line per call — even in mock mode, where each is a
     // zero-cost record rather than an absence.
-    expect(run?.modelCalls.length).toBe((run?.calls.length ?? 0) + 1)
+    // The proposal, plus one reasoning call per call the manager can act on — a
+    // keep reading writes its own line and asks the model nothing (F4-AC-01).
+    const decidable = (run?.calls ?? []).filter((c) => (c as { isReading: boolean }).isReading !== true)
+    expect(run?.modelCalls.length).toBe(decidable.length + 1)
   })
 
   it('a run that fails is marked failed, and stores no calls — the previous advice stands', async () => {

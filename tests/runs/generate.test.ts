@@ -27,13 +27,20 @@ const player = (name: string, position: PlanPlayer['position'], clubId: number, 
   flagged: false,
   hasFixture: true,
   nowCostTenths: cost,
+  takesPenalties: false,
   ...extra,
 })
-const inSquad = (p: Named, role: 'starter' | 0 | 1 | 2 | 3): SquadEntry & { name: string } => ({
+const inSquad = (
+  p: Named,
+  role: 'starter' | 0 | 1 | 2 | 3,
+  armband?: 'captain' | 'vice',
+): SquadEntry & { name: string } => ({
   ...p,
   isStarter: role === 'starter',
   benchOrder: role === 'starter' ? null : role,
   sellingPriceTenths: p.nowCostTenths,
+  isCaptain: armband === 'captain',
+  isVice: armband === 'vice',
 })
 
 const build = () => {
@@ -46,10 +53,10 @@ const build = () => {
     inSquad(player('Tzolis', 'MID', 5, 2.4, 64), 'starter'),
     inSquad(player('MidA', 'MID', 6, 5.5), 'starter'),
     inSquad(player('MidB', 'MID', 7, 5.0), 'starter'),
-    inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter'),
+    inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter', 'captain'),
     inSquad(player('FwdA', 'FWD', 9, 6.0), 'starter'),
     inSquad(player('FwdB', 'FWD', 10, 5.0), 'starter'),
-    inSquad(player('Haaland', 'FWD', 11, 8.0, 155), 'starter'),
+    inSquad(player('Haaland', 'FWD', 11, 8.0, 155), 'starter', 'vice'),
     inSquad(player('SubKeeper', 'GKP', 12, 2.0, 40), 0),
     inSquad(player('Rogers', 'MID', 13, 7.0, 76), 1),
     inSquad(player('VanHecke', 'DEF', 14, 4.7, 49), 2),
@@ -133,7 +140,10 @@ describe('One run, end to end', () => {
     const { calls, modelCalls } = await generateWeek({ plan, cards, model: scriptedModel([], 'x') })
 
     expect(modelCalls.filter((m) => m.step === 'propose')).toHaveLength(1)
-    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.length)
+    // One reasoning call per call the manager can act on. A keep reading writes
+    // its own line and asks the model nothing (F4-AC-01).
+    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.filter((c) => !c.isReading).length)
+    expect(calls.every((c) => !c.isReading)).toBe(true)
   })
 
   it('F3-AC-30, F3-AC-31: the breakdown holds every value the card explains, already computed', async () => {
@@ -148,6 +158,8 @@ describe('One run, end to end', () => {
       net: 4.6,
       pointsHit: 0,
       k: 0.5,
+      kLabel: 'substitution',
+      byCeiling: false,
     })
   })
 
