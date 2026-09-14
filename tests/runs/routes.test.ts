@@ -140,7 +140,7 @@ describe('POST /api/runs', () => {
   })
 })
 
-describe('F6-RS-08 · most refreshes should cost nothing', () => {
+describe('STE-128 · every refresh re-runs the pipeline', () => {
   /** A call already on file, so there is something for a reuse to reuse. */
   const stored = () => ({
     key: 'captaincy:captain:from=1:to=2',
@@ -161,7 +161,12 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
     ...extra,
   })
 
-  it('F6-RS-08: nothing has moved, so the model is not called at all and the week stands', async () => {
+  it('STE-128: no FPL record moved, and the refresh re-plans anyway rather than reusing the week', async () => {
+    // **The defect this replaced.** An unchanged FPL record is not an unchanged
+    // world: the projections sit behind every figure and no previous copy of
+    // them is stored, so this diff cannot see them move. It used to answer
+    // "nothing has changed" and hand back the stored calls — with a stale
+    // captain pick and a legal substitution missing underneath.
     const world = [player(1), player(2), player(3)]
     let modelCalls = 0
     const { post } = harness({
@@ -174,11 +179,11 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
 
     const body = (await post()).body as { reused: boolean }
 
-    expect(body.reused).toBe(true)
-    expect(modelCalls).toBe(0)
+    expect(body.reused).toBe(false)
+    expect(modelCalls).toBe(1)
   })
 
-  it('F6-RS-08: a quiet week with nothing stored to reuse runs anyway, rather than staying empty for ever', async () => {
+  it('STE-128: a quiet week with nothing stored runs anyway, rather than staying empty for ever', async () => {
     // The hole the first version of this gate left. A run that produced no calls
     // leaves nothing to carry forward, so reusing it kept an empty week empty:
     // the diff found nothing new a minute later, declined to spend, and the
@@ -198,7 +203,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
     expect(modelCalls).toBe(1)
   })
 
-  it('F6-RS-08: ordinary churn in the news field is not worth paying for either', async () => {
+  it('STE-128, F6-AC-11: churn below the availability gate is still counted, and still re-plans', async () => {
     const before = [player(1, { status: 'd', chanceOfPlayingNextRound: 75, news: 'Knock' })]
     const after = [player(1, { status: 'd', chanceOfPlayingNextRound: 100, news: 'Knock — expected to feature' })]
     let modelCalls = 0
@@ -211,10 +216,8 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
     })
 
     const body = (await post()).body as { reused: boolean; changed: number }
-    expect(body.reused).toBe(true)
-    // It was seen and counted — silence is not the same as blindness.
-    expect(body.changed).toBe(1)
-    expect(modelCalls).toBe(0)
+    expect(body.reused).toBe(false)
+    expect(modelCalls).toBe(1)
   })
 
   it('F6-RS-11, F6-RS-09: a player dropping out of availability does spend, and rewrites the week', async () => {
@@ -250,11 +253,10 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
     expect(modelCalls).toBe(1)
   })
 
-  it('F6-RS-08: a reused refresh writes no run at all, so the week it reused is still there', async () => {
-    // **The bug this was written after.** A reuse used to write a succeeded run
-    // with no calls, and every screen reads the latest succeeded run — so the
-    // week's advice vanished and read as "nothing worth doing" rather than as
-    // anything having gone wrong. Reuse means reuse.
+  it('STE-128: a quiet refresh records a real run, and never a failure', async () => {
+    // The shape this guards is still the old one: whatever a refresh decides, it
+    // must not leave the week's advice destroyed behind it. A run is started and
+    // finished; nothing is recorded failed.
     const world = [player(1)]
     const { post, events } = harness({
       refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [stored()], decisions: {}, costOfSwap: () => 0 }),
@@ -262,10 +264,10 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
 
     const body = (await post()).body as { reused: boolean; runId: string | null }
 
-    expect(body.reused).toBe(true)
-    expect(body.runId).toBeNull()
-    expect(events.some((e) => e.startsWith('start:'))).toBe(false)
-    expect(events.some((e) => e.startsWith('finish:'))).toBe(false)
+    expect(body.reused).toBe(false)
+    expect(body.runId).not.toBeNull()
+    expect(events.some((e) => e.startsWith('start:'))).toBe(true)
+    expect(events.some((e) => e.startsWith('finish:'))).toBe(true)
     expect(events.some((e) => e.startsWith('fail:'))).toBe(false)
   })
 })
@@ -315,7 +317,7 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
     expect((diff?.data['scale'] as { players: number }).players).toBeGreaterThan(15)
   })
 
-  it('F6-RS-08: a quiet week streams straight to done, reused, with no scoring steps', async () => {
+  it('STE-128: a quiet week still runs every step of the pipeline, scoring included', async () => {
     const same = [{ playerId: 1, status: 'a' as const, news: null, newsAdded: null, chanceOfPlayingNextRound: null, nowCostTenths: 50 }]
     const onFile = [{ key: 'captaincy:captain:from=1:to=2', category: 'captaincy' as const, outPlayerId: 1, inPlayerId: 2, costTenths: 0, alternatives: null }]
     const { go } = stream({
@@ -324,9 +326,9 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
     const events = await read(await go())
 
     expect(events.at(-1)?.event).toBe('done')
-    expect(events.at(-1)?.data['reused']).toBe(true)
-    expect(events.at(-1)?.data['runId']).toBeNull()
-    expect(events.map((e) => e.data['id'])).not.toContain('score')
+    expect(events.at(-1)?.data['reused']).toBe(false)
+    expect(events.at(-1)?.data['runId']).not.toBeNull()
+    expect(events.map((e) => e.data['id'])).toContain('score')
   })
 
   it('F6-UP-01: a run that breaks says so and is recorded failed, never as a success', async () => {

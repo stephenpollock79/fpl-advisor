@@ -62,7 +62,6 @@ coverage script counting it would make the number a lie.
 | F6-AC-17 | Human checklist | 2026-09-14 | Same pass. The state names the process and states the scale in real figures — the fifteen in the squad and the ~650 players considered — rather than showing a spinner with words. |
 | F6-AC-18 | Human checklist | 2026-09-14 | Same pass. The pipeline shows completed steps with their elapsed time, exactly one marked *running*, and the rest *queued*; no step's label contradicted its state. |
 | F6-AC-19 | Human checklist | 2026-09-14 | Same pass, item 3: the state is cancellable for the whole of it, and cancelling returned the screen to its calls with every decision and the last-run time unchanged. **`F6-AC-20` is not entered** — the half about the run being *recorded* cancelled rather than failed is not visible from the phone, and `docs/coverage-gaps.md` carries it. |
-| F6-RS-08 | Human checklist | 2026-09-14 | Same pass, item 5. A second refresh straight after the first returned in about a second saying nothing had changed since the last run. Stephen could not tell from the screen whether it spent; the no-spend half is asserted by test and by the run record, not by eye. |
 
 Gaps in what the automated suite proves are recorded separately, in
 `docs/coverage-gaps.md` — a register of what *is* verified must not carry prose

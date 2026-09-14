@@ -74,8 +74,8 @@ describe('F6-RS-02, F6-RS-04 · what counts as new evidence', () => {
   })
 })
 
-describe('F6-RS-08 · the gate that keeps a refresh free', () => {
-  it('F6-RS-08: ordinary churn in the news field is never worth a model call', () => {
+describe('F6-RS-02, F6-RS-04 · what the diff counts, and what it calls decision-changing', () => {
+  it('F6-RS-04: ordinary churn in the news field is counted, but does not cross the availability gate', () => {
     // FPL edits this text constantly; percentages move 75 to 100 and return
     // dates shift by a day. A prompt that fires on everything is dismissed on
     // everything, and takes the prompt that matters with it.
@@ -92,13 +92,13 @@ describe('F6-RS-08 · the gate that keeps a refresh free', () => {
     expect(evidence.worthPaying).toBe(true)
   })
 
-  it('F6-RS-08: a price move alone never opens the paid gate, and is still recorded', () => {
+  it('F6-RS-04: a price move alone does not cross the availability gate, and is still recorded', () => {
     const evidence = diffEvidence([row(1)], [row(1, { nowCostTenths: 55 })])
     expect(evidence.worthPaying).toBe(false)
     expect(evidence.changed[0]?.fields).toEqual(['price'])
   })
 
-  it("F6-RS-08: FPL's daily price forecast is not evidence at all — it is not a field this reads", () => {
+  it("F6-RS-02: FPL's daily price forecast is not evidence at all — it is not a field this reads", () => {
     // Ruled 2026-09-14. The forecast changes every day and enters no figure on
     // any card, so counting it would put a spend prompt on nearly every open.
     // Proven by construction: there is nowhere to put one.
