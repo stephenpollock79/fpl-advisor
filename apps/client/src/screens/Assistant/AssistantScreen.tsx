@@ -450,7 +450,7 @@ export function AssistantScreen({
 
       <section className={styles.content}>
         {running ? (
-          <Thinking current={step} scale={scale} onCancel={onCancelRun} />
+          <Thinking current={step} scale={scale} gameweekId={world.gameweek.id} onCancel={onCancelRun} />
         ) : noRunYet ? (
           <div className={styles.empty}>
             <p>No calls yet this gameweek.</p>

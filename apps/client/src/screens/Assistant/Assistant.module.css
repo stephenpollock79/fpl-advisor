@@ -20,7 +20,7 @@
 
 .brandRow { display: flex; align-items: center; gap: 8px; }
 .avatar { width: 33px; height: 33px; border-radius: 50%; border: 2px solid var(--green); object-fit: cover; }
-.wordmark { font-family: var(--font-wordmark); font-weight: 700; font-style: italic; font-size: 22px; color: var(--green-dark); }
+.wordmark { white-space: nowrap; font-family: var(--font-wordmark); font-weight: 700; font-style: italic; font-size: 22px; color: var(--green-dark); }
 .sections { margin-left: auto; display: flex; gap: 3px; background: var(--warm-2); border-radius: 9px; padding: 3px; }
 .sectionOn,
 .sectionOff { padding: 5px 11px; border: none; border-radius: 7px; font-family: inherit; font-size: 12px; font-weight: 800; }
@@ -265,19 +265,37 @@
   border: 1px solid var(--border-light);
 }
 
-/* Built to the handoff's own anatomy: a green strip, a spinner, the title, a
-   mono scale line, a rolling status line, then a labelled pipeline. **The step
-   names are not the handoff's** — it mocks up stages this build does not have
-   (a chip window) and omits ones it does. A label that names work the app is not
-   doing is a label contradicting its state, which F6-AC-18 forbids, and the
-   handoff is authoritative for how a screen looks, never for what it does. */
+/* The Thinking state, built to the handoff's own anatomy (docs/design/handoff):
+   a card with a green header strip carrying the gameweek, a ring spinner, the
+   title, a mono scale line, a rolling status line over a sweeping progress bar,
+   a labelled pipeline whose running row is raised, and a footer that says how to
+   cancel and roughly how long it takes.
+
+   **The step names are not the handoff's.** It mocks stages this build does not
+   have (a chip window) and omits ones it does, and a label naming work the app is
+   not doing contradicts its own state (F6-AC-18). The handoff is authoritative
+   for how a screen looks, never for what it does — and the duration is ours for
+   the same reason: the NFR is sixty seconds at the 95th percentile, not the
+   mock's four. */
+.thinking {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  cursor: pointer;
+}
+
 .thinkingStrip {
-  margin: -18px -18px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 9px 12px;
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
   background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -289,65 +307,95 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  margin: 0 -18px;
-  padding: 16px 14px 14px;
+  padding: 18px 14px 14px;
   background: linear-gradient(180deg, #f1f7f3 0%, #fff 100%);
   border-bottom: 1px solid #e9e4da;
   text-align: center;
 }
 
 .thinkingSpinner {
-  width: 34px;
-  height: 34px;
+  position: relative;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  border: 2px solid transparent;
+  border: 2px solid #dcebe2;
   border-top-color: var(--green);
   animation: gspin 1.1s linear infinite;
 }
 
-@keyframes gspin { to { transform: rotate(360deg); } }
-@keyframes gpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-
-.thinkingTitle { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
-.thinkingScale { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; color: #8a857b; }
-
-.thinkingNow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--ink-2);
+.thinkingPulse {
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: gpulse 1.6s ease-in-out infinite;
 }
 
+@keyframes gspin { to { transform: rotate(360deg); } }
+@keyframes gpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes gsweep { from { left: -34%; } to { left: 100%; } }
+
+.thinkingTitle { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.thinkingScale { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em; color: #8a857b; }
+
+.thinkingNowRow { display: flex; flex-direction: column; gap: 9px; padding: 13px 14px 12px; border-bottom: 1px solid #e9e4da; }
+.thinkingNow { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; color: var(--ink); }
 .thinkingDot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex: none; animation: gpulse 1.1s ease-in-out infinite; }
 
-.pipelineLabel { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.14em; color: #847f74; }
-.thinkingMeta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.sweep { position: relative; display: block; height: 3px; border-radius: 3px; background: #ece7dd; overflow: hidden; }
+.sweepBar { position: absolute; top: 0; bottom: 0; width: 34%; background: linear-gradient(90deg, rgb(16 152 90 / 0%), var(--green), rgb(16 152 90 / 0%)); animation: gsweep 1.5s linear infinite; }
 
-.pipeline { display: flex; flex-direction: column; gap: 6px; margin: 4px 0; padding: 0; list-style: none; }
+.pipelineBox { padding: 12px 14px 6px; }
+.pipelineLabel { display: block; margin-bottom: 7px; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.14em; color: #847f74; }
 
-/* Exactly one step reads as running at any moment (F6-AC-18); a queued step is
-   visibly not started rather than merely paler. */
+.thinkingFooter {
+  width: 100%;
+  padding: 11px 14px 13px;
+  border: 0;
+  border-top: 1px solid #e9e4da;
+  background: var(--warm-2);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.pipeline { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; }
+
 .stepDone,
 .stepRunning,
 .stepQueued {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 7px 10px;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
   border-radius: var(--radius-field);
-  font-size: 12px;
+  border: 1px solid transparent;
+  font-size: 13px;
 }
 
-.stepDone { background: var(--green-tint); color: var(--green-text); }
-.stepRunning { background: var(--warm-2); color: var(--ink); font-weight: 700; }
-.stepQueued { background: transparent; color: var(--muted); }
+/* Exactly one row reads as running at any moment (F6-AC-18), and it is raised
+   rather than merely darker — a difference in weight alone is not a state. */
+.stepRunning { background: var(--card); border-color: var(--border-strong); box-shadow: 0 1px 2px rgb(35 33 29 / 6%); color: var(--ink); font-weight: 700; }
+.stepDone { color: var(--ink-2); }
+.stepQueued { color: var(--muted); }
+
+.stepMark { flex: none; width: 12px; text-align: center; color: var(--green); }
+.stepQueued .stepMark { color: #c6bfb0; }
+/* Not `.stepLabel` — that name is already the head-to-head stepper's, in this
+   same file, and borrowing it made every pipeline row render in mono 9px. */
+.pipeStep { flex: 1; min-width: 0; }
+.stepState { flex: none; font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+.stepRunning .stepState { color: var(--green-text); }
+
 .stepTime { font-family: var(--font-mono); font-size: 11px; }
 
 /* The refresh control names its own scope on itself (F6-AC-07), so what a tap
    will rewrite is never something the manager has to infer from where it sits. */
 .refresh {
-  margin-left: auto;
+  margin-left: 8px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -414,3 +462,47 @@
    fixed and must always be readable (F4-AC-05, F4-AC-12). */
 .reasoningBody { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .reasoningNote { margin: 0; padding-left: 10px; border-left: 2px solid var(--border-strong); font-size: 11px; line-height: 1.35; color: var(--muted); }
+
+/* A captaincy keep (F4 happy path, amended 2026-09-14): one player, his figure
+   and why. Centred and quiet rather than laid out as an argument between two
+   sides — the shape of the card should say there is nothing to resolve before a
+   word is read. */
+.keepCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 26px 18px 0;
+  text-align: center;
+}
+
+.keepEyebrow {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.keepName { margin-top: 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.keepMeta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--muted); }
+
+.keepPoints {
+  margin-top: 14px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--green-tint);
+  border: 1px solid var(--green-tint-border);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--green-text);
+}
+
+.keepPointsLabel { font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.keepVerdict { margin: 14px 0 auto; max-width: 260px; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+
+/* The reasoning sits flush at the foot of the card, as it does on a call. */
+.keepCard .reasoning { align-self: stretch; margin: 0 -18px; text-align: left; }
