@@ -36,7 +36,7 @@ Build **STE-64** · no test ticket, the manual checklist lives in the build tick
 
 **The pair.** Candidates are the **current starting eleven**, minus gate exclusions and minus any player a transfer or substitution already claims — those settle first (ruled 14 September). **Within the pair, F3-UP-04 does not apply** (ruled 14 September): promoting the vice to captain and naming a new vice is one armband decision shown as two cards, with nothing to double-count. Fewer than two eligible candidates returns **no captaincy calls** rather than letting `chooseArmband` throw and cost the week its transfer advice.
 
-**The challenger is never the incumbent.** Where `chooseArmband` returns the current holder, the card puts him against the **next-best eligible candidate** and reads as a keep. Otherwise the ordinary week renders a player against himself, tying every row.
+**A keep is not a head-to-head** (PRD amended 14 September, #86). Where `chooseArmband` returns the current holder, the card shows **him alone** — his projected points and why the armband stays — with no versus, no second player, no table and no decision panel. The engine still scores him against the next-best candidate, so the figures exist; the card stops rendering the comparison, because a comparison invites a decision there is not one of.
 
 **Forcing.** `incumbentUnplayable` comes from `isUnplayable` in `calls/legal-xi.ts`, the substitution path's own predicate (F4-AC-07, #85). Never forced while the holder can play (F4-AC-08). Both sides use the existing `side(p, 1)`, so a blanking club contributes zero (F4-UP-01).
 
@@ -48,7 +48,7 @@ Build **STE-64** · no test ticket, the manual checklist lives in the build tick
 
 **The two fixed sentences** — the vice premise (F4-AC-05) and the tie-break (F4-AC-12) — are **derived on the client** from `shape` and `breakdown.byCeiling` and rendered inside the reasoning block. No column and no model call: the blocklist bans `penalt`, `chance`, `likel` and `probab`, exactly what both need.
 
-**Card.** Head to head unchanged, master rows unchanged (F4-AC-04), no picker (F4-AC-06), cost `£0.00` (F4-AC-09). **The Captain tab always shows both cards**, readings included — that is F4-AC-01. A reading is steppable but not decidable: the tiles become a non-interactive *no change · nothing to do* label **and the swipe handlers are suppressed**, since hiding only the tiles leaves a swipe that files a decision. Readings enter no tally, count or shortlist, and *Category cleared* does not replace them. Rejecting the captain call renders the vice call as a reading whose recommended vice is the kept captain, derived in `calls/` (F4-UP-02).
+**Card.** A call proposing a change keeps the head-to-head and the master rows (F4-AC-04), with no picker (F4-AC-06) and cost `£0.00` (F4-AC-09); a keep uses the statement card above. **The Captain tab always shows both cards**, readings included — that is F4-AC-01. A keep is steppable but not decidable: no decision panel at all, **and the swipe handlers suppressed**, since removing the tiles alone leaves a swipe that files a decision. Readings enter no tally, count or shortlist, and *Category cleared* does not replace them. Rejecting the captain call renders the vice call as a keep, derived in `calls/` (F4-UP-02) — **saying why in its own words**: the armband stays because the change was turned down, not because nobody projects higher, which the app has not concluded.
 
 ## Criteria in scope
 
