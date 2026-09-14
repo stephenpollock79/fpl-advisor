@@ -257,26 +257,28 @@ has run on a phone. This is the same shape as `F3-AC-07` and `F3-AC-08` in slice
 5, which were verified by hand for the same reason and are in
 `docs/manual-coverage.md` with the date.
 
-**F6-AC-13 — the tag is built, its transience is not.** The criterion is that
-each affected call carries a tag on its own card **until it has been viewed**.
-The tag is built, tested and on screen; `call.viewed_at` exists in the migration
-because architecture §4.1 specifies it — and **nothing writes it**.
+**F6-AC-13 — the tags that clear themselves work; the one that is stamped on
+does not.** The criterion is that each affected call carries a tag on its card
+**until it has been viewed**. The transience is the criterion, not a detail: the
+tag is how a manager who dismissed the *what changed* sheet finds his way back
+to the cards it named.
 
-So the two halves behave differently. A *band move* clears on its own, because
-the tag is derived fresh on every world read from the difference between the
-stored figure and the re-derived one: once a run stores the new figure there is
-no difference left to report. A tag a **run** wrote — `returned`, `resurfaced`,
-`new` — has no such mechanism and stands until the next run overwrites it.
+**Two clear themselves, correctly.** `WAS 84` and `RETURNED` are derived on every
+world read from the difference between the stored figure and the re-derived one.
+When there is nothing left to report they stop appearing.
 
-**The consequence is the one the criterion was written against.** A tag that
-never clears stops meaning anything, and the manager learns to read past it —
-which is the same failure as a prompt that fires on everything. It is not
-dangerous, because nothing acts on the tag; it is corrosive, because the next
-tag that matters is read the same way.
+**One is stamped on and never cleared.** `RESURFACED`, added on 2026-09-14
+closing `F6-AC-03`'s second half. `call.viewed_at` exists because
+`architecture.md` §4.1 specifies it, and **nothing writes to it**, so that tag
+stands until a later run overwrites the row. `NEW` and `UPDATED` are never
+written at all.
 
-**F6-AC-13 must not be read as fully met.** What closes it is marking the call
-viewed when its card has been on screen, and clearing the tag from that. *Home:
-STE-65* — it belongs to the slice that built it, not to a later one.
+**Not dangerous, because nothing acts on a tag** — it changes no figure, no
+decision and no money. Corrosive, because a badge that never goes away stops
+being read, and the next one that matters is not read either.
+
+**F6-AC-13 must not be read as met.** *Home: STE-127*, filed Post MVP on
+2026-09-14 — moved there from STE-65, which owns the slice and not this.
 
 **F6-UP-03 — named by a test that proves a different half.** The criterion is
 that a gameweek rollover is a clean slate: the previous shortlist, decisions,
