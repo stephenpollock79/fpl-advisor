@@ -197,6 +197,12 @@ export type World = {
    * not that anything broke: the squad, the prices and every decision are on file
    * and still true. Only what needs a fresh read is frozen.
    */
+  /**
+   * **The week on screen has already been played** (F6-UP-03). Not staleness,
+   * and never a prompt: a refresh can be declined, this cannot, because there is
+   * nothing to weigh. Absent when the week is fine.
+   */
+  gameweekStop?: { reason: 'deadline_passed' | 'projections_disagree'; gameweek: number; deadline: string }
   feedsReachable?: boolean
   /** When the data on screen was read. What the amber strip timestamps. */
   dataReadAt?: string | null

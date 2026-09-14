@@ -25,6 +25,7 @@ import { streamSSE } from 'hono/streaming'
 import type { AuthenticatedUser } from '../auth/session.js'
 import type { PlanInput } from '../calls/plan.js'
 import type { ModelCallRecord, ModelPort } from '../model/client.js'
+import { transferCostTenths } from '@fpl/engine'
 import type { EvidenceRow } from '../refresh/evidence.js'
 import { diffEvidence } from '../refresh/evidence.js'
 import type { DecisionState, LockableCall } from '../refresh/locks.js'
@@ -47,7 +48,6 @@ export type RefreshInputs = {
   /** The calls that run produced, and the manager's answers to them. */
   calls: LockableCall[]
   decisions: Record<string, DecisionState>
-  costOfSwap: (outId: number, inId: number) => number
 }
 
 export type RunDeps = {
@@ -85,6 +85,27 @@ export const RUN_STEPS = [
   { id: 'explain', label: 'Writing the reasoning' },
 ] as const
 
+
+/**
+ * What a swapped transfer actually costs (F3-AC-24, F3-AC-25).
+ *
+ * **It used to cost nothing.** A decision filed against a swapped pair was
+ * committed at zero, so the next run believed the bank untouched and could
+ * recommend a second transfer the manager could not afford — removing the one
+ * hard constraint money has in this build.
+ *
+ * Built from the week's own prices: the incoming player's price now, and FPL's
+ * selling price for the outgoing one. A player whose selling price could not be
+ * recovered is not offered for sale at all, so zero here is unreachable rather
+ * than a fallback.
+ */
+const swapCost = (plan: WeekInputs['plan']) => {
+  const priceOf = new Map([...plan.squad, ...plan.pool].map((p) => [p.playerId, p.nowCostTenths]))
+  const sellingOf = new Map(plan.squad.map((p) => [p.playerId, p.sellingPriceTenths]))
+  return (outId: number, inId: number): number =>
+    transferCostTenths(priceOf.get(inId) ?? 0, sellingOf.get(outId) ?? 0)
+}
+
 export function runRoutes(deps: RunDeps) {
   const app = new Hono()
 
@@ -104,7 +125,21 @@ export function runRoutes(deps: RunDeps) {
 
     return streamSSE(c, async (stream) => {
       let runId: string | null = null
+      let closed = false
       const send = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) })
+
+      /**
+       * **The abort has to be listened for, not waited for.**
+       *
+       * Cancelling is the connection closing, and the work in flight does not
+       * notice: a model call that never returns never throws, so nothing reached
+       * the catch below and the run sat at *running* for ever. The manager saw a
+       * cancel that worked and the record said otherwise (F6-AC-20).
+       */
+      c.req.raw.signal.addEventListener('abort', () => {
+        closed = true
+        if (runId) void deps.endRun(user, runId, 'cancelled')
+      })
 
       try {
         await send('step', { id: 'read', label: RUN_STEPS[0].label })
@@ -133,16 +168,24 @@ export function runRoutes(deps: RunDeps) {
         }
 
         runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
+        // The connection may have closed while the feeds were being read, before
+        // there was a run to mark. Caught here as well as in the listener, so a
+        // cancel lands wherever it arrives.
+        if (closed) {
+          await deps.endRun(user, runId, 'cancelled')
+          return
+        }
 
         await send('step', { id: 'propose', label: RUN_STEPS[2].label, scale })
         const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
-        const { keys } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
+        const { keys, returning } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
 
         await send('step', { id: 'score', label: RUN_STEPS[3].label, scale })
         const { calls, modelCalls } = await generateWeek({
+          resurfaced: returning,
           plan: {
             ...week.plan,
-            committed: committedPairs(refresh.calls, refresh.decisions, refresh.costOfSwap),
+            committed: committedPairs(refresh.calls, refresh.decisions, swapCost(week.plan)),
             suppressed: keys,
           },
           cards: week.cards,
@@ -156,7 +199,7 @@ export function runRoutes(deps: RunDeps) {
         // A closed request is a cancellation, not a failure, and the two must
         // never be recorded as the same thing — a failure ages nothing either,
         // but it is something the manager is shown and asked about (F6-UP-01).
-        const cancelled = c.req.raw.signal.aborted
+        const cancelled = closed || c.req.raw.signal.aborted
         console.error(`[runs] streamed run ${runId ?? 'unstarted'} ${cancelled ? 'cancelled' : 'failed'}`, cause)
         if (runId) await deps.endRun(user, runId, cancelled ? 'cancelled' : 'failed')
         if (!cancelled) await send('error', { reason: 'run_failed', runId })
@@ -206,12 +249,17 @@ export function runRoutes(deps: RunDeps) {
     try {
 
       const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
-      const { keys } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
+      // `returning` is the set F6-AC-03's second half needs: a rejected call
+      // whose premise has moved comes back, and **comes back labelled**. Working
+      // out which they are and then discarding it put the manager in front of
+      // something he had already said no to with nothing explaining why.
+      const { keys, returning } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
 
       const { calls, modelCalls } = await generateWeek({
+        resurfaced: returning,
         plan: {
           ...week.plan,
-          committed: committedPairs(refresh.calls, refresh.decisions, refresh.costOfSwap),
+          committed: committedPairs(refresh.calls, refresh.decisions, swapCost(week.plan)),
           suppressed: keys,
         },
         cards: week.cards,

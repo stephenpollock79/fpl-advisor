@@ -148,3 +148,63 @@ describe('F6-UP-03 · a gameweek rollover re-reads the squad rather than reusing
     expect(events).not.toContain('capture')
   })
 })
+
+describe('F6-UP-03 · advice about a week already played is stopped, not shown', () => {
+  const assembled = async (over: Partial<WorldParts>) => {
+    const { get } = harness({ loadParts: async () => ({ ...parts(), ...over }) })
+    return (await (await get()).json()) as { gameweekStop?: { reason: string; gameweek: number } }
+  }
+
+  const gw = (id: number, deadline: string) => ({
+    id,
+    name: `Gameweek ${String(id)}`,
+    deadlineTime: deadline,
+    isNext: true,
+    isCurrent: false,
+    finished: false,
+    dataChecked: false,
+  })
+
+  it('F6-UP-03: a deadline that has passed stops the week, and names it', async () => {
+    // **The check existed from the day the slice landed and nothing called it**,
+    // so the failure it was written for was still uncaught: confident advice
+    // about a week already played, with nothing on screen looking wrong.
+    const world = await assembled({
+      gameweek: gw(4, '2026-09-12T12:30:00Z'),
+      projections: [{ gameweek: 4, playerId: 1, projectedPoints: 5, feedReadId: 'r' }],
+      nowMs: Date.parse('2026-09-14T15:00:00Z'),
+    })
+
+    expect(world.gameweekStop).toEqual({ reason: 'deadline_passed', gameweek: 4, deadline: '2026-09-12T12:30:00Z' })
+  })
+
+  it('F6-UP-03: a week still ahead carries no stop at all', async () => {
+    const world = await assembled({
+      gameweek: gw(5, '2026-09-18T17:30:00Z'),
+      projections: [{ gameweek: 5, playerId: 1, projectedPoints: 5, feedReadId: 'r' }],
+      nowMs: Date.parse('2026-09-14T15:00:00Z'),
+    })
+
+    expect(world.gameweekStop).toBeUndefined()
+  })
+
+  it('F6-UP-03: projections that do not cover the week are two sources contradicting each other', async () => {
+    const world = await assembled({
+      gameweek: gw(5, '2026-09-18T17:30:00Z'),
+      projections: [{ gameweek: 6, playerId: 1, projectedPoints: 5, feedReadId: 'r' }],
+      nowMs: Date.parse('2026-09-14T15:00:00Z'),
+    })
+
+    expect(world.gameweekStop?.reason).toBe('projections_disagree')
+  })
+
+  it('F6-UP-03: a world with no projections at all proves nothing, and must not stop the app', async () => {
+    const world = await assembled({
+      gameweek: gw(5, '2026-09-18T17:30:00Z'),
+      projections: [],
+      nowMs: Date.parse('2026-09-14T15:00:00Z'),
+    })
+
+    expect(world.gameweekStop).toBeUndefined()
+  })
+})

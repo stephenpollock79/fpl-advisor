@@ -324,6 +324,20 @@ describe('F4-AC-01, F4-AC-07 · the armband and the vice armband', () => {
     if (captain?.outcome.reading === 'call') expect(captain.outcome.isForced).toBe(true)
   })
 
+  it('F4-AC-07: a holder the availability gate excludes forces the armband, even with a fixture to play', () => {
+    // The other half of the criterion, and the half nothing named. A captain FPL
+    // reports injured, whose club still plays, is just as unable to score as one
+    // whose club blanks — and the call has to say so rather than offering a
+    // change the manager could decline.
+    const w = world()
+    const out = { eligible: false, reason: 'injured' } as const
+    const squad = w.squad.map((p) => (p.name === 'Semenyo' ? { ...p, availability: out } : p))
+    const captain = planWeek({ ...w, squad }).find((c) => c.shape === 'captain')
+
+    expect(captain?.outcome.reading).toBe('call')
+    if (captain?.outcome.reading === 'call') expect(captain.outcome.isForced).toBe(true)
+  })
+
   it('F4-AC-08: however strong the case, an armband is never forced while the holder can play', () => {
     const captain = planWeek(world()).find((c) => c.shape === 'captain')
     expect(captain?.outcome.reading).toBe('call')

@@ -295,3 +295,30 @@ other halves are still unproven.
 **F6-UP-03 must not be read as met**, and what would close it is a test that
 rolls the gameweek and asserts the decisions, the shortlist and the pending
 calls are gone and the squad has been captured again. *Home: STE-65.*
+
+**F6-AC-20 — cancelling is built twice over and asserted nowhere.** A cancelled
+run must be treated exactly as a run that never started: recorded `cancelled`
+rather than `failed`, nothing written, and the last-run time unmoved.
+
+**Until 2026-09-14 it was not built at all.** The handler only noticed a
+cancellation if something threw, and a model call that never returns never
+throws — so the run sat at `running` for ever while the manager saw a cancel
+that appeared to work. It is now caught twice: a listener on the request's abort
+signal, and a check immediately after the run row is created, so a cancel that
+lands in either window is recorded.
+
+**Neither catch is covered by a test, and the reason is the harness rather than
+the will.** A cancellation is the connection closing, and Hono's in-process
+request cannot be disconnected — an `AbortSignal` passed through `app.request`,
+and a `Request` constructed with one directly, both leave the signal the handler
+reads unaborted. A test that passed against that harness would be proving
+something about the harness.
+
+**Nor does the phone close it.** Stephen confirmed on 2026-09-14 that cancelling
+returns the screen to its calls with nothing changed, which is the half he can
+see. What neither he nor the suite can see is the `run` row — and *that* is the
+half the criterion is about, because a cancel recorded as `failed` is a failure
+put in front of him for something he chose to do.
+
+**What would close it:** read the `run` row after cancelling a real run and
+confirm its status is `cancelled`. *Home: STE-65.*

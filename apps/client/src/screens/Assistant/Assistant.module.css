@@ -547,3 +547,28 @@
 
 .verdictBody { display: flex; gap: 10px; padding: 14px 13px; background: var(--warm-1); }
 .verdictText { margin: 0; padding-left: 10px; border-left: 2px solid var(--green); font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+
+/* The gameweek stop (F6-UP-03). Red rather than amber, and with nothing to tap:
+   the frozen-feed state is "showing you older data", this is "none of this is
+   advice any more". A dismiss control here would teach the manager to click past
+   a broken state exactly as he clicks past a routine one. */
+.stop {
+  margin: auto 0;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--red-card-border);
+  overflow: hidden;
+}
+
+.stopHead {
+  padding: 9px 12px;
+  background: var(--red-disc);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.stopBody { display: flex; flex-direction: column; gap: 8px; padding: 14px 13px; background: var(--red-card); font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.stopMeta { color: var(--muted); }

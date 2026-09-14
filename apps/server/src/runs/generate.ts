@@ -120,6 +120,8 @@ export type StoredCall = {
   watchReason: string | null
   reasoning: string
   reasoningSource: 'model' | 'template'
+  /** What this run did to the call, until the card has been seen (F6-AC-13). */
+  diffTag: 'new' | 'updated' | 'returned' | 'resurfaced' | 'band_move' | null
   breakdown: Breakdown
   alternatives: { out: number[]; in: number[] } | null
   position: number
@@ -132,6 +134,8 @@ export async function generateWeek(input: {
   plan: PlanInput
   cards: Map<number, CardInfo>
   model: ModelPort
+  /** Keys of rejected calls whose premise has moved, so they return labelled (F6-AC-03). */
+  resurfaced?: ReadonlySet<string>
 }): Promise<{ calls: StoredCall[]; modelCalls: ModelCallRecord[] }> {
   const card = (id: number): CardInfo => {
     const found = input.cards.get(id)
@@ -247,6 +251,9 @@ export async function generateWeek(input: {
       watchReason,
       reasoning: line?.text ?? '',
       reasoningSource: line?.source ?? 'template',
+      // A call the manager rejected, back because what he rejected has changed.
+      // Labelled, never slipped in unmarked (F6-AC-03).
+      diffTag: input.resurfaced?.has(call.key) === true ? 'resurfaced' : null,
       breakdown: {
         weights,
         out: {

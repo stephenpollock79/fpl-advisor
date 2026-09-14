@@ -75,3 +75,15 @@ describe('F6-AC-03, F6-AC-05 · suppression, and the one thing that ignores it',
     expect(keys.size + returning.size).toBe(0)
   })
 })
+
+describe('F6-AC-01, F3-AC-25 · a swapped transfer costs what it costs', () => {
+  it('F6-AC-01: the swapped pair commits the price actually paid, not nothing', () => {
+    // It used to commit zero. The next run then believed the bank untouched and
+    // could recommend a second transfer the manager could not afford, removing
+    // the one hard constraint money has in this build.
+    const cost = (outId: number, inId: number) => (outId === 6 && inId === 200 ? 9 : 0)
+    const committed = committedPairs([call()], { 'transfer:out=6:in=200': 'selected' }, cost)
+
+    expect(committed[0]?.costTenths).toBe(9)
+  })
+})
