@@ -82,10 +82,12 @@ export function RefreshInterstitial({
 export function Thinking({
   current,
   scale,
+  gameweekId,
   onCancel,
 }: {
   current: RunStep | null
   scale: { players: number; squad: number } | null
+  gameweekId: number
   onCancel: () => void
 }) {
   const [elapsed, setElapsed] = useState<Record<string, number>>({})
@@ -96,65 +98,79 @@ export function Thinking({
     if (!current || previous.current === current.id) return
     if (previous.current !== null) {
       const id = previous.current
-      const took = Date.now() - stepStartedAt.current
-      setElapsed((e) => ({ ...e, [id]: took }))
+      setElapsed((e) => ({ ...e, [previous.current as string]: Date.now() - stepStartedAt.current }))
+      void id
     }
     previous.current = current.id
     stepStartedAt.current = Date.now()
   }, [current])
 
   const index = current ? STEPS.findIndex((s) => s.id === current.id) : -1
+  const took = (id: string) => {
+    const ms = elapsed[id]
+    if (ms === undefined) return null
+    return ms < 100 ? '<0.1s' : `${(ms / 1000).toFixed(1)}s`
+  }
 
   return (
-    <div className={styles.thinking} data-testid="thinking">
-      <div className={styles.thinkingStrip}>Working your gameweek</div>
+    // Tap anywhere to cancel, as the handoff has it — and a real control in the
+    // footer as well, because a gesture with nothing to see is not something a
+    // manager can be expected to discover (F6-AC-19).
+    <div className={styles.thinking} data-testid="thinking" onClick={onCancel} role="presentation">
+      <div className={styles.thinkingStrip}>
+        <span>Working your gameweek</span>
+        <span>GW{gameweekId}</span>
+      </div>
 
       <div className={styles.thinkingHead}>
-        <span className={styles.thinkingSpinner} aria-hidden="true" />
+        <span className={styles.thinkingSpinner} aria-hidden="true">
+          <span className={styles.thinkingPulse} />
+        </span>
         <p className={styles.thinkingTitle}>Reading your gameweek</p>
         {scale ? (
           <p className={styles.thinkingScale}>
             {scale.squad} IN YOUR SQUAD · {scale.players} PLAYERS · 3 GAMEWEEKS
           </p>
         ) : null}
-        {/* The rolling status line the handoff names, separate from the pipeline:
-            the pipeline says how far the run has got, this says what it is doing
-            now. Both come from the server, so neither can disagree with the
-            other or with the state (F6-AC-17, F6-AC-18). */}
+      </div>
+
+      {/* The rolling status line, separate from the pipeline: the pipeline says
+          how far the run has got, this says what it is doing right now. Both come
+          from the server, so neither can disagree with the other (F6-AC-17). */}
+      <div className={styles.thinkingNowRow}>
         <p className={styles.thinkingNow} data-testid="thinking-now">
           <span className={styles.thinkingDot} aria-hidden="true" />
           {current?.label ?? 'Starting'}
-          {current?.calls !== undefined ? ` — ${String(current.calls)} calls` : ''}
+          {current?.calls !== undefined ? ` — ${String(current.calls)} calls` : ''}…
         </p>
+        <span className={styles.sweep} aria-hidden="true">
+          <span className={styles.sweepBar} />
+        </span>
       </div>
 
-      <span className={styles.pipelineLabel}>PIPELINE</span>
-      <ol className={styles.pipeline}>
-        {STEPS.map((step, i) => {
-          const state = i < index ? 'done' : i === index ? 'running' : 'queued'
-          const mark = state === 'done' ? '\u2713' : state === 'running' ? '\u203a' : '\u00b7'
-          return (
-            <li
-              key={step.id}
-              className={styles[`step${state[0]?.toUpperCase() ?? ''}${state.slice(1)}`] ?? styles.stepQueued}
-              data-state={state}
-            >
-              <span>
-                {mark} {step.label}
-              </span>
-              {state === 'done' && elapsed[step.id] !== undefined ? (
-                <span className={styles.stepTime}>
-                  {(elapsed[step.id] ?? 0) / 1000 < 1 ? '<1s' : `${String(Math.round((elapsed[step.id] ?? 0) / 1000))}s`}
+      <div className={styles.pipelineBox}>
+        <span className={styles.pipelineLabel}>PIPELINE</span>
+        <ol className={styles.pipeline}>
+          {STEPS.map((step, i) => {
+            const state = i < index ? 'done' : i === index ? 'running' : 'queued'
+            const mark = state === 'done' ? '\u2713' : state === 'running' ? '\u25b8' : '\u00b7'
+            return (
+              <li key={step.id} className={styles[`step${state[0]?.toUpperCase() ?? ''}${state.slice(1)}`] ?? styles.stepQueued} data-state={state}>
+                <span className={styles.stepMark} aria-hidden="true">
+                  {mark}
                 </span>
-              ) : null}
-            </li>
-          )
-        })}
-      </ol>
+                <span className={styles.pipeStep}>{step.label}</span>
+                <span className={styles.stepState}>
+                  {state === 'done' ? (took(step.id) ?? '') : state === 'running' ? 'running' : 'queued'}
+                </span>
+              </li>
+            )
+          })}
+        </ol>
+      </div>
 
-      <p className={styles.thinkingMeta}>Usually under a minute.</p>
-      <button className={styles.secondary} onClick={onCancel} type="button">
-        Cancel
+      <button className={styles.thinkingFooter} onClick={onCancel} type="button">
+        Tap anywhere to cancel · usually under a minute
       </button>
     </div>
   )

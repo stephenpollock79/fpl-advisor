@@ -446,12 +446,14 @@ test('F6-AC-19, F6-AC-16: the Thinking state states how long it takes and can be
   // rolling status line, which the first version of this screen did not have.
   await expect(thinking).toContainText('PIPELINE')
   await expect(page.getByTestId('thinking-now')).toBeVisible()
-  // The expected duration is stated rather than left to be guessed at.
-  await expect(thinking).toContainText('Usually under a minute')
-  // And it is cancellable for the whole of it, not only at a convenient moment.
-  await expect(thinking.getByRole('button', { name: 'Cancel' })).toBeEnabled()
+  // The expected duration is stated rather than left to be guessed at, and how
+  // to stop it is stated in the same breath — the handoff's own footer line.
+  const footer = thinking.getByRole('button', { name: /usually under a minute/i })
+  await expect(footer).toContainText(/tap anywhere to cancel/i)
+  // Cancellable for the whole of it, not only at a convenient moment.
+  await expect(footer).toBeEnabled()
 
-  await thinking.getByRole('button', { name: 'Cancel' }).click()
+  await footer.click()
   await expect(page.getByTestId('thinking')).toHaveCount(0)
   await expect(page.getByText('Nothing changed', { exact: false })).toBeVisible()
 })

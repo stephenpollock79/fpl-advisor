@@ -116,12 +116,11 @@ export function runRoutes(deps: RunDeps) {
           return
         }
 
-        await send('step', {
-          id: 'diff',
-          label: RUN_STEPS[1].label,
-          // Real figures, never a spinner's worth of words (F6-AC-17).
-          scale: { players: week.plan.squad.length + week.plan.pool.length, squad: week.plan.squad.length },
-        })
+        // Real figures, never a spinner's worth of words (F6-AC-17). Carried on
+        // every step from here, so the screen states the scale of the job from
+        // the first moment it can rather than a beat later.
+        const scale = { players: week.plan.squad.length + week.plan.pool.length, squad: week.plan.squad.length }
+        await send('step', { id: 'diff', label: RUN_STEPS[1].label, scale })
         const refresh = await deps.refreshInputs(user)
         const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
 
@@ -133,11 +132,11 @@ export function runRoutes(deps: RunDeps) {
           return
         }
 
-        await send('step', { id: 'propose', label: RUN_STEPS[2].label })
+        await send('step', { id: 'propose', label: RUN_STEPS[2].label, scale })
         const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
         const { keys } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
 
-        await send('step', { id: 'score', label: RUN_STEPS[3].label })
+        await send('step', { id: 'score', label: RUN_STEPS[3].label, scale })
         const { calls, modelCalls } = await generateWeek({
           plan: {
             ...week.plan,
@@ -148,7 +147,7 @@ export function runRoutes(deps: RunDeps) {
           model: deps.model(),
         })
 
-        await send('step', { id: 'explain', label: RUN_STEPS[4].label, calls: calls.length })
+        await send('step', { id: 'explain', label: RUN_STEPS[4].label, scale, calls: calls.length })
         await deps.finishRun(user, runId, week.gameweek, calls, modelCalls)
         await send('done', { runId, calls, reused: false })
       } catch (cause) {
