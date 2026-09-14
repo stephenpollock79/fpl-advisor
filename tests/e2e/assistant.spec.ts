@@ -306,8 +306,12 @@ test('F3-AC-07: Later on the only undecided call left anywhere says so, and leav
 test('F3-UP-05: a category with nothing worth changing says so, rather than showing an empty list', async ({ page }) => {
   await open(page, {}, world.calls.filter((c) => c.category === 'substitution'))
 
-  await expect(page.getByText('Transfers · clear')).toBeVisible()
-  await expect(page.getByText(/No transfer is worth making this week/)).toBeVisible()
+  // Said by the Gaffer, in the editorial's own clothes — "nothing worth
+  // changing" is a designed answer, not an absence, and a greyed panel reads as
+  // something failing to load.
+  const verdict = page.getByTestId('verdict')
+  await expect(verdict).toContainText('NO CHANGE')
+  await expect(verdict).toContainText(/No transfer is worth making this week/)
   await expect(page.getByRole('tab', { name: /Transfer/ })).toContainText('Clear')
 })
 
@@ -376,11 +380,12 @@ test('F4-UP-02: rejecting the captain change holds the vice call rather than lea
 test('F6-AC-07, F6-AC-10: the refresh control names its own scope, and asks before it runs', async ({ page }) => {
   await open(page)
 
-  // One control, scoped to the screen it is on and saying so on itself — never a
-  // bare icon whose blast radius the manager has to infer from where it sits.
-  await expect(page.getByTestId('refresh')).toContainText('Transfer')
+  // A fixed square symbol, so its width cannot change with the tab and take the
+  // header's height with it. What it would rewrite is named on the control for a
+  // screen reader and, for everyone, on the confirmation it opens.
+  await expect(page.getByTestId('refresh')).toHaveAttribute('aria-label', /transfers/i)
   await page.getByRole('tab', { name: 'Sub' }).click()
-  await expect(page.getByTestId('refresh')).toContainText('Sub')
+  await expect(page.getByTestId('refresh')).toHaveAttribute('aria-label', /substitutions/i)
 
   await page.getByTestId('refresh').click()
 
@@ -428,7 +433,6 @@ test('F6-UP-02: when FPL is not answering the screen says how old it is, and ref
   await expect(frozen).toContainText('team news')
 
   // Off, not broken: it does not fail on tap, and navigation is untouched.
-  await expect(page.getByTestId('refresh')).toContainText('OFF')
   await expect(page.getByTestId('refresh')).toBeDisabled()
   await page.getByRole('tab', { name: 'Sub' }).click()
   await expect(page.getByTestId('strength')).toBeVisible()
@@ -446,7 +450,7 @@ test('F6-AC-19, F6-AC-16: the Thinking state states how long it takes and can be
   })
 
   await page.getByTestId('refresh').click()
-  await page.getByRole('button', { name: /^Refresh/ }).click()
+  await page.getByRole('dialog').getByRole('button', { name: /^Refresh/ }).click()
 
   const thinking = page.getByTestId('thinking')
   await expect(thinking).toBeVisible()

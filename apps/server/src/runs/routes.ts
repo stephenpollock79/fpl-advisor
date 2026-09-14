@@ -127,7 +127,7 @@ export function runRoutes(deps: RunDeps) {
         // See the note on the JSON route: a reuse writes no run at all. A
         // succeeded run with no calls does not reuse the week's advice, it
         // replaces it with nothing.
-        if (evidence && !evidence.worthPaying) {
+        if (evidence && !evidence.worthPaying && refresh.calls.length > 0) {
           await send('done', { runId: null, calls: [], reused: true, changed: evidence.changed.length })
           return
         }
@@ -188,7 +188,16 @@ export function runRoutes(deps: RunDeps) {
     //
     // Nothing advancing is also right for the next diff: its baseline stays the
     // read the advice on screen was actually built from.
-    if (evidence && !evidence.worthPaying) {
+    // **And there has to be something to reuse.** A run that produced no calls
+    // leaves nothing to carry forward, so reusing it would keep an empty week
+    // empty for ever: the diff finds nothing new a minute later, declines to
+    // spend, and the screen stays blank with no way out. Found live on
+    // 2026-09-14, after the empty runs the bug above had already written.
+    //
+    // Zero stored calls cannot be a legitimate quiet week either — captaincy
+    // produces two calls every week without exception (F4-AC-01) — so zero means
+    // something went wrong, not that there is nothing to say.
+    if (evidence && !evidence.worthPaying && refresh.calls.length > 0) {
       return c.json({ runId: null, calls: [], reused: true, changed: evidence.changed.length })
     }
 
