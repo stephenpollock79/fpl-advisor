@@ -4,6 +4,8 @@ A personal decision-support app for Fantasy Premier League. Before each weekly d
 
 Built solo in three weeks (31 Aug – 16 Sep 2026) during a self-directed sabbatical in AI-assisted product development. I'm a product manager: I directed this build rather than hand-wrote it.
 
+## Demo Video
+
 https://github.com/user-attachments/assets/12038f10-a138-49e8-9d00-0acf82a0a862<img width="468" height="50" alt="image" src="https://github.com/user-attachments/assets/e8ead556-a446-4e71-b754-cc5e78d67785" />
 
 ## Why there's no public link
