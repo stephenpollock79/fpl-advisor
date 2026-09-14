@@ -394,12 +394,25 @@
 
 /* The refresh control names its own scope on itself (F6-AC-07), so what a tap
    will rewrite is never something the manager has to infer from where it sits. */
+/* **Fixed height and no wrapping.** The label is as long as the tab's name, so
+   "TRANSFER" wrapped onto a second line where "SUB" did not, and the whole
+   header changed height as the manager moved between tabs. A row that resizes
+   when you navigate reads as the page reloading. */
+.refreshRow { flex: none; display: flex; justify-content: flex-end; }
+
 .refresh {
-  margin-left: 8px;
+  margin: 0;
+  flex: none;
+  height: 26px;
+  max-width: 116px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 10px;
   border-radius: var(--radius-field);
   border: 1px solid var(--border-strong);
   background: var(--card);

@@ -124,13 +124,15 @@ export function runRoutes(deps: RunDeps) {
         const refresh = await deps.refreshInputs(user)
         const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
 
-        runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
-
+        // See the note on the JSON route: a reuse writes no run at all. A
+        // succeeded run with no calls does not reuse the week's advice, it
+        // replaces it with nothing.
         if (evidence && !evidence.worthPaying) {
-          await deps.finishRun(user, runId, week.gameweek, [], [])
-          await send('done', { runId, calls: [], reused: true, changed: evidence.changed.length })
+          await send('done', { runId: null, calls: [], reused: true, changed: evidence.changed.length })
           return
         }
+
+        runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
 
         await send('step', { id: 'propose', label: RUN_STEPS[2].label, scale })
         const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
@@ -174,16 +176,25 @@ export function runRoutes(deps: RunDeps) {
     const refresh = await deps.refreshInputs(user)
     const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
 
+    // **F6-RS-08, and the run row is not written at all.** Nothing has moved that
+    // could alter a decision, so the model is not called and *the stored calls
+    // are reused* — which is the criterion's own word.
+    //
+    // Writing a succeeded run with no calls instead does not reuse them, it
+    // destroys them: every screen reads the latest succeeded run, so the week's
+    // advice vanished and read as "nothing worth doing" rather than as a
+    // failure. Found live on 2026-09-14, after a refresh that correctly found
+    // nothing to do emptied the Assistant.
+    //
+    // Nothing advancing is also right for the next diff: its baseline stays the
+    // read the advice on screen was actually built from.
+    if (evidence && !evidence.worthPaying) {
+      return c.json({ runId: null, calls: [], reused: true, changed: evidence.changed.length })
+    }
+
     const runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
 
     try {
-      // F6-RS-08. Nothing has moved that could alter a decision, so the model is
-      // not called at all and the week stands as it was. The figures are kept
-      // honest by the recomputation on every world read, not by spending here.
-      if (evidence && !evidence.worthPaying) {
-        await deps.finishRun(user, runId, week.gameweek, [], [])
-        return c.json({ runId, calls: [], reused: true, changed: evidence.changed.length })
-      }
 
       const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
       const { keys } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
