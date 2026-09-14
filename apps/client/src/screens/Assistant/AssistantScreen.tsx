@@ -27,6 +27,7 @@ import {
   restoredSwaps,
   shortlistCount,
   storedFigures,
+  viceHeldByCaptain,
   watchFreshness,
   transferKey,
 } from '../../calls/view'
@@ -49,6 +50,15 @@ const TABS: { category: Category; label: string; noun: string; clear: string }[]
     noun: 'Substitutions',
     clear: 'Your eleven is already the strongest legal side, and the bench is in order.',
   },
+  // Last, deliberately. *Later* on the final undecided call hops to the next tab
+  // holding work, in this order — putting captaincy ahead of substitutions would
+  // change where the manager lands (F3-AC-07).
+  {
+    category: 'captaincy',
+    label: 'Captain',
+    noun: 'Captaincy',
+    clear: 'Both armbands are already on the right players.',
+  },
 ]
 
 /** A call as the card shows it — the stored one, or a transfer with a candidate swapped in. */
@@ -67,6 +77,8 @@ const SHAPE_TITLE: Record<WorldCall['shape'], string> = {
   doubt_swap: 'Doubt swap',
   upgrade_swap: 'Swap',
   bench_order: 'Bench order',
+  captain: 'Captain',
+  vice: 'Vice',
 }
 
 export function AssistantScreen({
@@ -96,13 +108,22 @@ export function AssistantScreen({
   }, [world.calls, world.decisions])
 
   const fresh = watchFreshness(world)
+  // F4-UP-02: turn the captain change down and the vice call's premise is gone
+  // with it, so the vice is held rather than left to contradict the armband.
+  const captainRejected = world.calls.some(
+    (c) => c.shape === 'captain' && decisions.decisions[c.key] === 'rejected',
+  )
   const shown = useMemo(
     () =>
       world.calls.flatMap((call): Shown[] => {
         const storedOut = players.get(call.outPlayerId)
         const storedIn = players.get(call.inPlayerId)
         if (!storedOut || !storedIn) return []
-        const stored: Shown = { call, key: call.key, out: storedOut, into: storedIn, figures: storedFigures(call, storedOut, storedIn, fresh.stored), swapped: false }
+        const figuresNow = viceHeldByCaptain(
+          storedFigures(call, storedOut, storedIn, fresh.stored),
+          call.shape === 'vice' && captainRejected,
+        )
+        const stored: Shown = { call, key: call.key, out: storedOut, into: storedIn, figures: figuresNow, swapped: false }
 
         const swap = swaps[call.key]
         if (!swap) return [stored]
@@ -112,14 +133,21 @@ export function AssistantScreen({
         if (!out || !into || !figures) return [stored]
         return [{ call, key: transferKey(out.playerId, into.playerId), out, into, figures, swapped: true }]
       }),
-    [world.calls, swaps, players, fresh.stored, fresh.swapped],
+    [world.calls, swaps, players, fresh.stored, fresh.swapped, captainRejected],
   )
 
   const inCategory = (category: Category) => shown.filter((s) => s.call.category === category)
   const pendingIn = (category: Category) => inCategory(category).filter((s) => decisions.decisions[s.key] === undefined)
+  /**
+   * Work the manager still has to do. A keep reading is shown and stepped
+   * through, but it is not outstanding and never becomes *Done* — it enters no
+   * tally at all (F4-AC-03).
+   */
+  const outstandingIn = (category: Category) => pendingIn(category).filter((s) => s.figures.reading === 'call')
 
   const here = inCategory(tab)
   const pending = pendingIn(tab)
+  const outstanding = outstandingIn(tab)
   const reopenedHere = here.filter((s) => decisions.reopened[s.key] !== undefined).length
 
   // Category cleared takes over when nothing is left pending, and stays while
@@ -127,6 +155,10 @@ export function AssistantScreen({
   useEffect(() => {
     if (here.length > 0 && pending.length === 0) setHoldCleared(true)
   }, [here.length, pending.length])
+  // Unchanged, and it already does the right thing for a keep reading: a reading
+  // is never decided, so a tab holding one never empties `pending`, never sets
+  // `holdCleared`, and never has the cleared summary take the card's place. The
+  // Captain tab always has something to show, which is F4-AC-01.
   const showCleared = here.length > 0 && (pending.length === 0 || holdCleared)
 
   const current = pending.length > 0 ? pending[cursor % pending.length] : undefined
@@ -146,6 +178,11 @@ export function AssistantScreen({
 
   function onDecide(state: 'selected' | 'rejected' | 'pending') {
     if (!current) return
+    // A keep reading is not decidable (F4-AC-02). The card renders a label in
+    // place of the tiles and does not bind the swipe handlers, so nothing should
+    // reach here — this is the second lock, not the first, because a decision
+    // filed against a reading would enter tallies it must never be in.
+    if (current.figures.reading !== 'call') return
     if (state === 'pending') {
       // Later: it stays pending and the next undecided call comes up (F3-AC-07).
       if (pending.length > 1) {
@@ -156,7 +193,7 @@ export function AssistantScreen({
       // nothing reads as a broken control. Until the Overview exists (slice 8,
       // STE-122), go to the other tab if it has calls waiting, or say so.
       const here = TABS.find((t) => t.category === tab)
-      const next = TABS.find((t) => t.category !== tab && pendingIn(t.category).length > 0)
+      const next = TABS.find((t) => t.category !== tab && outstandingIn(t.category).length > 0)
       if (next) {
         setTab(next.category)
         setCursor(0)
@@ -253,9 +290,13 @@ export function AssistantScreen({
 
       <nav className={styles.tabs} role="tablist">
         {TABS.map((t) => {
-          const total = inCategory(t.category).length
-          const left = pendingIn(t.category).length
-          const meta = noRunYet ? '—' : total === 0 ? 'Clear' : left === 0 ? 'Done' : String(left)
+          // *Clear* covers a tab with nothing in it and a tab holding only keep
+          // readings — in both, the honest answer is that there is nothing to do.
+          // *Done* is reserved for work that existed and has been decided
+          // (F4-AC-03).
+          const decidable = inCategory(t.category).filter((s) => s.figures.reading === 'call').length
+          const left = outstandingIn(t.category).length
+          const meta = noRunYet ? '—' : decidable === 0 ? 'Clear' : left === 0 ? 'Done' : String(left)
           return (
             <button
               key={t.category}

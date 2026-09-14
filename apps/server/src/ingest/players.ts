@@ -48,6 +48,13 @@ export type PlayerStateRow = {
   priceChangeLikelihoodTonight?: number | null
   /** FPL has locked this player's price until this moment, after a recent change. */
   priceChangeLockedUntil?: string | null
+  /**
+   * FPL's penalty order for his club, 1 to 5, or null for the great majority
+   * (61 of 658 on 2026-09-14). The captaincy ceiling tie-break's stronger
+   * signal (F4-AC-12); `takesPenalties` is `=== 1`. Optional: rows read before
+   * slice 6 do not carry it.
+   */
+  penaltiesOrder?: number | null
 }
 
 type BootstrapPayload = {
@@ -76,6 +83,7 @@ type BootstrapPayload = {
     price_change_percent?: string | number | null
     price_change_projections?: { offset: number; projected_percent: string | number; likelihood: number }[] | null
     price_change_locked_until?: string | null
+    penalties_order?: number | null
   }[]
 }
 
@@ -146,6 +154,7 @@ export function toPlayerStateRows(
     // Tonight is projection offset 0. Read by offset, never by position.
     priceChangeLikelihoodTonight: e.price_change_projections?.find((p) => p.offset === 0)?.likelihood ?? null,
     priceChangeLockedUntil: e.price_change_locked_until ?? null,
+    penaltiesOrder: e.penalties_order ?? null,
   }))
 }
 

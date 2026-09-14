@@ -72,6 +72,8 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
             points_hit: c.pointsHit,
             cost_tenths: c.costTenths,
             is_forced: c.isForced,
+            is_reading: c.isReading,
+            reading_reason: c.readingReason,
             watch_flag: c.watch,
             watch_reason: c.watchReason,
             reasoning: c.reasoning,

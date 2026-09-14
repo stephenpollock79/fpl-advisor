@@ -59,7 +59,7 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
 
   const { data: squadRows } = await mine
     .from('squad_player')
-    .select('player_id, is_starter, bench_order, purchase_price_tenths')
+    .select('player_id, is_starter, bench_order, purchase_price_tenths, is_captain, is_vice')
     .eq('snapshot_id', snapshot['id'] as string)
 
   const readId = await latestReadId('fpl_bootstrap')
@@ -76,7 +76,7 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
     everyRow<Row>((from, to) =>
       reference
         .from('player_state')
-        .select('player_id, status, chance_of_playing_next_round, now_cost_tenths, form, selected_by_percent, season_points, transfers_in, transfers_out, price_change_likelihood_tonight, price_change_locked_until')
+        .select('player_id, status, chance_of_playing_next_round, now_cost_tenths, form, selected_by_percent, season_points, transfers_in, transfers_out, price_change_likelihood_tonight, price_change_locked_until, penalties_order')
         .eq('feed_read_id', readId)
         .range(from, to),
     ),
@@ -139,6 +139,10 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
       flagged: status === 'd',
       hasFixture: thisWeek.length > 0,
       nowCostTenths,
+      // A club's first-choice taker and nobody else (ruled 2026-09-14): the
+      // ceiling tie-break exists to reward a real ceiling, and a fourth-choice
+      // taker does not take penalties (F4-AC-12).
+      takesPenalties: state['penalties_order'] === 1,
     })
 
     const num = (v: unknown) => (v === null || v === undefined ? null : Number(v))
@@ -174,6 +178,8 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
       ...player,
       isStarter: r['is_starter'] as boolean,
       benchOrder: r['bench_order'] as SquadEntry['benchOrder'],
+      isCaptain: r['is_captain'] as boolean,
+      isVice: r['is_vice'] as boolean,
       // Unknown stays unknown: a player whose purchase price cannot be found is
       // not offered for sale, rather than sold at a guessed price (F3-AC-25).
       sellingPriceTenths: purchase === null ? null : sellingPriceTenths(purchase, player.nowCostTenths),

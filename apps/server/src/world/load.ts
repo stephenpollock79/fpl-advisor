@@ -97,8 +97,12 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     outPlayerId: c['out_player_id'] as number,
     inPlayerId: c['in_player_id'] as number,
     net: Number(c['net']),
-    conviction: c['conviction'] as number,
-    band: c['band'] as WorldCall['band'],
+    // Rows written before slice 6 carry no `is_reading`; every one of them is a
+    // call, so falsy reads correctly rather than needing a backfill.
+    isReading: c['is_reading'] === true,
+    readingReason: (c['reading_reason'] as WorldCall['readingReason']) ?? null,
+    conviction: c['conviction'] === null || c['conviction'] === undefined ? null : Number(c['conviction']),
+    band: (c['band'] as WorldCall['band']) ?? null,
     k: Number(c['k_used']),
     pointsHit: c['points_hit'] as number,
     costTenths: c['cost_tenths'] as number,

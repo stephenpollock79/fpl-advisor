@@ -15,16 +15,19 @@
 import {
   type AvailabilityVerdict,
   type Band,
+  type CallType,
   type CardPlayer,
   type PriceSignal,
   TRANSFER_HORIZON_WEIGHTS,
   evaluationRows,
   horizonTotal,
   horizonWeightsFor,
+  kFor,
   priceWatch,
 } from '@fpl/engine'
-import { type PlanInput, type PlanPlayer, type PlannedCall, planWeek } from '../calls/plan.js'
+import { type PlanInput, type PlanPlayer, type PlannedCall, isDecidable, planWeek } from '../calls/plan.js'
 import type { ModelCallRecord, ModelPort, ShortPlayer } from '../model/client.js'
+import { keepLine } from '../calls/keep-line.js'
 import { finalReasoning } from '../model/reasoning.js'
 
 /** What the card shows for one player, plus the names the reasoning and the shortlist use. */
@@ -37,6 +40,20 @@ export type CardInfo = CardPlayer & {
 }
 
 const NO_SIGNAL: PriceSignal = { likelihoodTonight: null, locked: false }
+
+/**
+ * Which category's k the breakdown is showing (F4-AC-11). The figure alone does
+ * not say — a substitution, a bench-order call and an armband call all read 0.5,
+ * and only the label tells the manager he is looking at the captaincy bar rather
+ * than the transfer one.
+ */
+const K_LABEL: Readonly<Record<CallType, string>> = {
+  transfer: 'transfer',
+  substitution: 'substitution',
+  bench_order: 'substitution',
+  captain: 'captain/vice',
+  vice: 'captain/vice',
+}
 
 export type BreakdownSide = {
   playerId: number
@@ -56,6 +73,10 @@ export type Breakdown = {
   net: number
   pointsHit: number
   k: number
+  /** Which category's k that is, in the manager's words (F4-AC-11). */
+  kLabel: string
+  /** The captaincy ceiling tie-break chose this challenger (F4-AC-12). */
+  byCeiling: boolean
 }
 
 export type StoredCall = {
@@ -65,8 +86,17 @@ export type StoredCall = {
   outPlayerId: number
   inPlayerId: number
   net: number
-  conviction: number
-  band: Band
+  /**
+   * A keep reading — the advice is to hold what is there (F4-AC-01). It carries
+   * no conviction and no band, because a reading rendered with a percentage is
+   * the weak-change display F4-AC-02 forbids, and the table's own constraint
+   * refuses one.
+   */
+  isReading: boolean
+  /** The engine's own two, and only on a reading. */
+  readingReason: 'incumbent_wins' | 'below_floor' | null
+  conviction: number | null
+  band: Band | null
   k: number
   pointsHit: number
   costTenths: number
@@ -112,6 +142,18 @@ export async function generateWeek(input: {
       const out = card(call.outPlayerId)
       const into = card(call.inPlayerId)
       const rows = evaluationRows(out, into)
+
+      // A keep reading is written here, not asked for. See `keep-line.ts` — the
+      // model has no strength or band to be given, and the engine's fallback
+      // sentence recommends the wrong player on a keep.
+      if (call.outcome.reading !== 'call') {
+        return {
+          text: keepLine(call.outcome.reason, rows, out.name, into.name),
+          source: 'template' as const,
+          record: null,
+        }
+      }
+
       const written = await input.model.writeReasoning({
         outName: out.name,
         inName: into.name,
@@ -132,6 +174,32 @@ export async function generateWeek(input: {
       return weights.length === 1 ? [p.hasFixture ? (p.projections[0] ?? 0) : 0] : p.projections.slice(0, weights.length)
     }
     const line = lines[position]
+    // Everything that differs between a call and a keep reading, decided once.
+    // A reading carries no k of its own, so the figure the breakdown shows is
+    // resolved here from the call type — never a second time downstream.
+    const figures = isDecidable(call)
+      ? {
+          isReading: false,
+          readingReason: null,
+          conviction: call.outcome.conviction,
+          band: call.outcome.band,
+          k: call.outcome.k,
+          pointsHit: call.outcome.pointsHit,
+          costTenths: call.outcome.costTenths,
+          isForced: call.outcome.isForced,
+          alternatives: call.alternatives ?? null,
+        }
+      : {
+          isReading: true,
+          readingReason: call.outcome.reason,
+          conviction: null,
+          band: null,
+          k: kFor(call.outcome.type),
+          pointsHit: 0,
+          costTenths: 0,
+          isForced: false,
+          alternatives: null,
+        }
     const outCard = card(call.outPlayerId)
     const inCard = card(call.inPlayerId)
     // Money moves only on a transfer, so only a transfer can be caught by a price change.
@@ -150,12 +218,14 @@ export async function generateWeek(input: {
       outPlayerId: call.outPlayerId,
       inPlayerId: call.inPlayerId,
       net: call.outcome.net,
-      conviction: call.outcome.conviction,
-      band: call.outcome.band,
-      k: call.outcome.k,
-      pointsHit: call.outcome.pointsHit,
-      costTenths: call.outcome.costTenths,
-      isForced: call.outcome.isForced,
+      isReading: figures.isReading,
+      readingReason: figures.readingReason,
+      conviction: figures.conviction,
+      band: figures.band,
+      k: figures.k,
+      pointsHit: figures.pointsHit,
+      costTenths: figures.costTenths,
+      isForced: figures.isForced,
       watch: watchReason !== null,
       watchReason,
       reasoning: line?.text ?? '',
@@ -175,15 +245,19 @@ export async function generateWeek(input: {
           total: call.outcome.challengerTotal,
         },
         net: call.outcome.net,
-        pointsHit: call.outcome.pointsHit,
-        k: call.outcome.k,
+        pointsHit: figures.pointsHit,
+        k: figures.k,
+        kLabel: K_LABEL[call.outcome.type],
+        byCeiling: call.byCeiling === true,
       },
-      alternatives: call.alternatives ?? null,
+      alternatives: figures.alternatives,
       position,
     }
   })
 
-  return { calls, modelCalls: [proposal.record, ...lines.map((l) => l.record)] }
+  // A keep reading made no model call, so there is no record to keep for it.
+  const written = lines.map((l) => l.record).filter((r): r is ModelCallRecord => r !== null)
+  return { calls, modelCalls: [proposal.record, ...written] }
 }
 
 /**

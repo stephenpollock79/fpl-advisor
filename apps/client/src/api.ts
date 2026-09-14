@@ -122,18 +122,29 @@ export type Breakdown = {
   net: number
   pointsHit: number
   k: number
+  /** Which category's k that is, in words — 0.5 alone does not say (F4-AC-11). */
+  kLabel: string
+  /** The captaincy ceiling tie-break chose this challenger over the plain highest projection (F4-AC-12). */
+  byCeiling: boolean
 }
 
 /** One call, with the engine's figures exactly as the run stored them (ENGINE-AC-04). */
 export type WorldCall = {
   key: string
-  category: 'transfer' | 'substitution'
-  shape: 'transfer' | 'forced_swap' | 'doubt_swap' | 'upgrade_swap' | 'bench_order'
+  category: 'transfer' | 'substitution' | 'captaincy'
+  shape: 'transfer' | 'forced_swap' | 'doubt_swap' | 'upgrade_swap' | 'bench_order' | 'captain' | 'vice'
   outPlayerId: number
   inPlayerId: number
   net: number
-  conviction: number
-  band: 'certain' | 'strong' | 'lean' | 'thin'
+  /**
+   * The app's answer is *nothing to do* (F4-AC-01, F4-AC-02). It carries no
+   * conviction and no band — null rather than zero, so no surface can render a
+   * keep as a weak change — and it is excluded from every tally (F4-AC-03).
+   */
+  isReading: boolean
+  readingReason: 'incumbent_wins' | 'below_floor' | null
+  conviction: number | null
+  band: 'certain' | 'strong' | 'lean' | 'thin' | null
   k: number
   pointsHit: number
   costTenths: number

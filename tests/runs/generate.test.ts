@@ -27,13 +27,20 @@ const player = (name: string, position: PlanPlayer['position'], clubId: number, 
   flagged: false,
   hasFixture: true,
   nowCostTenths: cost,
+  takesPenalties: false,
   ...extra,
 })
-const inSquad = (p: Named, role: 'starter' | 0 | 1 | 2 | 3): SquadEntry & { name: string } => ({
+const inSquad = (
+  p: Named,
+  role: 'starter' | 0 | 1 | 2 | 3,
+  armband?: 'captain' | 'vice',
+): SquadEntry & { name: string } => ({
   ...p,
   isStarter: role === 'starter',
   benchOrder: role === 'starter' ? null : role,
   sellingPriceTenths: p.nowCostTenths,
+  isCaptain: armband === 'captain',
+  isVice: armband === 'vice',
 })
 
 const build = () => {
@@ -46,10 +53,10 @@ const build = () => {
     inSquad(player('Tzolis', 'MID', 5, 2.4, 64), 'starter'),
     inSquad(player('MidA', 'MID', 6, 5.5), 'starter'),
     inSquad(player('MidB', 'MID', 7, 5.0), 'starter'),
-    inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter'),
+    inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter', 'captain'),
     inSquad(player('FwdA', 'FWD', 9, 6.0), 'starter'),
     inSquad(player('FwdB', 'FWD', 10, 5.0), 'starter'),
-    inSquad(player('Haaland', 'FWD', 11, 8.0, 155), 'starter'),
+    inSquad(player('Haaland', 'FWD', 11, 8.0, 155), 'starter', 'vice'),
     inSquad(player('SubKeeper', 'GKP', 12, 2.0, 40), 0),
     inSquad(player('Rogers', 'MID', 13, 7.0, 76), 1),
     inSquad(player('VanHecke', 'DEF', 14, 4.7, 49), 2),
@@ -133,7 +140,10 @@ describe('One run, end to end', () => {
     const { calls, modelCalls } = await generateWeek({ plan, cards, model: scriptedModel([], 'x') })
 
     expect(modelCalls.filter((m) => m.step === 'propose')).toHaveLength(1)
-    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.length)
+    // One reasoning call per call the manager can act on. A keep reading writes
+    // its own line and asks the model nothing (F4-AC-01).
+    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.filter((c) => !c.isReading).length)
+    expect(calls.every((c) => !c.isReading)).toBe(true)
   })
 
   it('F3-AC-30, F3-AC-31: the breakdown holds every value the card explains, already computed', async () => {
@@ -148,6 +158,8 @@ describe('One run, end to end', () => {
       net: 4.6,
       pointsHit: 0,
       k: 0.5,
+      kLabel: 'substitution',
+      byCeiling: false,
     })
   })
 
@@ -175,5 +187,59 @@ describe('One run, end to end', () => {
     const { calls } = await generateWeek({ plan, cards, model: mockModel() })
     expect(calls.map((c) => c.position)).toEqual(calls.map((_, i) => i))
     expect(calls.every((c) => c.watch === false)).toBe(true)
+  })
+})
+
+describe('F4 · the captaincy calls, through the whole pipeline', () => {
+  it('F4-AC-04, F4-AC-11: a captaincy card uses the master row list, and its breakdown names the captaincy bar', async () => {
+    const { plan, cards } = build()
+    const { calls } = await generateWeek({ plan, cards, model: mockModel() })
+    const captain = calls.find((c) => c.shape === 'captain')
+    const transfer = calls.find((c) => c.category === 'transfer')
+
+    expect(captain).toBeDefined()
+    // Not a captaincy-specific set: the same rows a transfer card shows.
+    expect(captain?.breakdown.weights).toEqual([1])
+    expect(captain?.breakdown.kLabel).toBe('captain/vice')
+    expect(transfer?.breakdown.kLabel).toBe('transfer')
+    // 0.5 alone does not say which bar it is — a substitution reads the same.
+    expect(captain?.k).toBe(0.5)
+  })
+
+  it('F4-UP-01: a captain whose club has no fixture projects zero, and the call is forced rather than re-scored', async () => {
+    const { plan, cards, id } = build()
+    const blanking = id('Semenyo')
+    const squad = plan.squad.map((p) => (p.playerId === blanking ? { ...p, hasFixture: false } : p))
+    const { calls } = await generateWeek({ plan: { ...plan, squad }, cards, model: mockModel() })
+    const captain = calls.find((c) => c.shape === 'captain')
+
+    expect(captain?.outPlayerId).toBe(blanking)
+    expect(captain?.breakdown.out.projections).toEqual([0])
+    expect(captain?.isForced).toBe(true)
+    // Forced, and never shown a negative figure (slice 4's rule).
+    expect(captain?.net).toBeGreaterThanOrEqual(0)
+  })
+
+  it('F4-AC-01, F4-AC-02: a keep reading is stored with no conviction, no band, and no model call behind it', async () => {
+    const { plan, cards } = build()
+    // Both armbands already on the right players.
+    const squad = plan.squad.map((p) => ({
+      ...p,
+      isCaptain: p.name === 'Haaland',
+      isVice: p.name === 'Semenyo',
+    }))
+    const { calls, modelCalls } = await generateWeek({ plan: { ...plan, squad }, cards, model: scriptedModel([], 'x') })
+    const captaincy = calls.filter((c) => c.category === 'captaincy')
+
+    expect(captaincy).toHaveLength(2)
+    for (const call of captaincy) {
+      expect(call.isReading).toBe(true)
+      expect(call.conviction).toBeNull()
+      expect(call.band).toBeNull()
+      expect(call.readingReason).not.toBeNull()
+      expect(call.reasoningSource).toBe('template')
+      expect(call.reasoning.length).toBeGreaterThan(0)
+    }
+    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.length - 2)
   })
 })

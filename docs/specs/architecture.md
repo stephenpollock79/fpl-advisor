@@ -304,15 +304,16 @@ byte-identical either way, since it is arithmetic over published inputs that hav
 | `category` | `text` | `transfer`, `substitution`, `captaincy` (F8-AC-27's three groups). |
 | `shape` | `text` | `transfer`, `forced_swap`, `doubt_swap`, `upgrade_swap`, `bench_order`, `captain`, `vice` (F3-AC-03). `upgrade_swap` is a fit starter for a better bench player — ruled 2026-09-11, and the criterion's wording is STE-116. |
 | `out_player_id`, `in_player_id` | `int` | For a bench-order call these are the two bench players whose order changes (F3-AC-04). |
-| `net` | `numeric(6,2)` | Signed, and **non-negative by construction** — the winning side is the recommendation. |
-| `conviction` | `int` | 5–95, clamped. |
-| `band` | `text` | `certain` / `strong` / `lean` / `thin`. |
+| `net` | `numeric(6,2)` | Signed, and **non-negative on a call** — the winning side is the recommendation. **Not on a reading**, and that is not an oversight: the captaincy ceiling tie-break may put up a challenger as much as 0.125 points below the incumbent, and an incumbent inside that floor still resolves to a keep. Narrowed from "non-negative by construction" on 2026-09-14 (slice 6), in the same change as the constraint. |
+| `conviction` | `int` null | 5–95, clamped. **Null on a reading and nowhere else**, which the table's own check enforces rather than trusts — a reading rendered with a percentage is the weak-change display F4-AC-02 forbids. |
+| `band` | `text` null | `certain` / `strong` / `lean` / `thin`. Null on a reading, as `conviction` is. |
 | `k_used` | `numeric` | 0.5 for a substitution, bench order, captain and vice; 2.0 for a transfer (tuned 2026-09-10, STE-60). Shown in the breakdown (F3-AC-30, F4-AC-11). |
 | `cost_tenths` | `int` | Transfers only; £0.00 for substitutions and captaincy (F3-AC-28). |
 | `is_forced` | `bool` | **A property of the call, never derived from conviction** (F3-AC-17, F8-AC-03). |
 | `watch_flag` | `bool` | Set by code, never by the model, and never from conviction (F3-AC-17, F3-AC-18). On a transfer only, when FPL's own forecast in `bootstrap-static` rates either player's price change tonight at its strongest likelihood (±5) and the price is not locked (STE-117). The press-conference trigger has no source. **Shown only while the forecast is tonight's:** the card hides it once FPL's 01:30 UK overnight update has passed since the read behind it (`GET /api/world` carries that read's time as `priceForecastReadAt`), and hides a stored flag outright when a newer read exists than the run that set it. |
 | `watch_reason` | `text` null | Why WATCH is set, shown one tap away on the card (F3-AC-18). Null when it is not set. |
 | `is_reading` | `bool` | A keep reading — no change, nothing to do. Excluded from every tally (F4-AC-02, F4-AC-03). |
+| `reading_reason` | `text` null | `incumbent_wins` or `below_floor` — the engine's own two, never a third. Null on a call. |
 | `reasoning` | `text` | Four lines maximum, from the constrained call (F3-AC-22). |
 | `breakdown` | `jsonb` | Every value already computed in the pipeline. **Nothing is calculated when this is displayed** (F3-AC-31). |
 | `diff_tag`, `previous_conviction`, `viewed_at` | | `NEW` / `UPDATED` / `RETURNED` / `RESURFACED` / band move (F6-AC-13). The tag is transient until viewed, which is what `viewed_at` is for. |

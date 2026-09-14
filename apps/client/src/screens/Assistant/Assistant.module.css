@@ -197,3 +197,36 @@
 .chip_rejected { background: var(--red-card); color: var(--red-text); }
 .chip_reopened { background: #fbf1dc; color: #7a5410; }
 .clearedLine { margin: 0; text-align: center; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+/* A keep reading's panel, where a decidable call carries its three tiles
+   (F4-AC-02). It occupies the same 44px band so the card does not jump between
+   a call and a reading, and it is deliberately *not* a disabled control: there
+   is no decision here to make, so nothing on it should read as a button waiting
+   to be pressed — no dashed border, no tile colour, no cursor. */
+.readingPanel {
+  flex: none;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: var(--radius-field);
+  background: var(--warm-2);
+  text-align: center;
+}
+
+.readingTitle {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.readingWhy {
+  font-size: 12px;
+  color: var(--ink-2);
+}

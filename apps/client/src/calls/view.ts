@@ -103,10 +103,22 @@ export type CardFigures =
       watchReason: string | null
     }
   | {
-      /** The swap is no better, or too little better to tell (the noise floor). */
+      /**
+       * Nothing to do. Either a swap the manager tried that is no better, or a
+       * keep reading the run stored — an armband already on the right player
+       * (F4-AC-02). Carries no conviction and no band by construction, so no
+       * component can render a keep as a weak change.
+       */
       reading: 'no_change'
       net: number
       costTenths: number
+      /**
+       * Why, in the manager's terms. The engine's own two, plus one the engine
+       * cannot know: the captain call was rejected, so the vice armband stays
+       * where it is rather than the pair being left inconsistent (F4-UP-02).
+       */
+      because: 'incumbent_wins' | 'below_floor' | 'captain_kept'
+      k: number
       reasoning: string
       rows: EvaluationRow[]
       breakdown: Breakdown
@@ -115,6 +127,26 @@ export type CardFigures =
 
 /** The figures exactly as the run stored them. */
 export function storedFigures(call: WorldCall, out: WorldPlayer, into: WorldPlayer, watchCurrent: boolean): CardFigures {
+  const rows = rowsFor(out, into)
+  const watchReason = call.watch && watchCurrent ? call.watchReason : null
+
+  // A keep reading the run stored (F4-AC-01). Its conviction and band are null
+  // on the wire, and this is where that becomes a shape the card cannot misread
+  // rather than two fields a component has to remember to check.
+  if (call.isReading || call.conviction === null || call.band === null) {
+    return {
+      reading: 'no_change',
+      net: call.net,
+      costTenths: call.costTenths,
+      because: call.readingReason ?? 'incumbent_wins',
+      k: call.k,
+      reasoning: call.reasoning,
+      rows,
+      breakdown: call.breakdown,
+      watchReason,
+    }
+  }
+
   return {
     reading: 'call',
     net: call.net,
@@ -125,9 +157,9 @@ export function storedFigures(call: WorldCall, out: WorldPlayer, into: WorldPlay
     k: call.k,
     isForced: call.isForced,
     reasoning: call.reasoning,
-    rows: rowsFor(out, into),
+    rows,
     breakdown: call.breakdown,
-    watchReason: call.watch && watchCurrent ? call.watchReason : null,
+    watchReason,
   }
 }
 
@@ -164,6 +196,8 @@ export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: World
     net: outcome.net,
     pointsHit: call.pointsHit,
     k: outcome.reading === 'call' ? outcome.k : call.k,
+    kLabel: call.breakdown.kLabel,
+    byCeiling: call.breakdown.byCeiling,
   }
 
   if (outcome.reading === 'no_change') {
@@ -171,6 +205,8 @@ export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: World
       reading: 'no_change',
       net: outcome.net,
       costTenths: transferCostTenths(into.nowCostTenths, out.sellingPriceTenths),
+      because: outcome.reason,
+      k: call.k,
       reasoning,
       rows,
       breakdown,
@@ -257,3 +293,61 @@ export const formatNet = (net: number): string => `${net >= 0 ? '+' : '−'}${Ma
 
 /** How one evaluation row's value reads — the engine's, so the card and the reasoning prompt agree. */
 export { formatRowValue } from '@fpl/engine'
+
+/**
+ * F4-UP-02 — the captain change is rejected, so the vice call becomes a keep
+ * reading rather than disappearing.
+ *
+ * The vice call is generated on the assumption that the captain call is taken:
+ * its challenger is chosen from players the recommended captain is not one of,
+ * and where the vice is the one being promoted the armband is told to move. Turn
+ * the captain call down and every one of those premises is gone, so the honest
+ * answer is to stop advising on the vice rather than to leave the manager
+ * holding a pair that contradicts itself.
+ *
+ * Nothing is recomputed here. The stored net, rows and breakdown are kept
+ * exactly as the run produced them; only the shape of the answer changes.
+ */
+export function viceHeldByCaptain(figures: CardFigures, captainRejected: boolean): CardFigures {
+  if (!captainRejected || figures.reading !== 'call') return figures
+  return {
+    reading: 'no_change',
+    net: figures.net,
+    costTenths: figures.costTenths,
+    because: 'captain_kept',
+    k: figures.k,
+    reasoning: figures.reasoning,
+    rows: figures.rows,
+    breakdown: figures.breakdown,
+    watchReason: figures.watchReason,
+  }
+}
+
+/**
+ * The sentences the model is never asked for (F4-AC-05, F4-AC-12).
+ *
+ * Both are facts about the call rather than judgements about the players, and
+ * both use vocabulary the reasoning blocklist refuses — *penalties*, and the
+ * probability words a vice premise reaches for. Writing them here keeps the
+ * model's input exactly the card's own rows, and makes the wording testable
+ * instead of graded.
+ *
+ * The tie-break sentence says that the tie-break decided it, and not which of
+ * its two signals did. Only `chooseArmband` knows that, and claiming penalties
+ * where position was what separated them would be inventing a reason.
+ */
+export function armbandNotes(call: WorldCall): string[] {
+  const notes: string[] = []
+  if (call.shape === 'vice') notes.push('The vice armband only pays if the captain does not play.')
+  if (call.breakdown.byCeiling) {
+    notes.push('Level on projected points, so the armband goes to the bigger ceiling.')
+  }
+  return notes
+}
+
+/** Why the app is not proposing a change, for the card's inert panel (F4-AC-02). */
+export function readingLine(because: 'incumbent_wins' | 'below_floor' | 'captain_kept'): string {
+  if (because === 'captain_kept') return 'Held while the captain stays as he is'
+  if (because === 'below_floor') return 'Too close to call'
+  return 'Already the stronger option'
+}

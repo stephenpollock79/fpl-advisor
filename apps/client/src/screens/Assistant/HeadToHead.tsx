@@ -14,7 +14,7 @@
 import { type PointerEvent, useRef, useState } from 'react'
 import type { WorldPlayer } from '../../api'
 import avatar from '../../assets/gaffer-avatar.png'
-import { formatCost, formatMoney, formatNet, formatRowValue } from '../../calls/view'
+import { armbandNotes, formatCost, formatMoney, formatNet, formatRowValue, readingLine } from '../../calls/view'
 import { DifficultyBars, FixturePill } from '../Squad/parts'
 import styles from './Assistant.module.css'
 import type { Shown } from './AssistantScreen'
@@ -25,6 +25,8 @@ const SHAPE_LABEL: Record<Shown['call']['shape'], string> = {
   doubt_swap: 'SUBSTITUTION · DOUBT',
   upgrade_swap: 'SUBSTITUTION',
   bench_order: 'BENCH ORDER',
+  captain: 'CAPTAIN',
+  vice: 'VICE CAPTAIN',
 }
 
 /** How far a drag has to travel before it is a decision rather than a wobble. */
@@ -58,6 +60,13 @@ export function HeadToHead({
   const [drag, setDrag] = useState({ dx: 0, dy: 0 })
   const start = useRef<{ x: number; y: number } | null>(null)
 
+  /**
+   * A keep reading: the app has an answer and the answer is *nothing to do*
+   * (F4-AC-02). It is not decidable, and that has to be true of both routes into
+   * a decision — the three tiles below, and the swipe. Suppressing only the tiles
+   * would leave a swipe that files a decision on a card with no decision in it.
+   */
+  const decidable = figures.reading === 'call'
   const isForced = figures.reading === 'call' && figures.isForced
   // At most one flag, and FORCED outranks WATCH (F3-AC-17). WATCH reads WATCH with
   // no qualifier; its reason is one tap away (F3-AC-18).
@@ -65,6 +74,7 @@ export function HeadToHead({
 
   // Swipes start anywhere on the card except the table, which scrolls.
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (!decidable) return
     if ((e.target as HTMLElement).closest('[data-scrolls]')) return
     start.current = { x: e.clientX, y: e.clientY }
   }
@@ -212,25 +222,32 @@ export function HeadToHead({
         <div className={styles.reasoning}>
           <img className={styles.gaffer} src={avatar} alt="" />
           <p data-testid="reasoning" className={styles.reasoningText}>
-            {figures.reasoning}
+            {[figures.reasoning, ...armbandNotes(call)].join(' ')}
           </p>
         </div>
       </div>
 
-      <div className={styles.tiles}>
-        <button className={styles.tileReject} onClick={() => onDecide('rejected')} type="button">
-          <span aria-hidden="true">←</span>
-          Reject
-        </button>
-        <button className={styles.tileLater} onClick={() => onDecide('pending')} type="button">
-          <span aria-hidden="true">↑</span>
-          Later
-        </button>
-        <button className={styles.tileSelect} onClick={() => onDecide('selected')} type="button">
-          <span aria-hidden="true">→</span>
-          Select
-        </button>
-      </div>
+      {decidable ? (
+        <div className={styles.tiles}>
+          <button className={styles.tileReject} onClick={() => onDecide('rejected')} type="button">
+            <span aria-hidden="true">←</span>
+            Reject
+          </button>
+          <button className={styles.tileLater} onClick={() => onDecide('pending')} type="button">
+            <span aria-hidden="true">↑</span>
+            Later
+          </button>
+          <button className={styles.tileSelect} onClick={() => onDecide('selected')} type="button">
+            <span aria-hidden="true">→</span>
+            Select
+          </button>
+        </div>
+      ) : (
+        <div data-testid="reading-panel" className={styles.readingPanel}>
+          <span className={styles.readingTitle}>No change · nothing to do</span>
+          <span className={styles.readingWhy}>{readingLine(figures.because)}</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -303,8 +320,9 @@ function Explained({ shown, gameweekId }: { shown: Shown; gameweekId: number }) 
       {side('In', shown.into.surname, b.in)}
       <span>Weights: {b.weights.map((w) => w.toFixed(2)).join(' / ')}</span>
       <span>
-        Net {formatNet(b.net)} · points hit {String(b.pointsHit)} · k {b.k.toFixed(1)}
+        Net {formatNet(b.net)} · points hit {String(b.pointsHit)} · k {b.k.toFixed(1)} ({b.kLabel})
       </span>
+      {b.byCeiling ? <span>Within the noise floor on projected points, so the ceiling tie-break chose this side.</span> : null}
       <span>Projections from Fantasy Football IQ; availability from FPL.</span>
     </div>
   )

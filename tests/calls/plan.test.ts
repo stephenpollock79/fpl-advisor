@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { type PlanPlayer, type SquadEntry, planWeek } from '../../apps/server/src/calls/plan.js'
+import { type PlanPlayer, type PlannedCall, type SquadEntry, isDecidable, planWeek } from '../../apps/server/src/calls/plan.js'
 
 const fit = { eligible: true } as const
 const flat = (x: number) => [x, x, x] as const
@@ -35,6 +35,7 @@ const player = (
   flagged: false,
   hasFixture: true,
   nowCostTenths,
+  takesPenalties: false,
   ...extra,
 })
 
@@ -42,11 +43,14 @@ const inSquad = (
   p: PlanPlayer & { name: string },
   role: 'starter' | 0 | 1 | 2 | 3,
   sellingPriceTenths = p.nowCostTenths,
+  armband?: 'captain' | 'vice',
 ): SquadEntry & { name: string } => ({
   ...p,
   isStarter: role === 'starter',
   benchOrder: role === 'starter' ? null : role,
   sellingPriceTenths,
+  isCaptain: armband === 'captain',
+  isVice: armband === 'vice',
 })
 
 /** GW4's shapes, invented around the four players the pencil check named. */
@@ -60,10 +64,10 @@ const world = (overrides: { freeTransfers?: number; bankTenths?: number } = {}) 
     inSquad(player('Tzolis', 'MID', 5, 2.4, 64), 'starter', 65),
     inSquad(player('MidA', 'MID', 6, 5.5), 'starter'),
     inSquad(player('MidB', 'MID', 7, 5.0), 'starter'),
-    inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter'),
+    inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter', 84, 'captain'),
     inSquad(player('FwdA', 'FWD', 9, 6.0), 'starter'),
     inSquad(player('FwdB', 'FWD', 10, 5.0), 'starter'),
-    inSquad(player('Haaland', 'FWD', 11, 8.0, 155), 'starter'),
+    inSquad(player('Haaland', 'FWD', 11, 8.0, 155), 'starter', 155, 'vice'),
     inSquad(player('SubKeeper', 'GKP', 12, 2.0, 40), 0),
     inSquad(player('Rogers', 'MID', 13, 7.0, 76), 1),
     inSquad(player('VanHecke', 'DEF', 14, 4.7, 49), 2),
@@ -83,6 +87,18 @@ const world = (overrides: { freeTransfers?: number; bankTenths?: number } = {}) 
   }
 }
 
+/**
+ * The figures of a call the manager can act on.
+ *
+ * Every assertion below was written when every call had them. A keep reading has
+ * no conviction and no cost, so reaching for one has to fail loudly here rather
+ * than read as zero — which is the whole point of the two arms being separate.
+ */
+const figuresOf = (call: PlannedCall | undefined) => {
+  if (!call || !isDecidable(call)) throw new Error('expected a call the manager can act on, not a reading')
+  return call.outcome
+}
+
 const byName = (w: ReturnType<typeof world>) => {
   const all = [...w.squad, ...w.pool]
   return (id: number) => all.find((p) => p.playerId === id)?.name
@@ -94,11 +110,30 @@ const label = (w: ReturnType<typeof world>) => {
 }
 
 describe('F3-UP-04 · the week is one plan', () => {
-  it('F3-UP-04: no two calls touch the same player', () => {
+  it('F3-UP-04: no two calls touch the same player, outside the armband pair', () => {
+    const w = world()
+    // The captain and vice calls are one armband decision shown as two cards and
+    // are exempt from each other (ruled 2026-09-14) — promoting the vice and
+    // naming his replacement names him twice, unavoidably. The rule the exemption
+    // does not touch is the one it was written for: between categories.
+    const touched = planWeek(w)
+      .filter((c) => c.category !== 'captaincy')
+      .flatMap((c) => [c.outPlayerId, c.inPlayerId])
+    expect(new Set(touched).size).toBe(touched.length)
+  })
+
+  it('F3-UP-04: an armband is never offered to a player another call already holds', () => {
     const w = world()
     const calls = planWeek(w)
-    const touched = calls.flatMap((c) => [c.outPlayerId, c.inPlayerId])
-    expect(new Set(touched).size).toBe(touched.length)
+    const claimed = new Set(
+      calls.filter((c) => c.category !== 'captaincy').flatMap((c) => [c.outPlayerId, c.inPlayerId]),
+    )
+    // The challenger is the claim. The incumbent side is the squad as it stands:
+    // if the captain is being sold the armband has to move, and refusing to say so
+    // would leave the manager with advice that contradicts itself.
+    for (const call of calls.filter((c) => c.category === 'captaincy')) {
+      expect(claimed.has(call.inPlayerId)).toBe(false)
+    }
   })
 
   it('F3-UP-04: the Tzolis substitution holds him, and the transfer is searched again without him', () => {
@@ -119,13 +154,13 @@ describe('F3-AC-25, F3-AC-28 · what a call costs', () => {
     const out = w.squad.find((p) => p.playerId === transfer?.outPlayerId)
     const into = w.pool.find((p) => p.playerId === transfer?.inPlayerId)
 
-    expect(transfer?.outcome.costTenths).toBe((into?.nowCostTenths ?? 0) - (out?.sellingPriceTenths ?? 0))
+    expect(figuresOf(transfer).costTenths).toBe((into?.nowCostTenths ?? 0) - (out?.sellingPriceTenths ?? 0))
   })
 
   it('F3-AC-28: every substitution costs £0.00', () => {
     const subs = planWeek(world()).filter((c) => c.category === 'substitution')
     expect(subs.length).toBeGreaterThan(0)
-    expect(subs.every((c) => c.outcome.costTenths === 0)).toBe(true)
+    expect(subs.every((c) => figuresOf(c).costTenths === 0)).toBe(true)
   })
 
   it('never proposes a transfer the bank cannot fund, or an excluded player', () => {
@@ -154,8 +189,8 @@ describe('Points hits · on the call that incurs them', () => {
     const one = planWeek(world({ freeTransfers: 1 })).filter((c) => c.category === 'transfer')
     const two = planWeek(world({ freeTransfers: 2 })).filter((c) => c.category === 'transfer')
 
-    expect(one.every((c, i) => c.outcome.pointsHit === (i === 0 ? 0 : 4))).toBe(true)
-    expect(two.slice(0, 2).every((c) => c.outcome.pointsHit === 0)).toBe(true)
+    expect(one.every((c, i) => figuresOf(c).pointsHit === (i === 0 ? 0 : 4))).toBe(true)
+    expect(two.slice(0, 2).every((c) => figuresOf(c).pointsHit === 0)).toBe(true)
   })
 })
 
@@ -174,7 +209,7 @@ describe('F3-AC-04, F3-AC-06 · bench order', () => {
     // transfer would hold Rogers first.
     const bench = planWeek({ ...w, pool: [] }).find((c) => c.shape === 'bench_order')
     expect(bench?.category).toBe('substitution')
-    expect(bench?.outcome.costTenths).toBe(0)
+    expect(figuresOf(bench).costTenths).toBe(0)
     expect([name(bench?.outPlayerId ?? 0), name(bench?.inPlayerId ?? 0)].sort()).toEqual(['Rogers', 'SubDef'])
   })
 
@@ -193,7 +228,7 @@ describe('F3-AC-04, F3-AC-06 · bench order', () => {
     const subs = planWeek({ ...w, pool: [] }).filter((c) => c.category === 'substitution')
     expect(subs.map((c) => c.shape)).toContain('forced_swap')
     expect(subs[0]?.shape).toBe('bench_order')
-    expect((subs[0]?.outcome.conviction ?? 0) < (subs[1]?.outcome.conviction ?? 0)).toBe(true)
+    expect(figuresOf(subs[0]).conviction < figuresOf(subs[1]).conviction).toBe(true)
   })
 })
 
@@ -234,5 +269,132 @@ describe('Model proposals are checked, never trusted', () => {
     })
     const without = planWeek(w)
     expect(withBad.map((c) => c.key)).toEqual(without.map((c) => c.key))
+  })
+})
+
+describe('F4-AC-01, F4-AC-07 · the armband and the vice armband', () => {
+  it('F4-AC-01, F4-AC-10: two captaincy calls every week, and never the same player on both armbands', () => {
+    const w = world()
+    const calls = planWeek(w).filter((c) => c.category === 'captaincy')
+
+    expect(calls.map((c) => c.shape)).toEqual(['captain', 'vice'])
+    const captain = calls.find((c) => c.shape === 'captain')
+    const vice = calls.find((c) => c.shape === 'vice')
+    expect(captain?.inPlayerId).not.toBe(vice?.inPlayerId)
+  })
+
+  it('ENGINE-AC-06, F4-AC-01: the armband goes to the highest projection among the starters left', () => {
+    const w = world()
+    const name = byName(w)
+    const captain = planWeek(w).find((c) => c.shape === 'captain')
+
+    // Semenyo holds it on 6.2; Haaland is the best starter on 8.0.
+    expect(name(captain?.outPlayerId ?? -1)).toBe('Semenyo')
+    expect(name(captain?.inPlayerId ?? -1)).toBe('Haaland')
+  })
+
+  it('F4-AC-01: where the armband is already right the card names the next-best, never the holder himself', () => {
+    const w = world()
+    // Haaland already captain and the best starter: the call is a keep, and it is
+    // put against the runner-up rather than against him.
+    const swapped = w.squad.map((p) => ({ ...p, isCaptain: p.name === 'Haaland', isVice: p.name === 'Semenyo' }))
+    const name = byName(w)
+    const captain = planWeek({ ...w, squad: swapped }).find((c) => c.shape === 'captain')
+
+    expect(name(captain?.outPlayerId ?? -1)).toBe('Haaland')
+    expect(captain?.inPlayerId).not.toBe(captain?.outPlayerId)
+    expect(captain?.outcome.reading).toBe('no_change')
+  })
+
+  it('F4-AC-09, F3-AC-28: a captaincy call costs nothing and uses no transfer', () => {
+    const calls = planWeek(world()).filter((c) => c.category === 'captaincy')
+    for (const call of calls) {
+      if (call.outcome.reading !== 'call') continue
+      expect(call.outcome.costTenths).toBe(0)
+      expect(call.outcome.pointsHit).toBe(0)
+    }
+  })
+
+  it('F4-AC-07: a holder whose club has no fixture forces the armband', () => {
+    const w = world()
+    const squad = w.squad.map((p) => (p.name === 'Semenyo' ? { ...p, hasFixture: false } : p))
+    const captain = planWeek({ ...w, squad }).find((c) => c.shape === 'captain')
+
+    expect(captain?.outcome.reading).toBe('call')
+    if (captain?.outcome.reading === 'call') expect(captain.outcome.isForced).toBe(true)
+  })
+
+  it('F4-AC-08: however strong the case, an armband is never forced while the holder can play', () => {
+    const captain = planWeek(world()).find((c) => c.shape === 'captain')
+    expect(captain?.outcome.reading).toBe('call')
+    if (captain?.outcome.reading === 'call') expect(captain.outcome.isForced).toBe(false)
+  })
+
+  it('F4-AC-01: a squad with fewer than two eligible starters keeps its other advice rather than failing', () => {
+    const w = world()
+    const out = { eligible: false, reason: 'injured' } as const
+    const squad = w.squad.map((p) => (p.isStarter && p.name !== 'Haaland' ? { ...p, availability: out } : p))
+    const calls = planWeek({ ...w, squad })
+
+    expect(calls.filter((c) => c.category === 'captaincy')).toHaveLength(0)
+    expect(calls.length).toBeGreaterThan(0)
+  })
+})
+
+describe('F4-AC-12 · the ceiling tie-break reaches the card', () => {
+  it('F4-AC-12: where the tie-break chose the challenger the call says so, and otherwise it does not', () => {
+    const w = world()
+    const plain = planWeek(w).find((c) => c.shape === 'captain')
+    expect(plain?.byCeiling).toBe(false)
+
+    // Inside the noise floor of 0.125 points, and the penalty taker wins it.
+    const squad = w.squad.map((p) =>
+      p.name === 'FwdA' ? { ...p, projections: [7.95, 7.95, 7.95], takesPenalties: true } : p,
+    )
+    const name = byName(w)
+    const tied = planWeek({ ...w, squad }).find((c) => c.shape === 'captain')
+
+    expect(name(tied?.inPlayerId ?? -1)).toBe('FwdA')
+    expect(tied?.byCeiling).toBe(true)
+  })
+})
+
+describe('F4-UP-02 · the armband pair is never left inconsistent', () => {
+  it('F4-AC-01, F4-UP-02: promoting the vice to captain moves the vice armband rather than keeping it on him', () => {
+    const w = world()
+    const name = byName(w)
+    const calls = planWeek(w)
+    const captain = calls.find((c) => c.shape === 'captain')
+    const vice = calls.find((c) => c.shape === 'vice')
+
+    // Semenyo holds the armband, Haaland the vice, and Haaland is the best
+    // starter — so the week's advice is to swap them.
+    expect(name(captain?.inPlayerId ?? -1)).toBe('Haaland')
+    expect(name(vice?.outPlayerId ?? -1)).toBe('Haaland')
+    expect(vice?.inPlayerId).not.toBe(captain?.inPlayerId)
+
+    // A vice armband on the captain is worth nothing, so the call is a change
+    // rather than a keep, and its net is floored at zero rather than negative.
+    expect(vice?.outcome.reading).toBe('call')
+    if (vice?.outcome.reading === 'call') {
+      expect(vice.outcome.isForced).toBe(true)
+      expect(vice.outcome.net).toBe(0)
+    }
+  })
+
+  it('F4-AC-02: where both armbands are already right, both calls are keep readings with no figure', () => {
+    const w = world()
+    const squad = w.squad.map((p) => ({
+      ...p,
+      isCaptain: p.name === 'Haaland',
+      isVice: p.name === 'Semenyo',
+    }))
+    const calls = planWeek({ ...w, squad }).filter((c) => c.category === 'captaincy')
+
+    expect(calls).toHaveLength(2)
+    for (const call of calls) {
+      expect(call.outcome.reading).toBe('no_change')
+      expect(call.outcome).not.toHaveProperty('conviction')
+    }
   })
 })

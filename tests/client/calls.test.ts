@@ -7,14 +7,17 @@ import { describe, expect, it } from 'vitest'
 import type { WorldCall, WorldPlayer } from '../../apps/client/src/api'
 import { decide, defer, initialDecisions, reopen, restore } from '../../apps/client/src/calls/decisions'
 import {
+  armbandNotes,
   clearedLine,
   formatCost,
   nbal,
+  readingLine,
   recomputeTransfer,
   restoredSwaps,
   shortlistCount,
   storedFigures,
   undecided,
+  viceHeldByCaptain,
   watchFreshness,
 } from '../../apps/client/src/calls/view'
 
@@ -48,13 +51,21 @@ const player = (id: number, surname: string, projection: number, extra: Partial<
   ...extra,
 })
 
-const call = (key: string, category: WorldCall['category'], costTenths = 0): WorldCall => ({
+const SHAPE: Record<WorldCall['category'], WorldCall['shape']> = {
+  transfer: 'transfer',
+  substitution: 'upgrade_swap',
+  captaincy: 'captain',
+}
+
+const call = (key: string, category: WorldCall['category'], costTenths = 0, extra: Partial<WorldCall> = {}): WorldCall => ({
   key,
   category,
-  shape: category === 'transfer' ? 'transfer' : 'upgrade_swap',
+  shape: SHAPE[category],
   outPlayerId: 1,
   inPlayerId: 2,
   net: 1,
+  isReading: false,
+  readingReason: null,
   conviction: 67,
   band: 'lean',
   k: 2,
@@ -65,9 +76,10 @@ const call = (key: string, category: WorldCall['category'], costTenths = 0): Wor
   watchReason: null,
   reasoning: 'x',
   reasoningSource: 'template',
-  breakdown: { weights: [1], out: { playerId: 1, projections: [1], gate: { eligible: true }, total: 1 }, in: { playerId: 2, projections: [2], gate: { eligible: true }, total: 2 }, net: 1, pointsHit: 0, k: 0.5 },
+  breakdown: { weights: [1], out: { playerId: 1, projections: [1], gate: { eligible: true }, total: 1 }, in: { playerId: 2, projections: [2], gate: { eligible: true }, total: 2 }, net: 1, pointsHit: 0, k: 0.5, kLabel: 'transfer', byCeiling: false },
   alternatives: null,
   position: 0,
+  ...extra,
 })
 
 describe('F3-AC-24 · swapping a candidate recomputes through the engine', () => {
@@ -193,5 +205,93 @@ describe('F3-AC-01, F3-AC-02, F3-AC-13, F3-AC-14, F3-AC-15 · decisions', () => 
     expect(clearedLine(0)).toBe('tap a decision to change it')
     expect(clearedLine(1)).toBe('1 call reopened · tap again to put it back')
     expect(clearedLine(2)).toBe('2 calls reopened · tap again to put them back')
+  })
+})
+
+describe('F4-AC-02, F4-AC-05, F4-AC-12 · a keep reading, as the card holds it', () => {
+  const armband = (extra: Partial<WorldCall> = {}) =>
+    call('captaincy:captain:from=1:to=2', 'captaincy', 0, {
+      isReading: true,
+      readingReason: 'incumbent_wins',
+      conviction: null,
+      band: null,
+      net: -1.8,
+      reasoning: 'Haaland keeps it: 8.0 projected points this gameweek against Semenyo\u2019s 6.2.',
+      breakdown: {
+        weights: [1],
+        out: { playerId: 1, projections: [8], gate: { eligible: true }, total: 8 },
+        in: { playerId: 2, projections: [6.2], gate: { eligible: true }, total: 6.2 },
+        net: -1.8,
+        pointsHit: 0,
+        k: 0.5,
+        kLabel: 'captain/vice',
+        byCeiling: false,
+      },
+      ...extra,
+    })
+
+  it('F4-AC-02: a stored keep reading reaches the card as a reading, carrying no figure at all', () => {
+    const out = player(1, 'Haaland', 8)
+    const into = player(2, 'Semenyo', 6.2)
+    const figures = storedFigures(armband(), out, into, true)
+
+    expect(figures.reading).toBe('no_change')
+    expect(figures).not.toHaveProperty('conviction')
+    expect(figures).not.toHaveProperty('band')
+    if (figures.reading === 'no_change') expect(readingLine(figures.because)).toBe('Already the stronger option')
+  })
+
+  it('F4-AC-02: the two reasons a keep can have are told apart, never flattened into one', () => {
+    const out = player(1, 'Haaland', 8)
+    const into = player(2, 'Semenyo', 6.2)
+    const close = storedFigures(armband({ readingReason: 'below_floor' }), out, into, true)
+
+    if (close.reading === 'no_change') expect(readingLine(close.because)).toBe('Too close to call')
+    expect(readingLine('captain_kept')).toBe('Held while the captain stays as he is')
+  })
+
+  it('F4-AC-05: the vice premise is on every vice card, and no captain card carries it', () => {
+    const vice = armband({ shape: 'vice' })
+    expect(armbandNotes(vice).join(' ')).toContain('only pays if the captain does not play')
+    expect(armbandNotes(armband()).join(' ')).not.toContain('only pays')
+  })
+
+  it('F4-AC-12: the tie-break is said on the card only where it actually chose the challenger', () => {
+    const plain = armband()
+    expect(armbandNotes(plain)).toHaveLength(0)
+
+    const tied = armband({
+      breakdown: { ...plain.breakdown, byCeiling: true },
+    })
+    expect(armbandNotes(tied).join(' ')).toContain('bigger ceiling')
+  })
+
+  it('ENGINE-AC-05: neither written sentence reads the strength figure as a chance', () => {
+    const banned = /\b(probab\w*|likel\w*|confiden\w*|odds|chance)\b/i
+    const sentences = [...armbandNotes(armband({ shape: 'vice', breakdown: { ...armband().breakdown, byCeiling: true } })), readingLine('incumbent_wins'), readingLine('below_floor'), readingLine('captain_kept')]
+    for (const line of sentences) expect(banned.test(line)).toBe(false)
+  })
+})
+
+describe('F4-UP-02 · rejecting the captain change holds the vice', () => {
+  it('F4-UP-02: the vice call becomes a keep reading rather than disappearing, and nothing is recomputed', () => {
+    const out = player(1, 'Haaland', 8)
+    const into = player(2, 'Semenyo', 6.2)
+    const decidable = storedFigures(call('captaincy:vice:from=1:to=2', 'captaincy'), out, into, true)
+    expect(decidable.reading).toBe('call')
+
+    const held = viceHeldByCaptain(decidable, true)
+    expect(held.reading).toBe('no_change')
+    expect(held.net).toBe(decidable.net)
+    expect(held.breakdown).toBe(decidable.breakdown)
+    if (held.reading === 'no_change') expect(held.because).toBe('captain_kept')
+  })
+
+  it('F4-UP-02: while the captain change still stands, the vice call is an ordinary decidable call', () => {
+    const out = player(1, 'Haaland', 8)
+    const into = player(2, 'Semenyo', 6.2)
+    const decidable = storedFigures(call('captaincy:vice:from=1:to=2', 'captaincy'), out, into, true)
+
+    expect(viceHeldByCaptain(decidable, false)).toBe(decidable)
   })
 })

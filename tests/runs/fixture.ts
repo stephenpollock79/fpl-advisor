@@ -22,10 +22,17 @@ export function gw4Week() {
     flagged: false,
     hasFixture: true,
     nowCostTenths: cost,
+    takesPenalties: false,
     ...extra,
   })
-  const inSquad = (p: Named, role: 'starter' | 0 | 1 | 2 | 3): SquadEntry & { name: string } => ({
+  const inSquad = (
+    p: Named,
+    role: 'starter' | 0 | 1 | 2 | 3,
+    armband?: 'captain' | 'vice',
+  ): SquadEntry & { name: string } => ({
     ...p,
+    isCaptain: armband === 'captain',
+    isVice: armband === 'vice',
     isStarter: role === 'starter',
     benchOrder: role === 'starter' ? null : role,
     sellingPriceTenths: p.nowCostTenths,
@@ -39,10 +46,10 @@ export function gw4Week() {
     inSquad(player('Tzolis', 'MID', 5, 2.4, 64), 'starter'),
     inSquad(player('MidA', 'MID', 6, 5.5), 'starter'),
     inSquad(player('MidB', 'MID', 7, 5.0), 'starter'),
-    inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter'),
+    inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter', 'captain'),
     inSquad(player('FwdA', 'FWD', 9, 6.0), 'starter'),
     inSquad(player('FwdB', 'FWD', 10, 5.0), 'starter'),
-    inSquad(player('Haaland', 'FWD', 11, 8.0, 155), 'starter'),
+    inSquad(player('Haaland', 'FWD', 11, 8.0, 155), 'starter', 'vice'),
     inSquad(player('SubKeeper', 'GKP', 12, 2.0, 40), 0),
     inSquad(player('Rogers', 'MID', 13, 7.0, 76), 1),
     inSquad(player('VanHecke', 'DEF', 14, 4.7, 49), 2),
