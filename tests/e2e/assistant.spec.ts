@@ -321,7 +321,10 @@ test('F4-AC-01, F4-AC-06: the Captain tab carries two calls and neither offers a
   await expect(page.getByTestId('cost')).toHaveText('£0.00')
 
   await page.getByRole('button', { name: 'Next undecided call' }).click()
-  await expect(page.getByTestId('reasoning')).toContainText('vice armband only pays if the captain does not play')
+  // The premise is code's, not the model's, and sits on its own line so it
+  // cannot be pushed off the bottom of the card by a long model sentence.
+  await expect(page.getByTestId('armband-note')).toContainText('vice armband only pays if the captain does not play')
+  await expect(page.getByTestId('armband-note')).toBeVisible()
   await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
 })
 
@@ -417,7 +420,7 @@ test('F6-UP-02: when FPL is not answering the screen says how old it is, and ref
   await expect(frozen).toContainText('team news')
 
   // Off, not broken: it does not fail on tap, and navigation is untouched.
-  await expect(page.getByTestId('refresh')).toContainText('REFRESH OFF')
+  await expect(page.getByTestId('refresh')).toContainText('OFF')
   await expect(page.getByTestId('refresh')).toBeDisabled()
   await page.getByRole('tab', { name: 'Sub' }).click()
   await expect(page.getByTestId('strength')).toBeVisible()
@@ -439,6 +442,10 @@ test('F6-AC-19, F6-AC-16: the Thinking state states how long it takes and can be
 
   const thinking = page.getByTestId('thinking')
   await expect(thinking).toBeVisible()
+  // Built to the handoff's own anatomy: the strip, the pipeline label and the
+  // rolling status line, which the first version of this screen did not have.
+  await expect(thinking).toContainText('PIPELINE')
+  await expect(page.getByTestId('thinking-now')).toBeVisible()
   // The expected duration is stated rather than left to be guessed at.
   await expect(thinking).toContainText('Usually under a minute')
   // And it is cancellable for the whole of it, not only at a convenient moment.

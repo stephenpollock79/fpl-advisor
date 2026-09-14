@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest'
 import { evaluationRows, type CardPlayer } from '../../packages/engine/src/index.js'
 import { PINNED, liveModel, mockModel } from '../../apps/server/src/model/client.js'
-import { finalReasoning } from '../../apps/server/src/model/reasoning.js'
+import { finalReasoning, reasoningIsAcceptable } from '../../apps/server/src/model/reasoning.js'
 
 const player = (projection: number, form: number): CardPlayer => ({
   availability: { eligible: true },
@@ -105,7 +105,7 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
   it('sends no tools, no project settings, and keeps no transcript on disk', async () => {
     const captured: Captured[] = []
     const model = liveModel({ query: fakeQuery({ result: 'x', ...usage('claude-sonnet-5') }, captured), env: {} })
-    await model.writeReasoning({ outName: 'Tzolis', inName: 'Rogers', rows, summary: { net: 4.6, strength: 90, band: 'certain' } })
+    await model.writeReasoning({ outName: 'Tzolis', inName: 'Rogers', rows, summary: { net: 4.6, strength: 90, band: 'certain' }, kind: 'transfer' as const })
 
     const options = captured[0]?.options ?? {}
     expect(options['model']).toBe('claude-sonnet-5')
@@ -120,7 +120,7 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
       outName: 'Tzolis',
       inName: 'Rogers',
       rows,
-      summary: { net: 4.6, strength: 90, band: 'certain' },
+      summary: { net: 4.6, strength: 90, band: 'certain' }, kind: 'transfer' as const,
     })
 
     expect(record).toEqual({
@@ -152,7 +152,7 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
       },
     }
     const model = liveModel({ query: fakeQuery({ result: 'x', ...withCache }), env: {} })
-    const { record } = await model.writeReasoning({ outName: 'A', inName: 'B', rows, summary: { net: 1, strength: 67, band: 'lean' } })
+    const { record } = await model.writeReasoning({ outName: 'A', inName: 'B', rows, summary: { net: 1, strength: 67, band: 'lean' }, kind: 'transfer' as const })
     expect(record.inputTokens).toBe(151002)
     expect(record.costUsd).toBe(0.42)
   })
@@ -160,7 +160,7 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
   it('shows the model prices in pounds, as the card does — never raw tenths', async () => {
     const captured: Captured[] = []
     const model = liveModel({ query: fakeQuery({ result: 'x', ...usage('claude-sonnet-5') }, captured), env: {} })
-    await model.writeReasoning({ outName: 'Tzolis', inName: 'Rogers', rows, summary: { net: 4.6, strength: 90, band: 'certain' } })
+    await model.writeReasoning({ outName: 'Tzolis', inName: 'Rogers', rows, summary: { net: 4.6, strength: 90, band: 'certain' }, kind: 'transfer' as const })
     const prompt = String(captured[0]?.prompt)
     expect(prompt).toContain('price: Tzolis £6.0m · Rogers £6.0m')
     expect(prompt).not.toMatch(/price: Tzolis 60\b/)
@@ -170,7 +170,7 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
     const captured: Captured[] = []
     const model = liveModel({ query: fakeQuery({ result: 'x', ...usage('claude-haiku-4-5') }, captured), env: {} })
     await model.proposeTransfers({ bankTenths: 10, freeTransfers: 1, squad: [], shortlist: [] })
-    await model.writeReasoning({ outName: 'A', inName: 'B', rows, summary: { net: 1, strength: 67, band: 'lean' } })
+    await model.writeReasoning({ outName: 'A', inName: 'B', rows, summary: { net: 1, strength: 67, band: 'lean' }, kind: 'transfer' as const })
     expect(captured.map((c) => c.options['thinking'])).toEqual([{ type: 'disabled' }, { type: 'disabled' }])
   })
 
@@ -183,7 +183,7 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
       outName: 'A',
       inName: 'B',
       rows,
-      summary: { net: 1, strength: 67, band: 'lean' },
+      summary: { net: 1, strength: 67, band: 'lean' }, kind: 'transfer' as const,
     })
     expect(record.pinned).toBe('claude-sonnet-4-6')
     expect(record.modelId).toBe('claude-sonnet-4-6')
@@ -230,11 +230,53 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
   it('mock mode proposes nothing, writes nothing and spends nothing', async () => {
     const model = mockModel()
     const proposed = await model.proposeTransfers({ bankTenths: 10, freeTransfers: 1, squad: [], shortlist: [] })
-    const reasoned = await model.writeReasoning({ outName: 'A', inName: 'B', rows, summary: { net: 1, strength: 67, band: 'lean' } })
+    const reasoned = await model.writeReasoning({ outName: 'A', inName: 'B', rows, summary: { net: 1, strength: 67, band: 'lean' }, kind: 'transfer' as const })
 
     expect(proposed.proposals).toEqual([])
     expect(reasoned.text).toBe('')
     expect([proposed.record.costUsd, reasoned.record.costUsd]).toEqual([0, 0])
     expect(proposed.record.modelId).toBe('mock')
+  })
+})
+
+describe('F4-AC-09, ENGINE step 3 · a line that contradicts its own card is refused', () => {
+  it('a line arguing against the call is refused, so Select and Reject keep their meaning', () => {
+    // Found live on 2026-09-14: a captaincy call recommending Calvert-Lewin
+    // carried "Skip this one… the marginal xPts edge not worth it." The figure
+    // said one thing and the prose said the opposite, on the same card.
+    expect(reasoningIsAcceptable('Skip this one. The marginal xPts edge is not worth it.')).toBe(false)
+    expect(reasoningIsAcceptable('Stick with what you have; no need to change.')).toBe(false)
+    expect(reasoningIsAcceptable('Rogers outscores Tzolis on projected points this gameweek.')).toBe(true)
+  })
+
+  it('F4-AC-09: money cannot be claimed on a call where no money moves', () => {
+    // Not a weak argument — a false one. A captaincy call costs £0.00.
+    const armband = { costsNothing: true }
+    expect(reasoningIsAcceptable('Haaland edges it while freeing up £7.7m.', armband)).toBe(false)
+    expect(reasoningIsAcceptable('The cheaper option with the better fixture.', armband)).toBe(false)
+    expect(reasoningIsAcceptable('Haaland projects higher this gameweek and has the easier fixture.', armband)).toBe(true)
+  })
+
+  it('F3-AC-25: the same sentence is fine on a transfer, where money really does move', () => {
+    expect(reasoningIsAcceptable('Groß edges it while freeing up £7.7m.')).toBe(true)
+  })
+
+  it('the model is told what the move actually is, so it cannot reason from the wrong one', async () => {
+    const captured: Captured[] = []
+    const model = liveModel({ query: fakeQuery({ result: 'fine', ...usage('claude-sonnet-5') }, captured), env: {} })
+    await model.writeReasoning({
+      outName: 'Haaland',
+      inName: 'Junqueira',
+      rows,
+      summary: { net: 1.2, strength: 71, band: 'lean' },
+      kind: 'vice' as const,
+    })
+
+    // The armband moving, not a player being sold — which is what it was told
+    // until today, and why it wrote about freeing up £7.7m.
+    const asked = String(captured[0]?.prompt ?? '')
+    expect(asked).toContain("vice-captain's armband moves")
+    expect(asked).toContain('no money moves')
+    expect(asked).not.toContain('Haaland out, Junqueira in')
   })
 })

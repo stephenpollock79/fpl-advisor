@@ -83,6 +83,15 @@ export type ReasoningInput = {
   inName: string
   rows: readonly EvaluationRow[]
   summary: { net: number; strength: number; band: Band }
+  /**
+   * What kind of move this is, in the card's own terms.
+   *
+   * **Not extra evidence — the card's own eyebrow says it.** Without it the model
+   * was told *"Change: X out, Y in"* on a captaincy call and reasonably concluded
+   * a player was being sold, writing about freeing up £7.7m on a call where no
+   * money moves at all (found live 2026-09-14, F4-AC-09).
+   */
+  kind: 'transfer' | 'substitution' | 'captain' | 'vice'
 }
 
 export interface ModelPort {
@@ -132,9 +141,28 @@ const PROPOSE_SYSTEM = [
 const REASON_SYSTEM = [
   'Write the reason a Fantasy Premier League manager should make this change, in at most two short sentences',
   `and under ${String(160)} characters. Use only the values in the table given — nothing else exists for you.`,
+  // The recommendation is settled before this call is made: code compares the
+  // two sides and the winner *is* the recommendation. A line that argues against
+  // it leaves the Select and Reject controls meaning nothing.
+  'The decision has already been made and this move is the recommendation. Explain why it is the better option.',
+  'Never suggest skipping it, holding off, or sticking with what is there — that is not what you are being asked.',
   'Take a position; do not hedge. The strength figure is the strength of the call, never a chance,',
   'probability or confidence, and must not be described as one. No preamble, no quotation marks.',
 ].join(' ')
+
+/**
+ * How the move is put to the model. Each says what actually happens, because a
+ * model told the wrong thing reasons impeccably from it.
+ */
+const OPENING: Readonly<Record<ReasoningInput['kind'], (out: string, into: string) => string>> = {
+  transfer: (out, into) => `Transfer: ${out} is sold and ${into} is bought.`,
+  substitution: (out, into) =>
+    `Substitution: ${out} drops to the bench and ${into} starts. No money moves and no transfer is used.`,
+  captain: (out, into) =>
+    `The captain's armband moves from ${out} to ${into}. Nobody is bought, sold or benched, and no money moves.`,
+  vice: (out, into) =>
+    `The vice-captain's armband moves from ${out} to ${into}. Nobody is bought, sold or benched, and no money moves.`,
+}
 
 /**
  * List prices, US dollars per million tokens, from the claude-api reference
@@ -168,7 +196,7 @@ const unrecorded = (step: ModelStep, via: ModelRoute, pinned: string, modelId: s
 /** Only what the card shows: its rows, as the manager reads them, and its summary strip. */
 const reasoningPrompt = (input: ReasoningInput): string =>
   [
-    `Change: ${input.outName} out, ${input.inName} in.`,
+    OPENING[input.kind](input.outName, input.inName),
     `Net: +${input.summary.net.toFixed(2)} projected points. Strength ${String(input.summary.strength)} (${input.summary.band}).`,
     ...input.rows.map(
       (r) =>

@@ -50,10 +50,65 @@ const BLOCKLIST: readonly RegExp[] = [
   /\bguarantee/i,
 ]
 
+/**
+ * **The recommendation is already decided before the model writes a word.**
+ *
+ * Code compares the two sides and the winning side *is* the recommendation
+ * (ENGINE, *Which way the recommendation points*). The model's job is to explain
+ * it. A line that argues against it leaves Select and Reject meaning nothing,
+ * because the words underneath contradict the card they sit on.
+ *
+ * Found live on 2026-09-14: a captaincy call recommending Calvert-Lewin carried
+ * the line *"Skip this one… the marginal xPts edge not worth it."* The figure
+ * said one thing and the prose said the opposite, on the same card.
+ */
+const ARGUES_AGAINST: readonly RegExp[] = [
+  /\bskip\b/i,
+  /\bnot worth\b/i,
+  /\bisn'?t worth\b/i,
+  /\bstick with\b/i,
+  /\bstay put\b/i,
+  /\bhold off\b/i,
+  /\bleave (it|him) (alone|as)\b/i,
+  /\bno need to\b/i,
+  /\bwouldn'?t bother\b/i,
+]
+
+/**
+ * **A call that costs nothing may not be explained in money** (F4-AC-09,
+ * F3-AC-28). A captaincy call and a substitution move no cash and use no
+ * transfer, so a sentence about freeing up funds is not a weak argument — it is
+ * a false one.
+ *
+ * Found live on 2026-09-14, and its cause was upstream: the model was being told
+ * *"Change: X out, Y in"* on an armband call and reasonably concluded a player
+ * was being sold. The prompt is fixed; this is the second line, because the next
+ * way into the same mistake will not be the same way.
+ */
+const MONEY: readonly RegExp[] = [
+  /\bfree(s|ing)? up\b/i,
+  /£/,
+  /\bbudget\b/i,
+  /\bfunds?\b/i,
+  /\bcheaper\b/i,
+  /\bsavings?\b/i,
+  /\bafford/i,
+]
+
 export type Reasoning = { text: string; source: 'model' | 'template' }
 
-export const reasoningIsAcceptable = (text: string): boolean =>
-  text.length > 0 && text.length <= MAX_REASONING_CHARS && !BLOCKLIST.some((pattern) => pattern.test(text))
+export type ReasoningRules = {
+  /** No money moves on this call, so nothing in the line may claim any does. */
+  costsNothing?: boolean
+}
+
+export const reasoningIsAcceptable = (text: string, rules: ReasoningRules = {}): boolean => {
+  if (text.length === 0 || text.length > MAX_REASONING_CHARS) return false
+  if (BLOCKLIST.some((pattern) => pattern.test(text))) return false
+  if (ARGUES_AGAINST.some((pattern) => pattern.test(text))) return false
+  if (rules.costsNothing === true && MONEY.some((pattern) => pattern.test(text))) return false
+  return true
+}
 
 /** The model's line if it passes, otherwise the template. Never a retry. */
 export function finalReasoning(
@@ -61,8 +116,9 @@ export function finalReasoning(
   rows: readonly EvaluationRow[],
   outName: string,
   inName: string,
+  rules: ReasoningRules = {},
 ): Reasoning {
   const text = (modelText ?? '').trim()
-  if (reasoningIsAcceptable(text)) return { text, source: 'model' }
+  if (reasoningIsAcceptable(text, rules)) return { text, source: 'model' }
   return { text: templateReasoning(rows, outName, inName), source: 'template' }
 }

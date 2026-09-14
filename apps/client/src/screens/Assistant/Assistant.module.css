@@ -265,8 +265,63 @@
   border: 1px solid var(--border-light);
 }
 
-.thinkingTitle { font-size: 17px; font-weight: 800; color: var(--ink); }
-.thinkingScale { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+/* Built to the handoff's own anatomy: a green strip, a spinner, the title, a
+   mono scale line, a rolling status line, then a labelled pipeline. **The step
+   names are not the handoff's** — it mocks up stages this build does not have
+   (a chip window) and omits ones it does. A label that names work the app is not
+   doing is a label contradicting its state, which F6-AC-18 forbids, and the
+   handoff is authoritative for how a screen looks, never for what it does. */
+.thinkingStrip {
+  margin: -18px -18px 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.thinkingHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0 -18px;
+  padding: 16px 14px 14px;
+  background: linear-gradient(180deg, #f1f7f3 0%, #fff 100%);
+  border-bottom: 1px solid #e9e4da;
+  text-align: center;
+}
+
+.thinkingSpinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--green);
+  animation: gspin 1.1s linear infinite;
+}
+
+@keyframes gspin { to { transform: rotate(360deg); } }
+@keyframes gpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.thinkingTitle { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.thinkingScale { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; color: #8a857b; }
+
+.thinkingNow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.thinkingDot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex: none; animation: gpulse 1.1s ease-in-out infinite; }
+
+.pipelineLabel { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.14em; color: #847f74; }
 .thinkingMeta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
 
 .pipeline { display: flex; flex-direction: column; gap: 6px; margin: 4px 0; padding: 0; list-style: none; }
@@ -292,6 +347,7 @@
 /* The refresh control names its own scope on itself (F6-AC-07), so what a tap
    will rewrite is never something the manager has to infer from where it sits. */
 .refresh {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -352,3 +408,9 @@
 
 .frozenAge { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #8a6d1f; }
 .frozenRisk { color: var(--ink); }
+
+/* The model's line, and the notes code writes beside it. Separated because they
+   have separate budgets: the model's is capped and clamped, the notes are short,
+   fixed and must always be readable (F4-AC-05, F4-AC-12). */
+.reasoningBody { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.reasoningNote { margin: 0; padding-left: 10px; border-left: 2px solid var(--border-strong); font-size: 11px; line-height: 1.35; color: var(--muted); }

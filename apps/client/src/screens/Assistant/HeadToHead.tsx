@@ -233,11 +233,24 @@ export function HeadToHead({
           </div>
         )}
 
+        {/* The model's line is clamped to four lines and capped at 180
+            characters, which is what makes that clamp safe (F3-AC-21, F3-AC-22).
+            **The armband notes are not the model's and must not share its
+            budget**: concatenated into the same paragraph they pushed the vice
+            premise off the bottom of the card with no way to reach it, which
+            F4-AC-05 requires to be readable. They sit on their own line. */}
         <div className={styles.reasoning}>
           <img className={styles.gaffer} src={avatar} alt="" />
-          <p data-testid="reasoning" className={styles.reasoningText}>
-            {[figures.reasoning, ...armbandNotes(call)].join(' ')}
-          </p>
+          <div className={styles.reasoningBody}>
+            <p data-testid="reasoning" className={styles.reasoningText}>
+              {figures.reasoning}
+            </p>
+            {armbandNotes(call).map((note) => (
+              <p key={note} data-testid="armband-note" className={styles.reasoningNote}>
+                {note}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
 

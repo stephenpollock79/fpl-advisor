@@ -89,7 +89,6 @@ export function Thinking({
   onCancel: () => void
 }) {
   const [elapsed, setElapsed] = useState<Record<string, number>>({})
-  const startedAt = useRef<number>(Date.now())
   const stepStartedAt = useRef<number>(Date.now())
   const previous = useRef<string | null>(null)
 
@@ -108,21 +107,45 @@ export function Thinking({
 
   return (
     <div className={styles.thinking} data-testid="thinking">
-      <p className={styles.thinkingTitle}>Working out your week</p>
-      {scale ? (
-        <p className={styles.thinkingScale}>
-          {scale.squad} players in your squad, {scale.players} considered, across the next three gameweeks.
-        </p>
-      ) : null}
+      <div className={styles.thinkingStrip}>Working your gameweek</div>
 
+      <div className={styles.thinkingHead}>
+        <span className={styles.thinkingSpinner} aria-hidden="true" />
+        <p className={styles.thinkingTitle}>Reading your gameweek</p>
+        {scale ? (
+          <p className={styles.thinkingScale}>
+            {scale.squad} IN YOUR SQUAD · {scale.players} PLAYERS · 3 GAMEWEEKS
+          </p>
+        ) : null}
+        {/* The rolling status line the handoff names, separate from the pipeline:
+            the pipeline says how far the run has got, this says what it is doing
+            now. Both come from the server, so neither can disagree with the
+            other or with the state (F6-AC-17, F6-AC-18). */}
+        <p className={styles.thinkingNow} data-testid="thinking-now">
+          <span className={styles.thinkingDot} aria-hidden="true" />
+          {current?.label ?? 'Starting'}
+          {current?.calls !== undefined ? ` — ${String(current.calls)} calls` : ''}
+        </p>
+      </div>
+
+      <span className={styles.pipelineLabel}>PIPELINE</span>
       <ol className={styles.pipeline}>
         {STEPS.map((step, i) => {
           const state = i < index ? 'done' : i === index ? 'running' : 'queued'
+          const mark = state === 'done' ? '\u2713' : state === 'running' ? '\u203a' : '\u00b7'
           return (
-            <li key={step.id} className={styles[`step${state[0]?.toUpperCase() ?? ''}${state.slice(1)}`] ?? styles.stepQueued} data-state={state}>
-              <span>{i === index ? (current?.label ?? step.label) : step.label}</span>
+            <li
+              key={step.id}
+              className={styles[`step${state[0]?.toUpperCase() ?? ''}${state.slice(1)}`] ?? styles.stepQueued}
+              data-state={state}
+            >
+              <span>
+                {mark} {step.label}
+              </span>
               {state === 'done' && elapsed[step.id] !== undefined ? (
-                <span className={styles.stepTime}>{(elapsed[step.id] ?? 0) / 1000 < 1 ? '<1s' : `${String(Math.round((elapsed[step.id] ?? 0) / 1000))}s`}</span>
+                <span className={styles.stepTime}>
+                  {(elapsed[step.id] ?? 0) / 1000 < 1 ? '<1s' : `${String(Math.round((elapsed[step.id] ?? 0) / 1000))}s`}
+                </span>
               ) : null}
             </li>
           )
