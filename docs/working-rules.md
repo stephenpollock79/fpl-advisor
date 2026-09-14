@@ -171,3 +171,47 @@ unclear, use the milestone of the work in hand and say so in the reply.
 first (Linear conventions, *Ask first*). Filing a finished ticket where its work happened is
 bookkeeping, and is not.
 
+
+## I. What a test that names a criterion has to do
+
+*Section I added 2026-09-14, after three criteria were found green over behaviour that
+did not work — two of them on the same evening, one of them green for four days.*
+
+**P16. A test naming a criterion must exercise that criterion's own trigger, not just its
+assertion.** `pnpm coverage:criteria` finds a criterion covered when its identifier appears
+in a test name (ADR 0010). It cannot tell whether the test reached the circumstance the
+criterion is about. That is this rule's job, and nothing else does it.
+
+Every criterion has two halves: **when** it applies, and **what must then be true**. A test
+that sets up the second half by hand and never causes the first proves the assertion and
+nothing about the rule. It is worse than no test, because the report says covered and
+everyone stops looking.
+
+The three that prompted this, all found by Stephen on a phone rather than by the suite:
+
+- **`F4-AC-01`, `-02`, `-03`** were ticked by engine tests proving the arithmetic of a
+  no-change outcome. The criteria are about a **card** — advice every week, a
+  non-interactive panel, a tally that excludes it. No card existed.
+- **`F6-AC-02`** — *a selected call reads selected · locked* — was asserted on a fixed
+  screen that already held the call. **It never ran a refresh**, and a refresh is the only
+  circumstance the criterion is about. Meanwhile the accepted call was vanishing at every
+  refresh. Green for four days.
+- **`F6-RS-08`** — *most refreshes should cost nothing* — had quiet-week tests carrying a
+  hand-written conviction and band. The fixture disagrees with them, so every one of those
+  tests took the **spend** path and the reuse it was written for was never once executed.
+
+**Three shapes to check before naming a criterion in a test:**
+
+1. **Does the test cause the trigger, or assume it?** A refresh criterion runs a refresh. A
+   card criterion renders a card. A first-open criterion opens for the first time.
+2. **Is any figure in the fixture hand-written where the code derives it?** If the assertion
+   depends on a number someone typed, the test decides its own result. Take the figure from
+   a real run and feed it back — `tests/runs/routes.test.ts` does this now, and it is why
+   the reuse path is exercised at all.
+3. **Would the test still pass with the behaviour removed?** Delete the production line and
+   run it. A test that survives that proves nothing.
+
+**Where the trigger genuinely cannot be reached** — a swipe, a disconnect, a real deadline
+passing — the criterion belongs in `docs/coverage-gaps.md` with what would close it, and the
+identifier must **not** be named in a test that reaches only the other half. An honest gap
+costs a line in a file. A false green costs whatever it was hiding.
