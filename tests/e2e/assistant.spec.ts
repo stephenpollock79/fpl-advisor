@@ -349,6 +349,7 @@ test('F4-AC-02, F4-AC-03: a keep reading offers no decision tile and enters no t
   // shadowing it here reaches the const before it exists.
   const card = page.getByTestId('keep-card')
   await expect(card).toContainText('nothing to do')
+  // Here the figures produced the keep, so that is what it says.
   await expect(card).toContainText('Nobody in your eleven projects higher')
   await expect(page.getByTestId('keep-points')).toContainText('xPts this gameweek')
   await expect(page.getByText('VS', { exact: true })).toHaveCount(0)
@@ -373,7 +374,13 @@ test('F4-UP-02: rejecting the captain change holds the vice call rather than lea
   await open(page, { [CAPTAIN]: 'rejected' })
   await page.getByRole('tab', { name: 'Captain' }).click()
 
-  await expect(page.getByTestId('keep-card')).toContainText('nothing to do')
+  const held = page.getByTestId('keep-card')
+  await expect(held).toContainText('nothing to do')
+  // **The verdict has to be true of this keep.** The armband is staying because
+  // the captain change was turned down, not because nobody projects higher —
+  // claiming the latter asserts something the app has not concluded.
+  await expect(held).toContainText('You kept your captain')
+  await expect(held).not.toContainText('projects higher')
   await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
 })
 

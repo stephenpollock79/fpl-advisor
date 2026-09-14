@@ -338,9 +338,12 @@ function Keep({
           {out.projectedPoints.toFixed(1)}
           <span className={styles.keepPointsLabel}> xPts this gameweek</span>
         </span>
-        <p className={styles.keepVerdict}>
-          Nobody in your eleven projects higher. He keeps the {role === 'vice-captaincy' ? 'vice armband' : 'armband'}.
-        </p>
+        {/* **The verdict has to be true of *this* keep.** "Nobody projects
+            higher" is right when the figures produced the keep, and false when
+            the rejection did (F4-UP-02): there the armband stays because the
+            captain change was turned down, and claiming he is the strongest
+            option asserts something the app has not concluded. */}
+        <p className={styles.keepVerdict}>{keepVerdict(figures, role)}</p>
 
         <div className={styles.reasoning}>
           <img className={styles.gaffer} src={avatar} alt="" />
@@ -358,6 +361,27 @@ function Keep({
       </div>
     </div>
   )
+}
+
+/**
+ * Why this armband is staying where it is, in the manager's terms.
+ *
+ * Three reasons, and they are genuinely different things to say. Two come from
+ * the engine — the holder is ahead, or the two are too close to separate. The
+ * third is the manager's own doing and the engine cannot know it: he turned down
+ * the captain change, so the pair would otherwise contradict itself (F4-UP-02).
+ */
+function keepVerdict(figures: Shown['figures'], role: 'captaincy' | 'vice-captaincy'): string {
+  const band = role === 'vice-captaincy' ? 'vice armband' : 'armband'
+  if (figures.reading !== 'no_change') return `He keeps the ${band}.`
+
+  if (figures.because === 'captain_kept') {
+    return `You kept your captain, so the ${band} stays where it is too — moving it now would leave the pair contradicting each other.`
+  }
+  if (figures.because === 'below_floor') {
+    return `Nobody in your eleven is far enough clear of him to justify moving the ${band}.`
+  }
+  return `Nobody in your eleven projects higher. He keeps the ${band}.`
 }
 
 function Side({ player, direction, onChange }: { player: WorldPlayer; direction: 'out' | 'in'; onChange?: (() => void) | undefined }) {
