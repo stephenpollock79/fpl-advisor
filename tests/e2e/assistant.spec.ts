@@ -476,3 +476,23 @@ test('F6-AC-19, F6-AC-16: the Thinking state states how long it takes and can be
   await expect(page.getByTestId('thinking')).toHaveCount(0)
   await expect(page.getByText('Nothing changed', { exact: false })).toBeVisible()
 })
+
+test('F6-AC-16: the first run of a gameweek streams like any other, with a pipeline and a way out', async ({ page }) => {
+  // **The path Friday morning takes**, when the gameweek rolls over and there is
+  // no advice at all. It used to be the one run with no progress and no cancel —
+  // and it is the longest run of the week, so it is the one that needs both most.
+  await open(page, {}, [], { lastRunAt: null })
+
+  await page.route('**/api/runs/stream', async (route: Route) => {
+    await new Promise((resolve) => setTimeout(resolve, 4000))
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: '' })
+  })
+
+  // No confirmation first: a first run keeps, rewrites and suppresses nothing.
+  await page.getByRole('button', { name: "Get this week's calls" }).click()
+
+  const thinking = page.getByTestId('thinking')
+  await expect(thinking).toBeVisible()
+  await expect(thinking).toContainText('PIPELINE')
+  await expect(thinking.getByRole('button', { name: /usually under a minute/i })).toBeEnabled()
+})

@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { type RunStep, type World, type WorldCall, type WorldPlayer, decide as saveDecision, startRun, streamRun } from '../../api'
+import { type RunStep, type World, type WorldCall, type WorldPlayer, decide as saveDecision, streamRun } from '../../api'
 import avatar from '../../assets/gaffer-avatar.png'
 import { type Decisions, decide, initialDecisions, reopen, restore } from '../../calls/decisions'
 import {
@@ -243,19 +243,6 @@ export function AssistantScreen({
     })
   }
 
-  async function onRun() {
-    setRunning(true)
-    setError(null)
-    try {
-      await startRun()
-      onReload()
-    } catch {
-      setError('The run did not finish, and nothing has changed. Try again.')
-    } finally {
-      setRunning(false)
-    }
-  }
-
   /**
    * A refresh, watched while it happens (F6-AC-16 to F6-AC-20).
    *
@@ -482,7 +469,11 @@ export function AssistantScreen({
         ) : noRunYet ? (
           <div className={styles.empty}>
             <p>No calls yet this gameweek.</p>
-            <button className={styles.primary} onClick={() => void onRun()} disabled={running} type="button">
+            {/* The same streamed run as a refresh — and this is the longest one
+                of the week, so it is the run that most needs a pipeline and a
+                way out. There is nothing to confirm first: a first run keeps,
+                rewrites and suppresses nothing. */}
+            <button className={styles.primary} onClick={() => void onRefresh()} disabled={running} type="button">
               {running ? 'Reading the feeds and working out the week…' : "Get this week's calls"}
             </button>
           </div>

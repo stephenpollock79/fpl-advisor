@@ -44,8 +44,39 @@ const harness = (overrides: Partial<RunDeps> = {}) => {
     ...overrides,
   }
   const app = runRoutes(deps)
-  const post = (cookie = 'session=x') =>
-    app.request('/api/runs', { method: 'POST', headers: cookie ? { Cookie: cookie } : {} })
+
+  /**
+   * Drive the one run route and reduce its stream to the answer.
+   *
+   * There used to be a plain-JSON route beside the streamed one, and these tests
+   * used it. Two routes meant two copies of the diff and the lock rules, which
+   * had already drifted once — so the JSON one is gone and this reads the same
+   * facts off the stream instead.
+   */
+  const post = async (cookie = 'session=x') => {
+    const res = await app.request('/api/runs/stream', {
+      method: 'POST',
+      headers: cookie ? { Cookie: cookie } : {},
+    })
+    if (res.status !== 200) return { status: res.status, body: {} as Record<string, unknown>, error: null }
+
+    const frames = (await res.text())
+      .split('\n\n')
+      .filter(Boolean)
+      .map((chunk) => ({
+        event: /event:\s*(\S+)/.exec(chunk)?.[1] ?? '',
+        data: JSON.parse(/data:\s*(.*)/.exec(chunk)?.[1] ?? '{}') as Record<string, unknown>,
+      }))
+
+    const last = frames.at(-1)
+    return {
+      status: 200,
+      steps: frames.filter((f) => f.event === 'step').map((f) => f.data),
+      body: last?.event === 'done' ? last.data : ({} as Record<string, unknown>),
+      error: last?.event === 'error' ? ((last.data['reason'] as string) ?? 'run_failed') : null,
+    }
+  }
+
   return { app, post, events, stored }
 }
 
@@ -59,7 +90,7 @@ describe('POST /api/runs', () => {
   it('reads the world fresh, then starts, generates and finishes one run, in that order', async () => {
     const h = harness()
     const response = await h.post()
-    const body = (await response.json()) as { runId: string; calls: { key: string }[] }
+    const body = response.body as { runId: string; calls: { key: string }[] }
 
     expect(response.status).toBe(200)
     expect(h.events).toEqual(['prepare', 'start:4:snapshot-gw4', 'finish:run-1'])
@@ -93,15 +124,18 @@ describe('POST /api/runs', () => {
     const h = harness({ model: () => broken })
     const response = await h.post()
 
-    expect(response.status).toBe(500)
+    // A failure is reported on the stream rather than as a status, because the
+    // response has already begun by the time the run breaks. What must not
+    // change: nothing is stored, and the run is recorded failed.
+    expect(response.error).toBe('run_failed')
     expect(h.stored).toEqual([])
-    expect(h.events.at(-1)).toMatch(/^fail:run-1/)
+    expect(h.events.at(-1)).toMatch(/^end:run-1:failed/)
   })
 
   it('answers 409 when there is no squad to advise on yet, and starts nothing', async () => {
     const h = harness({ loadWeek: async () => null })
     const response = await h.post()
-    expect(response.status).toBe(409)
+    expect(response.error).toBe('no_squad')
     expect(h.events).toEqual(['prepare'])
   })
 })
@@ -138,8 +172,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
       },
     })
 
-    const res = await post()
-    const body = (await res.json()) as { reused: boolean }
+    const body = (await post()).body as { reused: boolean }
 
     expect(body.reused).toBe(true)
     expect(modelCalls).toBe(0)
@@ -160,7 +193,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
       },
     })
 
-    const body = (await (await post()).json()) as { reused: boolean }
+    const body = (await post()).body as { reused: boolean }
     expect(body.reused).toBe(false)
     expect(modelCalls).toBe(1)
   })
@@ -177,7 +210,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
       },
     })
 
-    const body = (await (await post()).json()) as { reused: boolean; changed: number }
+    const body = (await post()).body as { reused: boolean; changed: number }
     expect(body.reused).toBe(true)
     // It was seen and counted — silence is not the same as blindness.
     expect(body.changed).toBe(1)
@@ -196,7 +229,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
       },
     })
 
-    const body = (await (await post()).json()) as { reused: boolean }
+    const body = (await post()).body as { reused: boolean }
     expect(body.reused).toBe(false)
     expect(modelCalls).toBe(1)
     expect(stored[0]?.calls.length).toBeGreaterThan(0)
@@ -212,7 +245,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
       },
     })
 
-    const body = (await (await post()).json()) as { reused: boolean }
+    const body = (await post()).body as { reused: boolean }
     expect(body.reused).toBe(false)
     expect(modelCalls).toBe(1)
   })
@@ -227,7 +260,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
       refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [stored()], decisions: {}, costOfSwap: () => 0 }),
     })
 
-    const body = (await (await post()).json()) as { reused: boolean; runId: string | null }
+    const body = (await post()).body as { reused: boolean; runId: string | null }
 
     expect(body.reused).toBe(true)
     expect(body.runId).toBeNull()
