@@ -224,7 +224,7 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
     const events = await read(await go())
 
     expect(events.map((e) => e.event)).toEqual(['step', 'step', 'step', 'step', 'step', 'done'])
-    expect(events.filter((e) => e.event === 'step').map((e) => e.id ?? e.data['id'])).toEqual([
+    expect(events.filter((e) => e.event === 'step').map((e) => e.data['id'])).toEqual([
       'read',
       'diff',
       'propose',
