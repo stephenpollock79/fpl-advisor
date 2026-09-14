@@ -187,14 +187,22 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
     expect(modelCalls).toBe(1)
   })
 
-  it('F6-AC-14: a reused refresh still records a successful run, so the last-run time is honest', async () => {
+  it('F6-RS-08: a reused refresh writes no run at all, so the week it reused is still there', async () => {
+    // **The bug this was written after.** A reuse used to write a succeeded run
+    // with no calls, and every screen reads the latest succeeded run — so the
+    // week's advice vanished and read as "nothing worth doing" rather than as
+    // anything having gone wrong. Reuse means reuse.
     const world = [player(1)]
     const { post, events } = harness({
       refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
     })
 
-    await post()
-    expect(events.some((e) => e.startsWith('finish:'))).toBe(true)
+    const body = (await (await post()).json()) as { reused: boolean; runId: string | null }
+
+    expect(body.reused).toBe(true)
+    expect(body.runId).toBeNull()
+    expect(events.some((e) => e.startsWith('start:'))).toBe(false)
+    expect(events.some((e) => e.startsWith('finish:'))).toBe(false)
     expect(events.some((e) => e.startsWith('fail:'))).toBe(false)
   })
 })
@@ -253,6 +261,7 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
 
     expect(events.at(-1)?.event).toBe('done')
     expect(events.at(-1)?.data['reused']).toBe(true)
+    expect(events.at(-1)?.data['runId']).toBeNull()
     expect(events.map((e) => e.data['id'])).not.toContain('score')
   })
 
