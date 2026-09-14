@@ -1,9 +1,19 @@
 /**
  * `GET /api/world` — the single read every screen re-derives from.
  *
- * **Feeds are fetched on open, never on a schedule** (CLAUDE.md, *Do not*). So a
- * first open with an empty database ingests both feeds and captures the squad,
- * then answers. A later open reads what is already there.
+ * **Feeds are fetched on open, never on a schedule** (CLAUDE.md, *Do not*).
+ *
+ * **Until slice 7 only the first half of that was true.** Ingestion ran when the
+ * world loaded empty and never again, so outside a run the app re-read nothing
+ * and the figures on screen were as old as the last advice run. Every open now
+ * re-reads, which is what makes recomputation worth anything: a figure that
+ * follows the data is no use if the data never moves.
+ *
+ * **Coalesced, not scheduled.** A burst of reads — the reload after a decision,
+ * a double-tap — does not re-fetch, because the read is skipped while the newest
+ * one is younger than `COALESCE_MS`. Nothing fires without the manager opening
+ * the app, so ADR 0003 is untouched: this bounds how often a user-initiated read
+ * hits the feeds, it does not start anything on a timer.
  *
  * The collaborators are injected so the route can be exercised without a network
  * or a database — the same reason the team-link routes are shaped this way.
@@ -14,8 +24,14 @@ import type { AuthenticatedUser } from '../auth/session.js'
 import { type World, assembleWorld } from './assemble.js'
 import type { WorldParts } from './assemble.js'
 
+/** Long enough to absorb a screen's worth of reads, short enough to feel live. */
+const COALESCE_MS = 2 * 60 * 1000
+
 export type WorldDeps = {
   authenticate: (cookie: string | undefined) => Promise<AuthenticatedUser | null>
+  /** When the newest feed read was taken, or null when there has never been one. */
+  newestFeedReadAt: () => Promise<string | null>
+  now?: () => number
   /** The manager's linked FPL team id, or null when the team link is not done. */
   linkedTeamId: (user: AuthenticatedUser) => Promise<number | null>
   /** Fetch both feeds and write the reference tables. Returns the gameweek advised on. */
@@ -38,6 +54,28 @@ export function worldRoutes(deps: WorldDeps) {
     // the client already knows what to do with it.
     if (fplTeamId === null) return c.json({ error: 'no_team_linked' }, 409)
 
+    // Re-read on open, before anything is loaded, so what the world is assembled
+    // from is what was just fetched rather than the previous read.
+    const now = (deps.now ?? Date.now)()
+    const newest = await deps.newestFeedReadAt()
+    const fresh = newest !== null && now - Date.parse(newest) < COALESCE_MS
+
+    // **A feed that cannot be reached is not a failure of this request** (F6-UP-02).
+    // The squad, the prices and the manager's own decisions are all on file and
+    // still true; what is frozen is anything that needs a new read. So the world
+    // is answered from what is stored, with the fact carried on it — the screen
+    // can then say what is frozen and how old it is, rather than the app looking
+    // broken or, worse, looking fine.
+    let feedsReachable = true
+    if (!fresh) {
+      try {
+        await deps.ingest()
+      } catch (cause) {
+        console.error('[world] the feeds could not be read; answering from what is on file', cause)
+        feedsReachable = false
+      }
+    }
+
     let parts = await deps.loadParts(user)
 
     if (!parts) {
@@ -52,7 +90,13 @@ export function worldRoutes(deps: WorldDeps) {
       throw new Error('The world is still empty after ingesting it. Refusing to answer with nothing.')
     }
 
-    return c.json(assembleWorld(parts) satisfies World)
+    return c.json({
+      ...(assembleWorld(parts) satisfies World),
+      feedsReachable,
+      // What the screen timestamps itself with. Null only before the first read
+      // ever, which cannot reach here.
+      dataReadAt: await deps.newestFeedReadAt(),
+    })
   })
 
   return app

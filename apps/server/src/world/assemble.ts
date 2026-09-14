@@ -8,12 +8,18 @@
  * **What this does not carry.** No squad or bench point totals: those are summed
  * from the players shown, at render, so no total can disagree with the players it
  * represents (F1-AC-22). No formation: derived from the starting eleven and never
- * stored (F1-AC-03). And no call figure recomputed: net, conviction and band are
- * passed through exactly as the engine produced them and the run stored them
- * (ENGINE-AC-04).
+ * stored (F1-AC-03).
+ *
+ * **What it does carry, since slice 7: every stored call re-derived from the read
+ * this world was built on.** Not a second implementation — `recomputeCall` calls
+ * the engine's one function, so ENGINE-AC-04 holds exactly as before. The reason
+ * it happens here is that a figure the manager can see must never contradict the
+ * data shown beside it, and re-deriving is free (ruled 2026-09-14, STE-65).
+ * Nothing is added, dropped or decided: this is not a refresh.
  */
 
-import { type Band, sellingPriceTenths } from '@fpl/engine'
+import { type Band, type CallIdentity, type FplStatus, availabilityOf, sellingPriceTenths } from '@fpl/engine'
+import { type SideNow, recomputeCall } from '../refresh/recompute.js'
 import type { FixtureRow } from '../ingest/fixtures.js'
 import type { GameweekRow } from '../ingest/gameweeks.js'
 import type { ClubRow, PlayerRow, PlayerStateRow } from '../ingest/players.js'
@@ -105,6 +111,14 @@ export type WorldCall = {
   breakdown: unknown
   alternatives: { out: number[]; in: number[] } | null
   position: number
+  /**
+   * What a refresh or a recomputation did to this call, until the card has been
+   * seen (F6-AC-13). Transient by design — a tag that never clears stops meaning
+   * anything, and one held only in the browser is lost on every reload.
+   */
+  diffTag: 'new' | 'updated' | 'returned' | 'resurfaced' | 'band_move' | null
+  /** What the band moved from — "was 84%, now 71%" (F6-AC-11). Null unless it moved. */
+  previousConviction: number | null
 }
 
 export type DecisionState = 'selected' | 'rejected'
@@ -134,6 +148,14 @@ export type World = {
   blanks: number
   doubles: number
   attribution: { name: string; href: string }
+  /**
+   * Whether the feeds answered on this open (F6-UP-02). False is not an error:
+   * the squad, the prices and the decisions are on file and still true, and only
+   * what needs a fresh read is frozen. The screen says which.
+   */
+  feedsReachable?: boolean
+  /** When the data on screen was read, for the screen to timestamp itself with. */
+  dataReadAt?: string | null
 }
 
 export type WorldParts = {
@@ -238,7 +260,14 @@ export function assembleWorld(parts: WorldParts): World {
     snapshot: parts.snapshot,
     players,
     candidates,
-    calls: [...(parts.calls ?? [])].sort((a, b) => a.position - b.position),
+    // **The figures follow the data** (ruled 2026-09-14). Every stored call is
+    // re-derived from the read this world was built on, for nothing — it is
+    // arithmetic over published inputs, and no model is involved. Nothing is
+    // added, dropped or decided here, so this is not a refresh.
+    calls: refreshedCalls([...(parts.calls ?? [])].sort((a, b) => a.position - b.position), [
+      ...players,
+      ...candidates,
+    ]),
     decisions: Object.fromEntries((parts.decisions ?? []).map((d) => [d.callKey, d.state])),
     lastRunAt: parts.lastRunAt ?? null,
     priceForecastReadAt: parts.priceForecastReadAt ?? null,
@@ -289,4 +318,85 @@ function difficultyStrip(
     if (week.length === 1) return week[0]?.difficulty ?? null
     return week.map((f) => f.difficulty)
   })
+}
+
+
+/**
+ * Every stored call, with its figures re-derived from the world as it stands.
+ *
+ * `previousConviction` and `diffTag` are carried onto the call for the card's
+ * transient tag (F6-AC-13). They are computed rather than read from the row
+ * because the row's tag belongs to the last *run*, and this is a figure moving
+ * between runs — the two must not overwrite each other.
+ */
+function refreshedCalls(calls: readonly WorldCall[], world: readonly WorldPlayer[]): WorldCall[] {
+  if (calls.length === 0) return []
+
+  const sides = new Map<number, SideNow>(
+    world.map((p) => [
+      p.playerId,
+      {
+        playerId: p.playerId,
+        projections: p.projections,
+        availability: availabilityOf({ status: p.status as FplStatus, chanceOfPlayingNextRound: p.chanceOfPlayingNextRound }),
+        hasFixture: p.fixtures.length > 0,
+        inSquad: p.isStarter || p.benchOrder !== null,
+      },
+    ]),
+  )
+
+  return calls.map((call) => {
+    const again = recomputeCall(
+      {
+        key: call.key,
+        identity: identityOf(call),
+        outPlayerId: call.outPlayerId,
+        inPlayerId: call.inPlayerId,
+        conviction: call.conviction,
+        band: call.band,
+        isReading: call.isReading,
+        pointsHit: call.pointsHit,
+      },
+      sides,
+    )
+
+    // A call naming a player this world does not carry cannot be re-derived, and
+    // is left exactly as the run stored it rather than being shown as broken on
+    // the strength of a lookup miss.
+    if (again.unexecutable && !sides.has(call.outPlayerId)) return call
+
+    return {
+      ...call,
+      net: again.net,
+      isReading: again.isReading || again.unexecutable,
+      readingReason: again.isReading || again.unexecutable ? (call.readingReason ?? 'incumbent_wins') : null,
+      conviction: again.conviction,
+      band: again.band,
+      previousConviction: again.previousConviction,
+      diffTag: again.unexecutable ? 'returned' : again.movedBand ? 'band_move' : (call.diffTag ?? null),
+    }
+  })
+}
+
+/** The identity a stored call was built from, rebuilt from what the row carries. */
+function identityOf(call: WorldCall): CallIdentity {
+  switch (call.shape) {
+    case 'transfer':
+      return { type: 'transfer', outPlayerId: call.outPlayerId, inPlayerId: call.inPlayerId }
+    case 'captain':
+      return { type: 'captain', fromPlayerId: call.outPlayerId, toPlayerId: call.inPlayerId }
+    case 'vice':
+      return { type: 'vice', fromPlayerId: call.outPlayerId, toPlayerId: call.inPlayerId }
+    case 'bench_order':
+      // Slots are not on the row; the key already holds them and nothing here
+      // rebuilds it, so the pair stands in for the identity's arithmetic only.
+      return { type: 'bench_order', slotA: 0, slotB: 1 }
+    default:
+      return {
+        type: 'substitution',
+        variant: call.shape === 'forced_swap' ? 'forced' : call.shape === 'doubt_swap' ? 'doubt' : 'upgrade',
+        outPlayerId: call.outPlayerId,
+        inPlayerId: call.inPlayerId,
+      }
+  }
 }

@@ -13,8 +13,8 @@
  * The Overview is F8 and arrives with slice 8, so this opens on Transfer.
  */
 
-import { useEffect, useMemo, useState } from 'react'
-import { type World, type WorldCall, type WorldPlayer, decide as saveDecision, startRun } from '../../api'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { type RunStep, type World, type WorldCall, type WorldPlayer, decide as saveDecision, startRun, streamRun } from '../../api'
 import avatar from '../../assets/gaffer-avatar.png'
 import { type Decisions, decide, initialDecisions, reopen, restore } from '../../calls/decisions'
 import {
@@ -26,11 +26,14 @@ import {
   recomputeTransfer,
   restoredSwaps,
   shortlistCount,
+  dataAge,
+  diffRows,
   storedFigures,
   viceHeldByCaptain,
   watchFreshness,
   transferKey,
 } from '../../calls/view'
+import { DiffSheet, RefreshInterstitial, Thinking } from './Refresh'
 import styles from './Assistant.module.css'
 import { CategoryCleared, type ClearedRow } from './CategoryCleared'
 import { HeadToHead } from './HeadToHead'
@@ -106,6 +109,15 @@ export function AssistantScreen({
     setDecisions(initialDecisions(world.decisions))
     setSwaps(restoredSwaps(world.calls, world.decisions))
   }, [world.calls, world.decisions])
+
+  // The refresh, in its three states: asking, running, reporting. Nothing ever
+  // starts on its own (F6-AC-15), and none of these can appear mid-decision
+  // because each replaces the card rather than sitting over it.
+  const [asking, setAsking] = useState(false)
+  const [step, setStep] = useState<RunStep | null>(null)
+  const [scale, setScale] = useState<{ players: number; squad: number } | null>(null)
+  const [showDiff, setShowDiff] = useState(false)
+  const abort = useRef<AbortController | null>(null)
 
   const fresh = watchFreshness(world)
   // F4-UP-02: turn the captain change down and the vice call's premise is gone
@@ -244,6 +256,54 @@ export function AssistantScreen({
     }
   }
 
+  /**
+   * A refresh, watched while it happens (F6-AC-16 to F6-AC-20).
+   *
+   * **Cancelling is aborting the request.** The server sees the connection close,
+   * marks the run cancelled rather than failed, and writes nothing — so this
+   * needs no undo and the last-run time cannot move.
+   */
+  async function onRefresh() {
+    setAsking(false)
+    setError(null)
+    setNotice(null)
+    setStep(null)
+    setScale(null)
+
+    const controller = new AbortController()
+    abort.current = controller
+    setRunning(true)
+
+    try {
+      for await (const event of streamRun(controller.signal)) {
+        if (event.kind === 'step') {
+          setStep(event.step)
+          if (event.step.scale) setScale(event.step.scale)
+        } else if (event.kind === 'done') {
+          // Nothing moved that could change a decision, so nothing was spent and
+          // the week stands. Said plainly rather than shown as an empty report.
+          if (event.reused) setNotice('Nothing has changed since your last run. Your calls stand.')
+          else setShowDiff(true)
+          onReload()
+        } else {
+          setError('The run did not finish, and nothing has changed. Try again.')
+        }
+      }
+    } catch (cause) {
+      // An abort is the manager's own doing and is not an error to report at him.
+      if (!controller.signal.aborted) setError('The run did not finish, and nothing has changed. Try again.')
+    } finally {
+      abort.current = null
+      setRunning(false)
+      setStep(null)
+    }
+  }
+
+  function onCancelRun() {
+    abort.current?.abort()
+    setNotice('Refresh cancelled. Nothing changed.')
+  }
+
   const balanceLeft = nbal(
     world.snapshot.bankTenths,
     shown.map((s) => ({ key: s.key, costTenths: s.figures.costTenths })),
@@ -316,6 +376,18 @@ export function AssistantScreen({
             </button>
           )
         })}
+        {/* One control, scoped to the screen it is on and naming that scope on
+            itself (F6-AC-07). There are no per-category shortcuts: one rule is
+            easier to trust than a rule plus three of them (F6-AC-08, slice 8). */}
+        <button
+          className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
+          onClick={() => setAsking(true)}
+          disabled={running || noRunYet || world.feedsReachable === false}
+          data-testid="refresh"
+          type="button"
+        >
+          {world.feedsReachable === false ? 'REFRESH OFF' : `↻ ${TABS.find((x) => x.category === tab)?.label ?? 'All'}`}
+        </button>
       </nav>
 
       <section className={styles.status} aria-label="Status">
@@ -357,8 +429,28 @@ export function AssistantScreen({
         </p>
       ) : null}
 
+      {/* F6-UP-02: the source is gone, so the refresh control reads off rather
+          than failing on tap, and the screen timestamps itself. Navigation is
+          never dimmed — everything already on file is still true and still
+          worth looking at. */}
+      {world.feedsReachable === false ? (
+        <div className={styles.frozen} data-testid="frozen">
+          <span className={styles.frozenAge}>{dataAge(world.dataReadAt, Date.now()) ?? 'showing stored data'}</span>
+          <p>
+            <strong>FPL is not answering.</strong> Frozen until it is: new calls, refresh, and chip
+            re-planning. Not frozen: your squad, your prices and every decision you have made.
+          </p>
+          <p className={styles.frozenRisk}>
+            What you cannot see is team news. If someone picks up a knock in the next hour, this
+            screen will not know.
+          </p>
+        </div>
+      ) : null}
+
       <section className={styles.content}>
-        {noRunYet ? (
+        {running ? (
+          <Thinking current={step} scale={scale} onCancel={onCancelRun} />
+        ) : noRunYet ? (
           <div className={styles.empty}>
             <p>No calls yet this gameweek.</p>
             <button className={styles.primary} onClick={() => void onRun()} disabled={running} type="button">
@@ -392,6 +484,31 @@ export function AssistantScreen({
             onNext={() => setCursor((c) => (c + 1) % pending.length)}
             onDecide={onDecide}
             picker={picker}
+          />
+        ) : null}
+
+        {/* Asked before it runs, and the question explains the outcome rather
+            than being a bare "are you sure?" (F6-AC-10). */}
+        {asking ? (
+          <RefreshInterstitial
+            scope={(TABS.find((x) => x.category === tab)?.noun ?? 'everything').toLowerCase()}
+            lastRunAt={world.lastRunAt}
+            selected={here.filter((s) => decisions.decisions[s.key] === 'selected').length}
+            rejected={here.filter((s) => decisions.decisions[s.key] === 'rejected').length}
+            pending={outstanding.length}
+            onGo={() => void onRefresh()}
+            onCancel={() => setAsking(false)}
+          />
+        ) : null}
+
+        {/* And a report afterwards, never a silent replace (F6-AC-11) — but no
+            sheet at all when nothing moved (F6-AC-12), which `DiffSheet` decides
+            for itself from an empty list. */}
+        {showDiff ? (
+          <DiffSheet
+            rows={diffRows(world.calls, (id) => players.get(id)?.surname ?? 'A player')}
+            untouched={world.calls.length - diffRows(world.calls, () => '').length}
+            onClose={() => setShowDiff(false)}
           />
         ) : null}
       </section>

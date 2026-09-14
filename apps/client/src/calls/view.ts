@@ -351,3 +351,49 @@ export function readingLine(because: 'incumbent_wins' | 'below_floor' | 'captain
   if (because === 'below_floor') return 'Too close to call'
   return 'Already the stronger option'
 }
+
+
+export type DiffRow = { key: string; title: string; note: string }
+
+/**
+ * What the diff sheet says about each call a refresh touched (F6-AC-11).
+ *
+ * Only calls carrying a tag appear. A call that moved within its band, or did
+ * not move at all, is deliberately absent — F6-AC-12 then has an empty list and
+ * shows no sheet, because a report that says "nothing happened" teaches the
+ * manager to dismiss it without reading, and the next one will matter.
+ *
+ * Nothing is computed here: the figures are the ones the run and the
+ * recomputation already produced.
+ */
+export function diffRows(calls: readonly WorldCall[], nameOf: (id: number) => string): DiffRow[] {
+  return calls.flatMap((call) => {
+    const title = `${nameOf(call.outPlayerId)} → ${nameOf(call.inPlayerId)}`
+    if (call.diffTag === 'band_move' && call.previousConviction !== null) {
+      const now = call.isReading ? 'no change' : String(call.conviction ?? 0)
+      return [{ key: call.key, title, note: `was ${String(call.previousConviction)}, now ${now}` }]
+    }
+    if (call.diffTag === 'returned') return [{ key: call.key, title, note: 'can no longer be made' }]
+    if (call.diffTag === 'resurfaced') return [{ key: call.key, title, note: 'back, because what you rejected has changed' }]
+    if (call.diffTag === 'new') return [{ key: call.key, title, note: 'new this run' }]
+    if (call.diffTag === 'updated') return [{ key: call.key, title, note: 'rewritten this run' }]
+    return []
+  })
+}
+
+
+/**
+ * How old the data on screen is, in the manager's words (F6-UP-02).
+ *
+ * Only ever shown when the feeds could not be reached — a timestamp on a live
+ * screen is noise, and one on a frozen screen is the whole point.
+ */
+export function dataAge(readAt: string | null | undefined, nowMs: number): string | null {
+  if (!readAt) return null
+  const minutes = Math.max(0, Math.round((nowMs - Date.parse(readAt)) / 60000))
+  const at = new Date(readAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  if (minutes < 1) return `showing ${at} data`
+  if (minutes < 60) return `showing ${at} data · ${String(minutes)} minutes old`
+  const hours = Math.round(minutes / 60)
+  return `showing ${at} data · ${String(hours)} ${hours === 1 ? 'hour' : 'hours'} old`
+}

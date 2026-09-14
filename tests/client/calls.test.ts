@@ -9,6 +9,7 @@ import { decide, defer, initialDecisions, reopen, restore } from '../../apps/cli
 import {
   armbandNotes,
   clearedLine,
+  diffRows,
   formatCost,
   nbal,
   readingLine,
@@ -79,6 +80,8 @@ const call = (key: string, category: WorldCall['category'], costTenths = 0, extr
   breakdown: { weights: [1], out: { playerId: 1, projections: [1], gate: { eligible: true }, total: 1 }, in: { playerId: 2, projections: [2], gate: { eligible: true }, total: 2 }, net: 1, pointsHit: 0, k: 0.5, kLabel: 'transfer', byCeiling: false },
   alternatives: null,
   position: 0,
+  diffTag: null,
+  previousConviction: null,
   ...extra,
 })
 
@@ -293,5 +296,50 @@ describe('F4-UP-02 · rejecting the captain change holds the vice', () => {
     const decidable = storedFigures(call('captaincy:vice:from=1:to=2', 'captaincy'), out, into, true)
 
     expect(viceHeldByCaptain(decidable, false)).toBe(decidable)
+  })
+})
+
+describe('F6-AC-11, F6-AC-12 · what a refresh reports, and what it says nothing about', () => {
+  const tagged = (key: string, extra: Partial<WorldCall>) => call(key, 'transfer', 0, extra)
+  const name = (id: number) => (id === 1 ? 'Semenyo' : 'Haaland')
+
+  it('F6-AC-11: a band move is reported in numbers — what it was, and what it is now', () => {
+    const rows = diffRows([tagged('k1', { diffTag: 'band_move', previousConviction: 84, conviction: 71 })], name)
+    expect(rows).toEqual([{ key: 'k1', title: 'Semenyo → Haaland', note: 'was 84, now 71' }])
+  })
+
+  it('F6-AC-11: a call that became a keep says so in words, not as a percentage of nothing', () => {
+    const rows = diffRows(
+      [tagged('k1', { diffTag: 'band_move', previousConviction: 84, conviction: null, isReading: true })],
+      name,
+    )
+    expect(rows[0]?.note).toBe('was 84, now no change')
+  })
+
+  it('F6-AC-11: the other three tags each read as a reason rather than a code', () => {
+    const rows = diffRows(
+      [
+        tagged('a', { diffTag: 'returned' }),
+        tagged('b', { diffTag: 'resurfaced' }),
+        tagged('c', { diffTag: 'new' }),
+      ],
+      name,
+    )
+    expect(rows.map((r) => r.note)).toEqual([
+      'can no longer be made',
+      'back, because what you rejected has changed',
+      'new this run',
+    ])
+  })
+
+  it('F6-AC-12: a call that did not move is absent, so an untouched week produces no sheet at all', () => {
+    // A sheet that says "nothing happened" teaches dismissal without reading,
+    // and the next one will matter.
+    expect(diffRows([tagged('k1', { diffTag: null })], name)).toEqual([])
+    expect(diffRows([], name)).toEqual([])
+  })
+
+  it('F6-AC-11: a band move with nothing to compare against is not claimed as one', () => {
+    expect(diffRows([tagged('k1', { diffTag: 'band_move', previousConviction: null })], name)).toEqual([])
   })
 })

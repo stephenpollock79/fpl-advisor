@@ -74,6 +74,8 @@ const call: WorldCall = {
   breakdown: { net: 4.6 },
   alternatives: { out: [], in: [124] },
   position: 0,
+  diffTag: null,
+  previousConviction: null,
 }
 
 const world = () =>
@@ -115,8 +117,26 @@ describe('What the world carries for the calls', () => {
     expect(world().players.find((p) => p.playerId === 40)?.projections).toEqual([5, 5, 5])
   })
 
-  it('ENGINE-AC-04: the latest run\'s calls reach the world with the engine\'s figures untouched', () => {
-    expect(world().calls).toEqual([call])
+  it('ENGINE-AC-04, F6-AC-15: the world re-derives a call rather than passing it through, and nothing else about it moves', () => {
+    // Changed deliberately in slice 7. A displayed figure must never contradict
+    // the data beside it, and re-deriving is free (ruled 2026-09-14). The
+    // criterion is unaffected: the figure still comes out of the engine's one
+    // function, so no second implementation of it exists to disagree.
+    const [got] = world().calls
+    expect(got).toBeDefined()
+
+    // Identity, membership and decision state are untouched — this is not a
+    // refresh, and a refresh is the only thing allowed to change those.
+    expect(got?.key).toBe(call.key)
+    expect(got?.outPlayerId).toBe(call.outPlayerId)
+    expect(got?.inPlayerId).toBe(call.inPlayerId)
+    expect(got?.reasoning).toBe(call.reasoning)
+    expect(got?.alternatives).toEqual(call.alternatives)
+    expect(world().calls).toHaveLength(1)
+
+    // And the figure is a number the engine produced from this world's own
+    // projections, not the stored one copied across.
+    expect(typeof got?.net).toBe('number')
   })
 
   it('F3-AC-01: this gameweek\'s decisions are keyed by call; a pending call has no entry', () => {

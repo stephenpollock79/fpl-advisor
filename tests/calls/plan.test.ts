@@ -398,3 +398,63 @@ describe('F4-UP-02 · the armband pair is never left inconsistent', () => {
     }
   })
 })
+
+describe('F6-AC-01, F6-AC-03, F6-AC-05 · what a refresh keeps, and what it walks through', () => {
+  it('F6-AC-01: a selected transfer spends its money and its free transfer before the plan starts', () => {
+    const w = world({ freeTransfers: 1, bankTenths: 100 })
+    const name = byName(w)
+    const committed = [{ key: 'transfer:out=7:in=16', outPlayerId: 7, inPlayerId: 16, costTenths: 30, isTransfer: true }]
+    const calls = planWeek({ ...w, committed })
+
+    // Neither player is offered again — the decision is not a suggestion.
+    const touched = calls.flatMap((c) => [c.outPlayerId, c.inPlayerId])
+    expect(touched).not.toContain(7)
+    expect(touched).not.toContain(16)
+    // And the free transfer is gone, so a further transfer carries the hit.
+    const transfers = calls.filter((c) => c.category === 'transfer')
+    expect(transfers.length).toBeGreaterThan(0)
+    for (const t of transfers) expect(figuresOf(t).pointsHit).toBe(4)
+    expect(name(16)).toBe('Gross')
+  })
+
+  it('F6-AC-01: the bought player is in the squad, so he can be substituted or captained', () => {
+    const w = world({ bankTenths: 200 })
+    // Commit the strongest pool player in, and check the plan treats him as owned
+    // rather than as someone still to be bought.
+    const committed = [{ key: 'transfer:out=7:in=18', outPlayerId: 7, inPlayerId: 18, costTenths: 90, isTransfer: true }]
+    const calls = planWeek({ ...w, committed })
+
+    // He is off the table for every other call, which is F3-UP-04 applied to a
+    // player the manager has already claimed.
+    expect(calls.flatMap((c) => [c.outPlayerId, c.inPlayerId])).not.toContain(18)
+  })
+
+  it('F6-AC-03: a rejected call is not offered again while its premise stands', () => {
+    const w = world()
+    const first = planWeek(w).filter((c) => c.category === 'transfer')
+    const rejected = first[0]?.key
+    expect(rejected).toBeDefined()
+
+    const again = planWeek({ ...w, suppressed: new Set([rejected ?? '']) })
+    expect(again.map((c) => c.key)).not.toContain(rejected)
+  })
+
+  it('F6-AC-05: a forced call surfaces even when it was rejected earlier', () => {
+    const w = world()
+    // Shaw's club blanks, so the swap that covers him is forced.
+    const squad = w.squad.map((p) => (p.name === 'Shaw' ? { ...p, hasFixture: false } : p))
+    const forced = planWeek({ ...w, squad }).find((c) => c.outPlayerId === 2)
+    expect(forced).toBeDefined()
+    expect(figuresOf(forced).isForced).toBe(true)
+
+    const again = planWeek({ ...w, squad, suppressed: new Set([forced?.key ?? '']) })
+    expect(again.map((c) => c.key)).toContain(forced?.key)
+  })
+
+  it('F6-AC-04: with nothing committed and nothing suppressed the plan is exactly what it was', () => {
+    const w = world()
+    expect(planWeek({ ...w, committed: [], suppressed: new Set() }).map((c) => c.key)).toEqual(
+      planWeek(w).map((c) => c.key),
+    )
+  })
+})

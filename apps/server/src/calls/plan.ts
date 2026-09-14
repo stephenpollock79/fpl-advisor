@@ -68,6 +68,28 @@ export type PlanInput = {
   freeTransfers: number
   /** From the model. Absent, or none of them valid, and code picks. */
   proposals?: TransferProposal[]
+  /**
+   * Calls the manager has already selected (F6-AC-01). **Constraints, not
+   * suggestions:** the cash and the free transfer are spent, the incoming player
+   * is in the squad and the outgoing one is not, and neither can be touched
+   * again. A run that re-planned around them would be offering to undo a
+   * decision the manager has already made.
+   */
+  committed?: readonly CommittedCall[]
+  /**
+   * Keys the manager rejected, still standing (F6-AC-03). **A forced call
+   * ignores this outright** (F6-AC-05) — if a starter has become unavailable
+   * that call must surface, whatever was said about it earlier.
+   */
+  suppressed?: ReadonlySet<string>
+}
+
+export type CommittedCall = {
+  key: string
+  outPlayerId: number
+  inPlayerId: number
+  costTenths: number
+  isTransfer: boolean
 }
 
 export type CallShape =
@@ -166,7 +188,9 @@ const asCall = (
 const planned = (base: PlannedBase, outcome: ReturnType<typeof evaluateCall>): PlannedCall =>
   outcome.reading === 'call' ? { ...base, outcome } : { ...base, outcome }
 
-export function planWeek(input: PlanInput): PlannedCall[] {
+export function planWeek(raw: PlanInput): PlannedCall[] {
+  const input = withCommitments(raw)
+  const suppressedKeys = raw.suppressed ?? new Set<string>()
   const squadIds = new Set(input.squad.map((p) => p.playerId))
   const pool = input.pool.filter((p) => !squadIds.has(p.playerId))
   const squadById = new Map(input.squad.map((p) => [p.playerId, p]))
@@ -185,7 +209,9 @@ export function planWeek(input: PlanInput): PlannedCall[] {
   const inBestEleven = new Set(bestEleven(members).map((m) => m.playerId))
   const allSubstitutions = substitutions(members)
 
-  const touched = new Set<number>()
+  // Every player a selected call holds is claimed before the search starts, so
+  // nothing the plan produces can contradict a decision already made.
+  const touched = new Set<number>((raw.committed ?? []).flatMap((c) => [c.outPlayerId, c.inPlayerId]))
   const clubCount = new Map<number, number>()
   for (const p of input.squad) clubCount.set(p.clubId, (clubCount.get(p.clubId) ?? 0) + 1)
   let bank = input.bankTenths
@@ -453,7 +479,13 @@ export function planWeek(input: PlanInput): PlannedCall[] {
 
   const chosen: DecidableCall[] = []
   for (;;) {
-    const [pick] = [...substitutionCandidates(), ...benchCandidate(), ...transferCandidates()].sort(rank)
+    const [pick] = [...substitutionCandidates(), ...benchCandidate(), ...transferCandidates()]
+      // F6-AC-03 and F6-AC-05, in that order and never merged: a rejection holds,
+      // and a forced call walks through it. Merging the two would lose the
+      // exception the first time both were true, which is exactly the week it
+      // matters — a starter the manager already said no to, now injured.
+      .filter((c) => !suppressedKeys.has(c.key) || c.outcome.isForced)
+      .sort(rank)
     if (!pick) break
 
     chosen.push(pick)
@@ -536,4 +568,45 @@ function pickerLists(
     .map((p) => p.playerId)
 
   return { out: outs, in: ins }
+}
+
+
+/**
+ * The squad as the manager's own decisions have already left it (F6-AC-01).
+ *
+ * A selected transfer is not a proposal any more: its money is gone, its free
+ * transfer is used, the player he is buying is his and the player he is selling
+ * is not. Planning against the squad he started the week with would offer him
+ * advice that quietly assumes he changes his mind.
+ *
+ * A selected substitution or captaincy call moves no money and no player between
+ * squad and pool, so it constrains by holding its players and nothing else.
+ */
+function withCommitments(input: PlanInput): PlanInput {
+  const committed = input.committed ?? []
+  if (committed.length === 0) return input
+
+  const transfers = committed.filter((c) => c.isTransfer)
+  if (transfers.length === 0) return input
+
+  const leaving = new Set(transfers.map((c) => c.outPlayerId))
+  const arriving = new Map(transfers.map((c) => [c.inPlayerId, c]))
+  const poolById = new Map(input.pool.map((p) => [p.playerId, p]))
+
+  const incoming: SquadEntry[] = []
+  for (const [id] of arriving) {
+    const player = poolById.get(id)
+    // A committed player the latest read no longer carries is not silently
+    // dropped from the squad — the run simply cannot place him, and the call
+    // that named him is reported unexecutable by the recomputation instead.
+    if (player) incoming.push({ ...player, isStarter: true, benchOrder: null, sellingPriceTenths: player.nowCostTenths, isCaptain: false, isVice: false })
+  }
+
+  return {
+    ...input,
+    squad: [...input.squad.filter((p) => !leaving.has(p.playerId)), ...incoming],
+    pool: input.pool.filter((p) => !arriving.has(p.playerId)),
+    bankTenths: input.bankTenths - transfers.reduce((sum, c) => sum + c.costTenths, 0),
+    freeTransfers: Math.max(0, input.freeTransfers - transfers.length),
+  }
 }

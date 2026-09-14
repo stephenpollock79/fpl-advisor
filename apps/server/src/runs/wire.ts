@@ -10,7 +10,9 @@ import type { AuthenticatedUser } from '../auth/session.js'
 import { ingestWorld } from '../ingest/run.js'
 import { modelFromEnv } from '../model/client.js'
 import { fillMissingPurchasePrices } from '../squad/store.js'
-import { userClient } from '../supabase.js'
+import type { EvidenceRow } from '../refresh/evidence.js'
+import type { DecisionState, LockableCall } from '../refresh/locks.js'
+import { referenceClient, userClient } from '../supabase.js'
 import { loadWeek } from './load.js'
 import type { RunDeps } from './routes.js'
 
@@ -27,9 +29,78 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
 
     loadWeek,
 
+    /**
+     * The two sides of the diff, plus the manager's answers.
+     *
+     * `before` is the read the last **successful** run was built from, which is
+     * what `run.feed_read_id` exists for. Null where there has never been one —
+     * and null means everything is new, which is the safe direction: a first run
+     * must never be skipped on the strength of a comparison it could not make.
+     */
+    async refreshInputs(user) {
+      const db = userClient(user.accessToken)
+      const reference = referenceClient()
+
+      const { data: runs } = await db
+        .from('run')
+        .select('id, feed_read_id')
+        .eq('status', 'succeeded')
+        .order('finished_at', { ascending: false })
+        .limit(1)
+      const lastRun = (runs as { id: string; feed_read_id: string | null }[] | null)?.[0] ?? null
+
+      const { data: newest } = await reference
+        .from('feed_read')
+        .select('id')
+        .eq('source', 'fpl_bootstrap')
+        .order('fetched_at', { ascending: false })
+        .limit(1)
+      const feedReadId = ((newest as { id: string }[] | null)?.[0]?.id) ?? null
+
+      const rows = async (readId: string | null): Promise<EvidenceRow[] | null> => {
+        if (!readId) return null
+        const { data } = await reference
+          .from('player_state')
+          .select('player_id, status, news, news_added, chance_of_playing_next_round, now_cost_tenths')
+          .eq('feed_read_id', readId)
+        return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+          playerId: r['player_id'] as number,
+          status: r['status'] as EvidenceRow['status'],
+          news: (r['news'] as string | null) ?? null,
+          newsAdded: (r['news_added'] as string | null) ?? null,
+          chanceOfPlayingNextRound: (r['chance_of_playing_next_round'] as number | null) ?? null,
+          nowCostTenths: r['now_cost_tenths'] as number,
+        }))
+      }
+
+      const { data: callRows } = lastRun
+        ? await db.from('call').select('call_key, category, out_player_id, in_player_id, cost_tenths, alternatives').eq('run_id', lastRun.id)
+        : { data: [] as Record<string, unknown>[] }
+      const { data: decisionRows } = await db.from('decision').select('call_key, state')
+
+      return {
+        before: await rows(lastRun?.feed_read_id ?? null),
+        after: (await rows(feedReadId)) ?? [],
+        feedReadId,
+        calls: ((callRows ?? []) as Record<string, unknown>[]).map((c) => ({
+          key: c['call_key'] as string,
+          category: c['category'] as LockableCall['category'],
+          outPlayerId: c['out_player_id'] as number,
+          inPlayerId: c['in_player_id'] as number,
+          costTenths: c['cost_tenths'] as number,
+          alternatives: (c['alternatives'] as LockableCall['alternatives']) ?? null,
+        })),
+        decisions: Object.fromEntries(
+          ((decisionRows ?? []) as Record<string, unknown>[]).map((d) => [d['call_key'] as string, d['state'] as DecisionState]),
+        ),
+        // The swapped pair's cost, from the prices already in hand.
+        costOfSwap: () => 0,
+      }
+    },
+
     model: () => modelFromEnv(),
 
-    async startRun(user, gameweek, snapshotId) {
+    async startRun(user, gameweek, snapshotId, feedReadId) {
       const db = userClient(user.accessToken)
       const { count } = await db
         .from('run')
@@ -42,6 +113,7 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
           user_id: user.userId,
           gameweek,
           squad_snapshot_id: snapshotId,
+          feed_read_id: feedReadId,
           status: 'running',
           trigger: (count ?? 0) > 0 ? 'refresh' : 'first_open',
         })
@@ -106,6 +178,22 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
       await userClient(user.accessToken)
         .from('run')
         .update({ status: 'failed', finished_at: new Date().toISOString(), model_calls: modelCalls })
+        .eq('id', runId)
+    },
+
+    /**
+     * A streamed run that stopped. **Cancelled is stored as cancelled, never as
+     * failed** (F6-AC-20): a cancelled run is treated exactly as one that never
+     * started, and calling it a failure would put it in front of the manager as
+     * something that went wrong when he is the one who stopped it.
+     *
+     * Neither ages the advice — the last-run time reads the last *succeeded* run
+     * and neither of these is one.
+     */
+    async endRun(user, runId, status) {
+      await userClient(user.accessToken)
+        .from('run')
+        .update({ status, finished_at: new Date().toISOString() })
         .eq('id', runId)
     },
   }

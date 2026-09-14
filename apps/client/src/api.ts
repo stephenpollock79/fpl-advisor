@@ -157,6 +157,14 @@ export type WorldCall = {
   breakdown: Breakdown
   alternatives: { out: number[]; in: number[] } | null
   position: number
+  /**
+   * What the last refresh or recomputation did to this call, until the card has
+   * been seen (F6-AC-13). Transient by design: a tag that never clears stops
+   * meaning anything, which is why the server holds when it was viewed.
+   */
+  diffTag: 'new' | 'updated' | 'returned' | 'resurfaced' | 'band_move' | null
+  /** What the band moved from — "was 84%, now 71%" (F6-AC-11). */
+  previousConviction: number | null
 }
 
 export type DecisionState = 'selected' | 'rejected'
@@ -184,17 +192,98 @@ export type World = {
   priceForecastReadAt: string | null
   blanks: number
   doubles: number
+  /**
+   * The feeds answered on this open (F6-UP-02). False means the source is gone,
+   * not that anything broke: the squad, the prices and every decision are on file
+   * and still true. Only what needs a fresh read is frozen.
+   */
+  feedsReachable?: boolean
+  /** When the data on screen was read. What the amber strip timestamps. */
+  dataReadAt?: string | null
   attribution: { name: string; href: string }
 }
 
 /**
- * Generate the week's calls. The server reads both feeds fresh, asks the model
- * for transfer proposals, computes every figure through the engine and writes
- * the reasoning — so this can take a while, and says nothing until it is done.
- * F6 (slice 7) replaces the wait with the streamed Thinking state.
+ * Generate the week's calls, without saying anything until it is done.
+ *
+ * Kept for the one place that has nothing to show progress on — the very first
+ * run, before any screen exists to put a pipeline on. Everything else uses
+ * `streamRun` below.
  */
 export async function startRun(): Promise<{ runId: string; calls: WorldCall[] }> {
   return post('/api/runs', {})
+}
+
+/** One step of a run, as the server reports it (F6-AC-17, F6-AC-18). */
+export type RunStep = {
+  id: 'read' | 'diff' | 'propose' | 'score' | 'explain'
+  label: string
+  /** Real figures, where the step has them to state. */
+  scale?: { players: number; squad: number }
+  calls?: number
+}
+
+export type RunEvent =
+  | { kind: 'step'; step: RunStep }
+  | { kind: 'done'; runId: string; calls: WorldCall[]; reused: boolean; changed?: number }
+  | { kind: 'error'; reason: string }
+
+/**
+ * The streamed run behind the Thinking state (F6-AC-16 to F6-AC-20).
+ *
+ * **Cancellation is the request closing**, which is why the signal is the only
+ * control this takes: aborting it closes the connection, the server marks the
+ * run cancelled, and nothing it had produced is written. A cancelled run is
+ * treated exactly as one that never started, so the last-run time does not move.
+ *
+ * Still `api.ts` and nowhere else — a streamed read is a read, and the moment a
+ * component opens its own connection the single data path stops being single
+ * (ADR 0005).
+ */
+export async function* streamRun(signal: AbortSignal): AsyncGenerator<RunEvent> {
+  const res = await fetch('/api/runs/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+    credentials: 'same-origin',
+    signal,
+  })
+  if (!res.ok || !res.body) throw new Error(`run failed: ${String(res.status)}`)
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    // Server-sent events are separated by a blank line. A partial frame stays in
+    // the buffer rather than being parsed early and thrown away.
+    let split = buffer.indexOf('\n\n')
+    while (split !== -1) {
+      const frame = buffer.slice(0, split)
+      buffer = buffer.slice(split + 2)
+      split = buffer.indexOf('\n\n')
+
+      const event = /event:\s*(\S+)/.exec(frame)?.[1]
+      const raw = /data:\s*(.*)/.exec(frame)?.[1]
+      if (!event || raw === undefined) continue
+      const data = JSON.parse(raw) as Record<string, unknown>
+
+      if (event === 'step') yield { kind: 'step', step: data as unknown as RunStep }
+      else if (event === 'done')
+        yield {
+          kind: 'done',
+          runId: data['runId'] as string,
+          calls: (data['calls'] as WorldCall[]) ?? [],
+          reused: data['reused'] === true,
+          changed: data['changed'] as number | undefined,
+        }
+      else if (event === 'error') yield { kind: 'error', reason: (data['reason'] as string) ?? 'run_failed' }
+    }
+  }
 }
 
 /**

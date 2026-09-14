@@ -1,8 +1,15 @@
 /**
- * `POST /api/runs` — one advice generation.
+ * `POST /api/runs` — one advice generation, or the decision not to make one.
  *
- * Plain JSON for now. F6 (slice 7) turns this into the streamed, cancellable run
- * behind the Thinking state; the steps inside it do not change.
+ * **Most refreshes should cost nothing** (F6-RS-08). The diff runs first and is
+ * mechanical and free; only when it finds something that could change a decision
+ * is the model called at all. When it finds nothing the stored calls are reused
+ * and the figures are *identical* rather than close, because every one of them is
+ * arithmetic over published inputs that have not moved.
+ *
+ * The manager's own decisions go in as constraints (F6-AC-01) and suppressions
+ * (F6-AC-03) rather than being applied to the output afterwards — a plan built
+ * around them cannot contradict them, and a plan filtered after the fact can.
  *
  * **A failed run never destroys existing advice** (NFR Reliability). Its calls
  * are stored only once it has succeeded, and every screen reads the latest
@@ -14,9 +21,14 @@
  */
 
 import { Hono } from 'hono'
+import { streamSSE } from 'hono/streaming'
 import type { AuthenticatedUser } from '../auth/session.js'
 import type { PlanInput } from '../calls/plan.js'
 import type { ModelCallRecord, ModelPort } from '../model/client.js'
+import type { EvidenceRow } from '../refresh/evidence.js'
+import { diffEvidence } from '../refresh/evidence.js'
+import type { DecisionState, LockableCall } from '../refresh/locks.js'
+import { committedPairs, suppressed } from '../refresh/locks.js'
 import { type CardInfo, type StoredCall, generateWeek } from './generate.js'
 
 export type WeekInputs = {
@@ -26,13 +38,26 @@ export type WeekInputs = {
   cards: Map<number, CardInfo>
 }
 
+/** What the last successful run saw, and what the feeds say now. */
+export type RefreshInputs = {
+  /** Null when there has never been a successful run — then everything is new. */
+  before: EvidenceRow[] | null
+  after: EvidenceRow[]
+  feedReadId: string | null
+  /** The calls that run produced, and the manager's answers to them. */
+  calls: LockableCall[]
+  decisions: Record<string, DecisionState>
+  costOfSwap: (outId: number, inId: number) => number
+}
+
 export type RunDeps = {
   authenticate: (cookie: string | undefined) => Promise<AuthenticatedUser | null>
   /** Read both feeds fresh and fill any purchase price the squad is missing. */
   prepare: (user: AuthenticatedUser) => Promise<void>
   loadWeek: (user: AuthenticatedUser) => Promise<WeekInputs | null>
+  refreshInputs: (user: AuthenticatedUser) => Promise<RefreshInputs>
   model: () => ModelPort
-  startRun: (user: AuthenticatedUser, gameweek: number, snapshotId: string) => Promise<string>
+  startRun: (user: AuthenticatedUser, gameweek: number, snapshotId: string, feedReadId: string | null) => Promise<string>
   finishRun: (
     user: AuthenticatedUser,
     runId: string,
@@ -41,10 +66,102 @@ export type RunDeps = {
     modelCalls: ModelCallRecord[],
   ) => Promise<void>
   failRun: (user: AuthenticatedUser, runId: string, modelCalls: ModelCallRecord[]) => Promise<void>
+  /** Close a streamed run that did not finish. Cancelled is not failed (F6-AC-20). */
+  endRun: (user: AuthenticatedUser, runId: string, status: 'failed' | 'cancelled') => Promise<void>
 }
+
+/**
+ * The steps the Thinking state names, in the order they run (F6-AC-18).
+ *
+ * Stated here rather than in the client so that the label and the state can
+ * never contradict each other: the screen renders what the server says it is
+ * doing, and has no second opinion about what happens next.
+ */
+export const RUN_STEPS = [
+  { id: 'read', label: 'Reading the feeds' },
+  { id: 'diff', label: 'Checking what has changed' },
+  { id: 'propose', label: 'Looking for candidates' },
+  { id: 'score', label: 'Scoring the week' },
+  { id: 'explain', label: 'Writing the reasoning' },
+] as const
 
 export function runRoutes(deps: RunDeps) {
   const app = new Hono()
+
+  /**
+   * The streamed form (F6-AC-16 to F6-AC-20). Same steps, different transport —
+   * the Thinking state needs to know what is happening *while* it happens, and a
+   * request that completes in one lump cannot say.
+   *
+   * **Cancellation is the request closing.** The client aborts, this loop's
+   * writes start failing, and the run is marked `cancelled` — which is treated
+   * exactly as a run that never started, never as a failure, so the last-run
+   * time does not move (F6-AC-20).
+   */
+  app.post('/api/runs/stream', async (c) => {
+    const user = await deps.authenticate(c.req.header('Cookie'))
+    if (!user) return c.json({ error: 'not_signed_in' }, 401)
+
+    return streamSSE(c, async (stream) => {
+      let runId: string | null = null
+      const send = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) })
+
+      try {
+        await send('step', { id: 'read', label: RUN_STEPS[0].label })
+        await deps.prepare(user)
+
+        const week = await deps.loadWeek(user)
+        if (!week) {
+          await send('error', { reason: 'no_squad' })
+          return
+        }
+
+        await send('step', {
+          id: 'diff',
+          label: RUN_STEPS[1].label,
+          // Real figures, never a spinner's worth of words (F6-AC-17).
+          scale: { players: week.plan.squad.length + week.plan.pool.length, squad: week.plan.squad.length },
+        })
+        const refresh = await deps.refreshInputs(user)
+        const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
+
+        runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
+
+        if (evidence && !evidence.worthPaying) {
+          await deps.finishRun(user, runId, week.gameweek, [], [])
+          await send('done', { runId, calls: [], reused: true, changed: evidence.changed.length })
+          return
+        }
+
+        await send('step', { id: 'propose', label: RUN_STEPS[2].label })
+        const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
+        const { keys } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
+
+        await send('step', { id: 'score', label: RUN_STEPS[3].label })
+        const { calls, modelCalls } = await generateWeek({
+          plan: {
+            ...week.plan,
+            committed: committedPairs(refresh.calls, refresh.decisions, refresh.costOfSwap),
+            suppressed: keys,
+          },
+          cards: week.cards,
+          model: deps.model(),
+        })
+
+        await send('step', { id: 'explain', label: RUN_STEPS[4].label, calls: calls.length })
+        await deps.finishRun(user, runId, week.gameweek, calls, modelCalls)
+        await send('done', { runId, calls, reused: false })
+      } catch (cause) {
+        // A closed request is a cancellation, not a failure, and the two must
+        // never be recorded as the same thing — a failure ages nothing either,
+        // but it is something the manager is shown and asked about (F6-UP-01).
+        const cancelled = c.req.raw.signal.aborted
+        console.error(`[runs] streamed run ${runId ?? 'unstarted'} ${cancelled ? 'cancelled' : 'failed'}`, cause)
+        if (runId) await deps.endRun(user, runId, cancelled ? 'cancelled' : 'failed')
+        if (!cancelled) await send('error', { reason: 'run_failed', runId })
+      }
+    })
+  })
 
   app.post('/api/runs', async (c) => {
     const user = await deps.authenticate(c.req.header('Cookie'))
@@ -55,12 +172,34 @@ export function runRoutes(deps: RunDeps) {
     const week = await deps.loadWeek(user)
     if (!week) return c.json({ error: 'no_squad' }, 409)
 
-    const runId = await deps.startRun(user, week.gameweek, week.snapshotId)
+    const refresh = await deps.refreshInputs(user)
+    const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
+
+    const runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
 
     try {
-      const { calls, modelCalls } = await generateWeek({ plan: week.plan, cards: week.cards, model: deps.model() })
+      // F6-RS-08. Nothing has moved that could alter a decision, so the model is
+      // not called at all and the week stands as it was. The figures are kept
+      // honest by the recomputation on every world read, not by spending here.
+      if (evidence && !evidence.worthPaying) {
+        await deps.finishRun(user, runId, week.gameweek, [], [])
+        return c.json({ runId, calls: [], reused: true, changed: evidence.changed.length })
+      }
+
+      const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
+      const { keys } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
+
+      const { calls, modelCalls } = await generateWeek({
+        plan: {
+          ...week.plan,
+          committed: committedPairs(refresh.calls, refresh.decisions, refresh.costOfSwap),
+          suppressed: keys,
+        },
+        cards: week.cards,
+        model: deps.model(),
+      })
       await deps.finishRun(user, runId, week.gameweek, calls, modelCalls)
-      return c.json({ runId, calls })
+      return c.json({ runId, calls, reused: false })
     } catch (cause) {
       console.error(`[runs] run ${runId} failed`, cause)
       await deps.failRun(user, runId, [])
