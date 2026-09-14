@@ -339,31 +339,6 @@ directions with fabricated clocks; what is unobserved is the state on a phone.
 the app after it, before GW6 becomes next, is the state — and it is the first
 weekend the app will ever have been live across a deadline. *Home: STE-65.*
 
-**F6-RS-08 is no longer true of the build, and that is a ruling for the PRD
-rather than a missing test.** The criterion says that when no new evidence has
-landed the model is not called and the stored calls are reused, so most
-refreshes cost nothing. On 2026-09-14 (STE-128) the reuse was removed: a refresh
-always re-runs the pipeline.
-
-**Why it had to go.** "No new evidence" was decided by a diff over FPL's own
-player records (F6-RS-02) — status, news, chance, price. A call also rests on the
-projections (F6-RS-01), and those are stored one row per player per gameweek and
-overwritten on every ingest, with the raw payload never kept. There is no
-previous value to compare against, so the diff cannot see the projections move.
-It reported *nothing has changed* while the captain pick and a legal
-substitution had both gone stale beneath it.
-
-A silence that cannot tell *nothing moved* from *I cannot see* is the worse of
-the two, because it reads as the reassuring one.
-
-**The manual row recording F6-RS-08 as verified on 2026-09-14 has been removed**,
-because what was verified no longer happens.
-
-**What would close it:** the PRD ruling on whether F6-RS-08 stands, is reworded,
-or is retired. If it is to stand, it needs a per-run projection baseline — store
-the projections each run saw, so a later refresh has something honest to diff
-against. *Home: STE-128.*
-
 **F6-AC-02 is asserted on a screen, never across a refresh — which is the only
 circumstance the criterion is about.** `tests/e2e/assistant.spec.ts` names it and
 passes: it opens a world in which the selected call is present and checks the

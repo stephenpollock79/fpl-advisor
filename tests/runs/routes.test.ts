@@ -110,6 +110,34 @@ const storedCall = (extra: Partial<StoredCall> = {}): StoredCall => ({
   ...extra,
 })
 
+const player = (id: number, extra: Record<string, unknown> = {}) => ({
+  playerId: id,
+  status: 'a' as const,
+  news: null,
+  newsAdded: null,
+  chanceOfPlayingNextRound: null,
+  nowCostTenths: 50,
+  ...extra,
+})
+const world = [player(1), player(2), player(3)]
+/**
+ * A call on file carrying the figures this week's world actually gives it.
+ *
+ * Taken from a run rather than typed in here. The gate compares each stored
+ * call against the world as it stands, so a hand-picked band would decide the
+ * test: write one the fixture disagrees with and every "quiet week" case
+ * spends, passing for a reason that has nothing to do with what is asserted.
+ */
+const onFileAsScoredNow = async (): Promise<StoredCall> => {
+  const { post, stored } = harness({
+    refreshInputs: async () => ({ before: null, after: world, feedReadId: 'r1', calls: [], decisions: {}, costOfSwap: () => 0 }),
+  })
+  await post()
+  const [first] = (stored[0]?.calls ?? []) as StoredCall[]
+  expect(first).toBeDefined()
+  return first as StoredCall
+}
+
 describe('POST /api/runs', () => {
   it('answers 401 to a signed-out request and starts nothing', async () => {
     const h = harness()
@@ -170,29 +198,48 @@ describe('POST /api/runs', () => {
   })
 })
 
-describe('STE-128 · every refresh re-runs the pipeline', () => {
-  /** A call already on file, so there is something for a reuse to reuse. */
+describe('F6-RS-08 · what a refresh is worth paying for', () => {
 
-  const player = (id: number, extra: Record<string, unknown> = {}) => ({
-    playerId: id,
-    status: 'a' as const,
-    news: null,
-    newsAdded: null,
-    chanceOfPlayingNextRound: null,
-    nowCostTenths: 50,
-    ...extra,
-  })
 
-  it('STE-128: no FPL record moved, and the refresh re-plans anyway rather than reusing the week', async () => {
-    // **The defect this replaced.** An unchanged FPL record is not an unchanged
-    // world: the projections sit behind every figure and no previous copy of
-    // them is stored, so this diff cannot see them move. It used to answer
-    // "nothing has changed" and hand back the stored calls — with a stale
-    // captain pick and a legal substitution missing underneath.
-    const world = [player(1), player(2), player(3)]
+
+
+  it('F6-RS-08: nothing has moved, so the model is not called at all and the week stands', async () => {
+    const onFile = await onFileAsScoredNow()
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [storedCall()], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, costOfSwap: () => 0 }),
+      model: () => {
+        modelCalls += 1
+        return mockModel()
+      },
+    })
+
+    const body = (await post()).body as { reused: boolean }
+
+    expect(body.reused).toBe(true)
+    expect(modelCalls).toBe(0)
+  })
+
+  it('STE-128: a stored figure that no longer holds is new evidence, even with every FPL record identical', async () => {
+    // **The defect that removed this gate and then brought it back.** An
+    // unchanged FPL record is not an unchanged world — a call rests mostly on
+    // the projections, which are overwritten on every ingest with no previous
+    // copy kept. The gate used to compare player records only, so it answered
+    // "nothing has changed" while the numbers under the advice had moved. It now
+    // asks each stored call whether its own figure still holds, which is a
+    // question it can answer.
+    const onFile = await onFileAsScoredNow()
+    const elsewhere = onFile.band === 'thin' ? 'certain' : 'thin'
+    let modelCalls = 0
+    const { post } = harness({
+      refreshInputs: async () => ({
+        before: world,
+        after: world,
+        feedReadId: 'r2',
+        calls: [{ ...onFile, conviction: 10, band: elsewhere as StoredCall['band'] }],
+        decisions: {},
+        costOfSwap: () => 0,
+      }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -225,12 +272,13 @@ describe('STE-128 · every refresh re-runs the pipeline', () => {
     expect(modelCalls).toBe(1)
   })
 
-  it('STE-128, F6-AC-11: churn below the availability gate is still counted, and still re-plans', async () => {
+  it('F6-RS-08, F6-AC-11: churn below the availability gate is counted but not paid for', async () => {
+    const onFile = await onFileAsScoredNow()
     const before = [player(1, { status: 'd', chanceOfPlayingNextRound: 75, news: 'Knock' })]
     const after = [player(1, { status: 'd', chanceOfPlayingNextRound: 100, news: 'Knock — expected to feature' })]
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [storedCall()], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [onFile], decisions: {}, costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -238,8 +286,10 @@ describe('STE-128 · every refresh re-runs the pipeline', () => {
     })
 
     const body = (await post()).body as { reused: boolean; changed: number }
-    expect(body.reused).toBe(false)
-    expect(modelCalls).toBe(1)
+    expect(body.reused).toBe(true)
+    // It was seen and counted — silence is not the same as blindness.
+    expect(body.changed).toBe(1)
+    expect(modelCalls).toBe(0)
   })
 
   it('F6-RS-11, F6-RS-09: a player dropping out of availability does spend, and rewrites the week', async () => {
@@ -275,21 +325,22 @@ describe('STE-128 · every refresh re-runs the pipeline', () => {
     expect(modelCalls).toBe(1)
   })
 
-  it('STE-128: a quiet refresh records a real run, and never a failure', async () => {
-    // The shape this guards is still the old one: whatever a refresh decides, it
-    // must not leave the week's advice destroyed behind it. A run is started and
-    // finished; nothing is recorded failed.
-    const world = [player(1)]
+  it('F6-RS-08: a reused refresh writes no run at all, so the week it reused is still there', async () => {
+    // **The bug this was written after.** A reuse used to write a succeeded run
+    // with no calls, and every screen reads the latest succeeded run — so the
+    // week's advice vanished and read as "nothing worth doing" rather than as
+    // anything having gone wrong. Reuse means reuse.
+    const onFile = await onFileAsScoredNow()
     const { post, events } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [storedCall()], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, costOfSwap: () => 0 }),
     })
 
     const body = (await post()).body as { reused: boolean; runId: string | null }
 
-    expect(body.reused).toBe(false)
-    expect(body.runId).not.toBeNull()
-    expect(events.some((e) => e.startsWith('start:'))).toBe(true)
-    expect(events.some((e) => e.startsWith('finish:'))).toBe(true)
+    expect(body.reused).toBe(true)
+    expect(body.runId).toBeNull()
+    expect(events.some((e) => e.startsWith('start:'))).toBe(false)
+    expect(events.some((e) => e.startsWith('finish:'))).toBe(false)
     expect(events.some((e) => e.startsWith('fail:'))).toBe(false)
   })
 })
@@ -424,18 +475,17 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
     expect((diff?.data['scale'] as { players: number }).players).toBeGreaterThan(15)
   })
 
-  it('STE-128: a quiet week still runs every step of the pipeline, scoring included', async () => {
-    const same = [{ playerId: 1, status: 'a' as const, news: null, newsAdded: null, chanceOfPlayingNextRound: null, nowCostTenths: 50 }]
-    const onFile = [storedCall()]
+  it('F6-RS-08: a quiet week streams straight to done, reused, with no scoring steps', async () => {
+    const onFile = await onFileAsScoredNow()
     const { go } = stream({
-      refreshInputs: async () => ({ before: same, after: same, feedReadId: 'r2', calls: onFile, decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, costOfSwap: () => 0 }),
     })
     const events = await read(await go())
 
     expect(events.at(-1)?.event).toBe('done')
-    expect(events.at(-1)?.data['reused']).toBe(false)
-    expect(events.at(-1)?.data['runId']).not.toBeNull()
-    expect(events.map((e) => e.data['id'])).toContain('score')
+    expect(events.at(-1)?.data['reused']).toBe(true)
+    expect(events.at(-1)?.data['runId']).toBeNull()
+    expect(events.map((e) => e.data['id'])).not.toContain('score')
   })
 
   it('F6-UP-01: a run that breaks says so and is recorded failed, never as a success', async () => {

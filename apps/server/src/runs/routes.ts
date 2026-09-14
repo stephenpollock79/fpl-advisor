@@ -10,27 +10,25 @@
  * longest, so it is the moment a progress pipeline is worth most — and it was
  * the one place that did not have one.
  *
- * **A refresh always re-runs the pipeline** (ruled 2026-09-14, STE-128). It did
- * not, until tonight: the evidence diff gated the run, and finding nothing it
- * reused the stored calls.
+ * **Most refreshes should cost nothing** (F6-RS-08). The diff runs first and is
+ * mechanical and free; only when it finds something that could change a decision
+ * is the model called at all. When it finds nothing the stored calls are reused
+ * and the figures are *identical* rather than close, because every one of them
+ * is arithmetic over published inputs that have not moved.
  *
- * The gate was answering a question it could not answer. It diffs FPL's own
- * player records — status, news, chance, price (F6-RS-02) — and a recommendation
- * also rests on the projections (F6-RS-01). Those live in `projection`, keyed
- * `(gameweek, player_id)` and overwritten on every ingest, and `feed_read.raw` is
- * never written. **So no previous projection exists to compare against, and the
- * diff cannot see the projections move.** It reported "nothing has changed" while
- * the captain pick and a legal substitution had both gone stale underneath it.
+ * **That gate was removed on 2026-09-14 and restored the same night** (STE-128),
+ * and what changed in between is the only thing that made it trustworthy. It
+ * used to ask one question — have FPL's player records moved? — and a call rests
+ * mostly on the projections, which are stored one row per player and overwritten
+ * on every ingest. So it reported *nothing has changed* while the numbers under
+ * the advice had been republished, which is the worse of the two silences
+ * because it reads as the reassuring one.
  *
- * Silence that cannot distinguish *nothing moved* from *I cannot see* is the
- * worse of the two failures, because it reads as the reassuring one. A refresh
- * is manual, deliberate and confirmed by an interstitial first (F6-AC-10), so
- * the honest answer to pressing it is to do the work.
- *
- * **This contradicts F6-RS-08** ("most refreshes should cost nothing"), which
- * assumed the diff covered every published input behind a call. It does not, and
- * for a bought-in feed that overwrites in place it cannot without storing a
- * per-run projection baseline. Raised for the PRD rather than resolved here.
+ * It now also re-derives every stored call from the read just taken and asks
+ * whether any figure no longer holds. No projection history is needed for that:
+ * each call carries the figure it was made at, and a projection that moves shows
+ * up as a figure that moves. The residual — a brand-new candidate becoming worth
+ * proposing on a projection alone — is named at the gate itself.
  *
  * The manager's own decisions go in as constraints (F6-AC-01) and suppressions
  * (F6-AC-03) rather than being applied to the output afterwards — a plan built
@@ -144,7 +142,7 @@ const swapCost = (plan: WeekInputs['plan']) => {
 }
 
 /**
- * Which rejected calls are no longer the call that was rejected (F6-AC-06).
+ * Which stored calls are no longer the call they were (F6-AC-06).
  *
  * The verdict is the engine's, re-derived from the world as it stands: the band
  * crossed a boundary, or the call can no longer be executed. Nothing here
@@ -152,8 +150,18 @@ const swapCost = (plan: WeekInputs['plan']) => {
  * world read.
  *
  * **The baseline is each call's own stored figure**, which is the whole reason
- * this can be answered without a projection history. A projection that moves
- * shows up here through its effect on the call it supports.
+ * any of this can be answered without a projection history. A projection that
+ * moves shows up here through its effect on the calls it supports.
+ *
+ * Two things read this, and both want the same question answered. A rejected
+ * call returns when its own entry is here (F6-AC-03). And the run is worth
+ * paying for when *anything* is here, because a figure that moved is a published
+ * input that moved (F6-RS-08).
+ *
+ * **A call that cannot be re-derived counts as moved.** That is the safe
+ * direction in both readings: the run spends rather than reusing on a verdict it
+ * could not reach, and a rejected call comes back visible rather than being held
+ * out by a failure nobody sees.
  */
 function materiallyMoved(refresh: RefreshInputs, week: WeekInputs): Set<string> {
   const sides = new Map<number, SideNow>(
@@ -176,7 +184,6 @@ function materiallyMoved(refresh: RefreshInputs, week: WeekInputs): Set<string> 
 
   const moved = new Set<string>()
   for (const call of refresh.calls) {
-    if (refresh.decisions[call.key] !== 'rejected') continue
     // One bad row must not take down the run — the same posture the world read
     // takes, and for the same reason: a call naming a player the latest feed no
     // longer knows is one call's problem, not the week's.
@@ -184,7 +191,8 @@ function materiallyMoved(refresh: RefreshInputs, week: WeekInputs): Set<string> 
       const now = recomputeCall({ ...call, identity: identityOf(call) }, sides)
       if (now.movedBand || now.unexecutable) moved.add(call.key)
     } catch (cause) {
-      console.error(`[runs] could not re-derive rejected call ${call.key}; leaving it suppressed`, cause)
+      console.error(`[runs] could not re-derive ${call.key}; treating it as moved`, cause)
+      moved.add(call.key)
     }
   }
   return moved
@@ -260,6 +268,40 @@ export function runRoutes(deps: RunDeps) {
         await send('step', { id: 'diff', label: RUN_STEPS[1].label, scale })
         const refresh = await deps.refreshInputs(user)
         const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
+        const moved = materiallyMoved(refresh, week)
+
+        /**
+         * **Most refreshes should cost nothing** (F6-RS-08), and this is the
+         * check that decides — now that it can answer honestly.
+         *
+         * Both halves are free. `diffEvidence` compares FPL's own player records;
+         * `materiallyMoved` re-derives every stored call from the feed read just
+         * taken and reports the ones whose figure no longer holds. Neither calls
+         * the model. Only when both find nothing is the week reused.
+         *
+         * **The second half is what was missing, and its absence made this gate
+         * a liar.** A call rests mostly on the projections, and those are stored
+         * one row per player and overwritten on every ingest, so nothing here
+         * could see them move — the gate reported *nothing has changed* while
+         * the numbers underneath had been republished. It does not need a
+         * projection history to see that: every stored call carries the figure
+         * it was made at, and a projection that moves shows up as a figure that
+         * moved.
+         *
+         * **What it still cannot see** is a brand-new candidate becoming worth
+         * proposing on a projection alone, with no injury, news or price behind
+         * it — there is no existing call for that to move. The FPL-record half
+         * catches the injuries and returns that produce most new candidates
+         * (F6-RS-05), so the two together are a good net rather than a complete
+         * one. Stated rather than glossed.
+         *
+         * A reuse writes no run at all: a succeeded run with no calls does not
+         * reuse the week's advice, it replaces it with nothing.
+         */
+        if (evidence && !evidence.worthPaying && moved.size === 0 && refresh.calls.length > 0) {
+          await send('done', { runId: null, calls: [], reused: true, changed: evidence.changed.length })
+          return
+        }
 
         runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
         // The connection may have closed while the feeds were being read, before
@@ -274,7 +316,7 @@ export function runRoutes(deps: RunDeps) {
         // Whether a rejected call's premise has moved is answered by the call's
         // own stored band against the world as it stands (F6-AC-06) — not by the
         // FPL-record diff, which cannot see the projections move at all.
-        const { keys, returning } = suppressed(refresh.calls, refresh.decisions, materiallyMoved(refresh, week))
+        const { keys, returning } = suppressed(refresh.calls, refresh.decisions, moved)
 
         await send('step', { id: 'score', label: RUN_STEPS[3].label, scale })
         const { calls, modelCalls } = await generateWeek({

@@ -268,10 +268,13 @@ export function AssistantScreen({
           setStep(event.step)
           if (event.step.scale) setScale(event.step.scale)
         } else if (event.kind === 'done') {
-          // Every refresh re-plans now (STE-128), so there is no reuse to
-          // announce. A run that changed nothing says so through an empty diff
-          // sheet (F6-AC-12), which is the same answer arrived at honestly.
-          setShowDiff(true)
+          // Nothing behind the advice moved, so nothing was spent and the week
+          // stands. Said plainly rather than shown as an empty report — and it
+          // is now a claim the server can actually make, because it re-derives
+          // every stored call before saying it rather than only checking FPL's
+          // player records (STE-128).
+          if (event.reused) setNotice('Nothing behind your advice has moved. Your calls stand.')
+          else setShowDiff(true)
           onReload()
         } else {
           setError('The run did not finish, and nothing has changed. Try again.')
