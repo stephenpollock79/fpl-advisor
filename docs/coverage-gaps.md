@@ -277,3 +277,21 @@ tag that matters is read the same way.
 **F6-AC-13 must not be read as fully met.** What closes it is marking the call
 viewed when its card has been on screen, and clearing the tag from that. *Home:
 STE-65* — it belongs to the slice that built it, not to a later one.
+
+**F6-UP-03 — named by a test that proves a different half.** The criterion is
+that a gameweek rollover is a clean slate: the previous shortlist, decisions,
+filters and pending calls are discarded, advice is regenerated **from the squad
+FPL reports at that point**, and the distinction from a within-gameweek refresh
+is stated to the manager rather than implied.
+
+`tests/refresh/guard.test.ts` names it, and what that file proves is the
+*deadline stop* — that advice about a week already played is refused. **It does
+not prove the clean slate, and it does not prove the squad is re-read.** The
+first live rollover, on 2026-09-14, showed exactly that gap: the deadline rolled
+to gameweek 5 correctly and the squad on screen was still gameweek 3's, because
+picks were being read on the points rule. That defect is fixed; the criterion's
+other halves are still unproven.
+
+**F6-UP-03 must not be read as met**, and what would close it is a test that
+rolls the gameweek and asserts the decisions, the shortlist and the pending
+calls are gone and the squad has been captured again. *Home: STE-65.*
