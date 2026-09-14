@@ -4,13 +4,13 @@ Build **STE-65** · no test ticket · Monday 14 September · reads `docs/criteri
 
 ## Seams
 
-**The diff is pure, and it is the slice's seam.** Two feed reads in, a verdict out, under `apps/server/src/refresh/`. No clock, no network, no database — so every case the season will produce can be fabricated, which matters because none can be observed this week.
+**The diff is pure, and it is the slice's seam.** Two feed reads in, a verdict out, under `apps/server/src/refresh/`. No clock, no network, no database — every case the season will produce is fabricated, because none can be observed this week.
 
-**Recomputation rides on `GET /api/world`, which already re-reads the feeds on every call.** It gains one thing: the stored calls' figures are re-derived from that read. **No model call, no new candidate, no change to any call's existence or decision state** — so `F6-AC-15`'s *nothing refreshes on its own* is intact. A refresh regenerates; recomputation keeps a displayed figure true to the data beside it (ruled 14 September).
+**`GET /api/world` must start re-reading the feeds, and today it does not.** It ingests only when the world is empty, so outside a run the app re-reads nothing — `CLAUDE.md`'s *feeds are fetched on open* has never been true. The read is added here, coalesced so a burst of calls does not re-fetch, and the stored calls' figures are re-derived from it. **No model call, no new candidate, no change to any call's existence or decision state** — so `F6-AC-15`'s *nothing refreshes on its own* is intact. A refresh regenerates; recomputation keeps a displayed figure true to the data beside it (ruled 14 September).
 
 **`POST /api/runs` becomes a hand-written SSE endpoint.** The Thinking state needs progress from a running job, and no framework here supplies streaming (ADR 0005, §6). Cancellation is `AbortController` plus request-close, which is what makes `F6-AC-20` true rather than claimed: an abandoned run writes nothing.
 
-**Four storage additions, all specified and none built.** `run.feed_read_id` — the diff's baseline is *what was on file at the last successful run*, and nothing records which read a run saw, so the criterion has no anchor. `call.diff_tag`, `previous_conviction` and `viewed_at` carry the transient tags. Architecture §4.1 lists all four; additive, and reversed by dropping columns nothing else reads.
+**Four storage additions, all specified and none built.** `run.feed_read_id` — the diff's baseline is *what was on file at the last successful run*, and nothing records which read a run saw, so the criterion has no anchor. `call.diff_tag`, `previous_conviction` and `viewed_at` carry the tags. Architecture §4.1 lists all four; additive.
 
 **No boundary is crossed.** `api.ts` stays the client's only data path and gains a stream reader; the engine is untouched; no new table, so no policy; the build split is unchanged.
 

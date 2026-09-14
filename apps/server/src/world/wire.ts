@@ -27,6 +27,20 @@ export function worldDeps(
       return ((data as { fpl_team_id: number | null } | null)?.fpl_team_id) ?? null
     },
 
+    /**
+     * When the newest feed read was taken — the figure `feed_read.fetched_at`
+     * has recorded since slice 3 and nothing has ever read. It is what stops a
+     * burst of world reads re-fetching both feeds every time.
+     */
+    async newestFeedReadAt() {
+      const { data } = await referenceClient()
+        .from('feed_read')
+        .select('fetched_at')
+        .order('fetched_at', { ascending: false })
+        .limit(1)
+      return ((data as { fetched_at: string }[] | null)?.[0]?.fetched_at) ?? null
+    },
+
     async ingest() {
       const result = await ingestWorld()
       return { gameweek: result.gameweek }

@@ -114,6 +114,13 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     breakdown: c['breakdown'],
     alternatives: (c['alternatives'] as WorldCall['alternatives']) ?? null,
     position: c['position'] as number,
+    // The tag the last *run* left. A recomputation may replace it in the world,
+    // and the two must not be written over each other on the row.
+    diffTag: (c['diff_tag'] as WorldCall['diffTag']) ?? null,
+    previousConviction:
+      c['previous_conviction'] === null || c['previous_conviction'] === undefined
+        ? null
+        : Number(c['previous_conviction']),
   }))
 
   const squadIds = squad.map((s) => s.playerId)
