@@ -28,13 +28,14 @@ export function keepLine(
   reason: 'incumbent_wins' | 'below_floor',
   rows: readonly EvaluationRow[],
   holderName: string,
-  challengerName: string,
 ): string {
   const xpts = rows.find((r) => r.key === 'xpts')
   const held = (xpts?.out ?? 0).toFixed(1)
-  const other = (xpts?.in ?? 0).toFixed(1)
 
+  // **No rival is named.** The card shows the holder alone (F4 happy path,
+  // amended 2026-09-14), and a sentence that names someone the card does not
+  // show puts the comparison back in words after taking it out of the layout.
   return reason === 'incumbent_wins'
-    ? `${holderName} keeps it: ${held} projected points this gameweek against ${challengerName}'s ${other}.`
-    : `${holderName} keeps it: ${held} against ${challengerName}'s ${other} is too close to call a change on.`
+    ? `${holderName} keeps it: ${held} projected points this gameweek, the highest in your eleven.`
+    : `${holderName} keeps it: ${held} projected points, and nothing in your eleven is clear enough of him to justify a change.`
 }

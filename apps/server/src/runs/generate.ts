@@ -157,7 +157,7 @@ export async function generateWeek(input: {
       // sentence recommends the wrong player on a keep.
       if (call.outcome.reading !== 'call') {
         return {
-          text: keepLine(call.outcome.reason, rows, out.name, into.name),
+          text: keepLine(call.outcome.reason, rows, out.name),
           source: 'template' as const,
           record: null,
         }

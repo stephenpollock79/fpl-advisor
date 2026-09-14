@@ -92,6 +92,17 @@ export function HeadToHead({
     else if (dy < -SWIPE) onDecide('pending')
   }
 
+  // **A captaincy keep is not a comparison** (F4 happy path, amended 2026-09-14).
+  // Shown as a head-to-head it puts two players and a decision panel in front of
+  // the manager and then tells him not to act, which reads as a choice he is
+  // expected to resolve. A transfer that recomputes to no change keeps the
+  // head-to-head, because there the manager asked for the comparison himself.
+  if (!decidable && call.category === 'captaincy') {
+    return (
+      <Keep shown={shown} index={index} left={left} onPrev={onPrev} onNext={onNext} />
+    )
+  }
+
   return (
     <div className={styles.h2h}>
       <div className={styles.stepper}>
@@ -275,6 +286,76 @@ export function HeadToHead({
           <span className={styles.readingWhy}>{readingLine(figures.because)}</span>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * The armband is already on the right player, so the card says that and stops.
+ *
+ * One player, his projected points, and why. **No versus, no second player, no
+ * evaluation table and no decision panel** — there is no decision here to make,
+ * and every one of those elements implies there is.
+ */
+function Keep({
+  shown,
+  index,
+  left,
+  onPrev,
+  onNext,
+}: {
+  shown: Shown
+  index: number
+  left: number
+  onPrev: () => void
+  onNext: () => void
+}) {
+  const { call, out, figures } = shown
+  const role = call.shape === 'vice' ? 'vice-captaincy' : 'captaincy'
+
+  return (
+    <div className={styles.h2h}>
+      <div className={styles.stepper}>
+        <span className={styles.stepLabel}>
+          {SHAPE_LABEL[call.shape]} · CALL {index + 1} OF {left}
+        </span>
+        <button className={styles.pager} onClick={onPrev} aria-label="Previous undecided call" type="button">
+          ‹
+        </button>
+        <button className={styles.pager} onClick={onNext} aria-label="Next undecided call" type="button">
+          ›
+        </button>
+        <span className={styles.left}>{left} LEFT</span>
+      </div>
+
+      <div className={`${styles.card} ${styles.keepCard}`} data-testid="keep-card">
+        <span className={styles.keepEyebrow}>No change · nothing to do</span>
+        <span className={styles.keepName}>{out.surname}</span>
+        <span className={styles.keepMeta}>
+          {out.clubShortName} · {out.position}
+        </span>
+        <span data-testid="keep-points" className={styles.keepPoints}>
+          {out.projectedPoints.toFixed(1)}
+          <span className={styles.keepPointsLabel}> xPts this gameweek</span>
+        </span>
+        <p className={styles.keepVerdict}>
+          Nobody in your eleven projects higher. He keeps the {role === 'vice-captaincy' ? 'vice armband' : 'armband'}.
+        </p>
+
+        <div className={styles.reasoning}>
+          <img className={styles.gaffer} src={avatar} alt="" />
+          <div className={styles.reasoningBody}>
+            <p data-testid="reasoning" className={styles.reasoningText}>
+              {figures.reasoning}
+            </p>
+            {armbandNotes(call).map((note) => (
+              <p key={note} data-testid="armband-note" className={styles.reasoningNote}>
+                {note}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

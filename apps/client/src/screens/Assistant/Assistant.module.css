@@ -462,3 +462,47 @@
    fixed and must always be readable (F4-AC-05, F4-AC-12). */
 .reasoningBody { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .reasoningNote { margin: 0; padding-left: 10px; border-left: 2px solid var(--border-strong); font-size: 11px; line-height: 1.35; color: var(--muted); }
+
+/* A captaincy keep (F4 happy path, amended 2026-09-14): one player, his figure
+   and why. Centred and quiet rather than laid out as an argument between two
+   sides — the shape of the card should say there is nothing to resolve before a
+   word is read. */
+.keepCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 26px 18px 0;
+  text-align: center;
+}
+
+.keepEyebrow {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.keepName { margin-top: 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.keepMeta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--muted); }
+
+.keepPoints {
+  margin-top: 14px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--green-tint);
+  border: 1px solid var(--green-tint-border);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--green-text);
+}
+
+.keepPointsLabel { font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.keepVerdict { margin: 14px 0 auto; max-width: 260px; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+
+/* The reasoning sits flush at the foot of the card, as it does on a call. */
+.keepCard .reasoning { align-self: stretch; margin: 0 -18px; text-align: left; }

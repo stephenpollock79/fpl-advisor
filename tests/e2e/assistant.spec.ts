@@ -338,19 +338,27 @@ test('F4-AC-02, F4-AC-03: a keep reading offers no decision tile and enters no t
   const { posted } = await open(page, {}, [...world.calls.slice(0, 2), ...readings])
   await page.getByRole('tab', { name: 'Captain' }).click()
 
-  await expect(page.getByTestId('reading-panel')).toContainText('nothing to do')
-  await expect(page.getByTestId('strength')).toHaveText('no change')
+  // **Not a comparison** (F4 happy path, amended 2026-09-14): one player, his
+  // figure and why. A versus with a decision panel underneath reads as a choice
+  // the manager is expected to resolve, and there is not one.
+  // Not named `keep` — that is the fixture factory this test calls above, and
+  // shadowing it here reaches the const before it exists.
+  const card = page.getByTestId('keep-card')
+  await expect(card).toContainText('nothing to do')
+  await expect(card).toContainText('Nobody in your eleven projects higher')
+  await expect(page.getByTestId('keep-points')).toContainText('xPts this gameweek')
+  await expect(page.getByText('VS', { exact: true })).toHaveCount(0)
+  await expect(page.getByTestId('in-name')).toHaveCount(0)
   // Neither route into a decision exists: no tiles, and the swipe does nothing.
   await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Reject' })).toHaveCount(0)
 
-  // The swipe is not asserted here. Playwright's synthetic pointer stream does
-  // not reach this card's handlers at all — the same gesture on a *decidable*
-  // card files nothing either, so an empty `posted` would prove the harness is
-  // quiet rather than that the card is. It is item 2 of the slice 6 checklist,
-  // and `docs/coverage-gaps.md` records that this test covers one of F4-AC-02's
-  // two routes into a decision.
-  await page.getByTestId('in-name').click()
+  // Tapping the card files nothing. The *swipe* is still not asserted here:
+  // Playwright's synthetic pointer stream does not reach these handlers, and the
+  // same gesture on a decidable card files nothing either — so an empty `posted`
+  // would be evidence about the harness. It is item 2 of the slice 6 checklist,
+  // recorded in `docs/coverage-gaps.md`.
+  await card.click()
   expect(posted).toHaveLength(0)
 
   // Nothing was ever outstanding here, so the tab says Clear rather than Done.
@@ -361,7 +369,7 @@ test('F4-UP-02: rejecting the captain change holds the vice call rather than lea
   await open(page, { [CAPTAIN]: 'rejected' })
   await page.getByRole('tab', { name: 'Captain' }).click()
 
-  await expect(page.getByTestId('reading-panel')).toContainText('Held while the captain stays as he is')
+  await expect(page.getByTestId('keep-card')).toContainText('nothing to do')
   await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
 })
 
