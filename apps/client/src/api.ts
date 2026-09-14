@@ -209,17 +209,6 @@ export type World = {
   attribution: { name: string; href: string }
 }
 
-/**
- * Generate the week's calls, without saying anything until it is done.
- *
- * Kept for the one place that has nothing to show progress on — the very first
- * run, before any screen exists to put a pipeline on. Everything else uses
- * `streamRun` below.
- */
-export async function startRun(): Promise<{ runId: string; calls: WorldCall[] }> {
-  return post('/api/runs', {})
-}
-
 /** One step of a run, as the server reports it (F6-AC-17, F6-AC-18). */
 export type RunStep = {
   id: 'read' | 'diff' | 'propose' | 'score' | 'explain'

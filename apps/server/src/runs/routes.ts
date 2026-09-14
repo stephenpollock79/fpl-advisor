@@ -1,5 +1,14 @@
 /**
- * `POST /api/runs` — one advice generation, or the decision not to make one.
+ * `POST /api/runs/stream` — one advice generation, or the decision not to make
+ * one, reported as it happens.
+ *
+ * **One route, not two.** A plain-JSON version ran beside this until
+ * 2026-09-14, used by the first run of a gameweek, with the diff and the lock
+ * logic written out twice. Two copies of a rule drift, and this pair already
+ * had: the fix for a reuse writing an empty run had to be made in both, and
+ * missing one would have shown up only on a first run. The first run is also the
+ * longest, so it is the moment a progress pipeline is worth most — and it was
+ * the one place that did not have one.
  *
  * **Most refreshes should cost nothing** (F6-RS-08). The diff runs first and is
  * mechanical and free; only when it finds something that could change a decision
@@ -205,73 +214,6 @@ export function runRoutes(deps: RunDeps) {
         if (!cancelled) await send('error', { reason: 'run_failed', runId })
       }
     })
-  })
-
-  app.post('/api/runs', async (c) => {
-    const user = await deps.authenticate(c.req.header('Cookie'))
-    if (!user) return c.json({ error: 'not_signed_in' }, 401)
-
-    await deps.prepare(user)
-
-    const week = await deps.loadWeek(user)
-    if (!week) return c.json({ error: 'no_squad' }, 409)
-
-    const refresh = await deps.refreshInputs(user)
-    const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
-
-    // **F6-RS-08, and the run row is not written at all.** Nothing has moved that
-    // could alter a decision, so the model is not called and *the stored calls
-    // are reused* — which is the criterion's own word.
-    //
-    // Writing a succeeded run with no calls instead does not reuse them, it
-    // destroys them: every screen reads the latest succeeded run, so the week's
-    // advice vanished and read as "nothing worth doing" rather than as a
-    // failure. Found live on 2026-09-14, after a refresh that correctly found
-    // nothing to do emptied the Assistant.
-    //
-    // Nothing advancing is also right for the next diff: its baseline stays the
-    // read the advice on screen was actually built from.
-    // **And there has to be something to reuse.** A run that produced no calls
-    // leaves nothing to carry forward, so reusing it would keep an empty week
-    // empty for ever: the diff finds nothing new a minute later, declines to
-    // spend, and the screen stays blank with no way out. Found live on
-    // 2026-09-14, after the empty runs the bug above had already written.
-    //
-    // Zero stored calls cannot be a legitimate quiet week either — captaincy
-    // produces two calls every week without exception (F4-AC-01) — so zero means
-    // something went wrong, not that there is nothing to say.
-    if (evidence && !evidence.worthPaying && refresh.calls.length > 0) {
-      return c.json({ runId: null, calls: [], reused: true, changed: evidence.changed.length })
-    }
-
-    const runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
-
-    try {
-
-      const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
-      // `returning` is the set F6-AC-03's second half needs: a rejected call
-      // whose premise has moved comes back, and **comes back labelled**. Working
-      // out which they are and then discarding it put the manager in front of
-      // something he had already said no to with nothing explaining why.
-      const { keys, returning } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
-
-      const { calls, modelCalls } = await generateWeek({
-        resurfaced: returning,
-        plan: {
-          ...week.plan,
-          committed: committedPairs(refresh.calls, refresh.decisions, swapCost(week.plan)),
-          suppressed: keys,
-        },
-        cards: week.cards,
-        model: deps.model(),
-      })
-      await deps.finishRun(user, runId, week.gameweek, calls, modelCalls)
-      return c.json({ runId, calls, reused: false })
-    } catch (cause) {
-      console.error(`[runs] run ${runId} failed`, cause)
-      await deps.failRun(user, runId, [])
-      return c.json({ error: 'run_failed' }, 500)
-    }
   })
 
   return app
