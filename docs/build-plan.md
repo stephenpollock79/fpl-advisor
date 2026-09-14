@@ -1,6 +1,6 @@
 <!-- DERIVED FILE - DO NOT EDIT. Regenerate with extract-build-plan.py in the vault. -->
 <!-- source: Build Plan - The FPL Advisor.md -->
-<!-- source-sha256: 18170b82fdafdfe4 -->
+<!-- source-sha256: 7579f75dc7bf1d0f -->
 
 # Build order and schedule
 
@@ -59,7 +59,7 @@ status from Linear — never restate one in another.
 | **Wed 9**     | 2 · F7 team link (STE-55) · 3 · F1 (STE-56, STE-57) | STE-32, STE-53, STE-31                                                         | Spec F1 just-in-time, then build it                 |
 | **Thu 10**    | 4 · Engine (STE-60, STE-61)                         | STE-87, STE-88, STE-113                                                        | Headless, unit tests first                          |
 | **Fri 11**    | 5 · F3 (STE-62, STE-63)                             | —                                                                              | The calls                                           |
-| **Mon 14**    | 6 · F4 (STE-64) · 7 · F6 (STE-65)                   | STE-77, STE-111                                                                | Captaincy and refresh                               |
+| **Mon 14**    | 6 · F4 (STE-64) · 7 · F6 (STE-65)                   | STE-77, STE-111, STE-128, STE-129, STE-130, STE-131, STE-132                   | Captaincy and refresh                               |
 | **Tue 15**    | 8 · F8 + F7-surface (STE-66) · 9 · F2 (STE-67)      | STE-33                                                                         | The surface, then **call the MVP**                  |
 | **Wed 16**    | 10 · F7 hardening (STE-68)                          | STE-38, STE-69, STE-79, STE-80                                                 | E2E week opens                                      |
 | **Thu 17**    | —                                                   | STE-35, STE-37                                                                 | Instrumentation; the eval-grading decision          |
