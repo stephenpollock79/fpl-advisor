@@ -106,6 +106,14 @@ export function Thinking({
   }, [current])
 
   const index = current ? STEPS.findIndex((s) => s.id === current.id) : -1
+
+  // On a short screen the pipeline scrolls, and the step that is running is the
+  // one worth seeing. Without this the list stays at the top while the work
+  // moves out of sight, which is the same as not showing it.
+  const runningRow = useRef<HTMLLIElement | null>(null)
+  useEffect(() => {
+    runningRow.current?.scrollIntoView({ block: 'nearest' })
+  }, [index])
   const took = (id: string) => {
     const ms = elapsed[id]
     if (ms === undefined) return null
@@ -155,7 +163,12 @@ export function Thinking({
             const state = i < index ? 'done' : i === index ? 'running' : 'queued'
             const mark = state === 'done' ? '\u2713' : state === 'running' ? '\u25b8' : '\u00b7'
             return (
-              <li key={step.id} className={styles[`step${state[0]?.toUpperCase() ?? ''}${state.slice(1)}`] ?? styles.stepQueued} data-state={state}>
+              <li
+                key={step.id}
+                ref={state === 'running' ? runningRow : null}
+                className={styles[`step${state[0]?.toUpperCase() ?? ''}${state.slice(1)}`] ?? styles.stepQueued}
+                data-state={state}
+              >
                 <span className={styles.stepMark} aria-hidden="true">
                   {mark}
                 </span>
