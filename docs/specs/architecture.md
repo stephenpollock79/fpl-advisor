@@ -166,9 +166,8 @@ written before anyone is authenticated and is therefore service-role only.
 
 **Units, stated once.** Money is stored as an integer in **tenths of £1m**, matching FPL's own
 `now_cost` (`55` is £5.5m). No float ever holds money. Projected points are `numeric(5,2)`.
-Multipliers and convictions are computed by the engine and stored as computed, never re-derived on
-read (F1-AC-22, F9-AC-18 and the engine's single-source-of-truth rule all say the same thing from
-three directions).
+Multipliers and convictions are computed by the engine and stored as computed. **They are re-derived
+on read since 2026-09-14, and only by that same engine function** — see the correction below.
 
 **Two families.** *User data* is owned by a person and carries a row-level policy keyed to
 `auth.uid()`. *Reference data* is the world — it belongs to nobody, is read by the server with the
@@ -411,8 +410,22 @@ Computed by the engine, so both consumers produce the same string from the same 
 
 Two constraints ride alongside it. **No two calls in one run may touch the same player** — prevented
 at generation, not detected in the interface (F3-UP-04), and re-checked on every refresh, which is
-what stops scenario totals double-counting. And **conviction is never recomputed on read**: the
-stored figure is what every surface displays, so no two surfaces can disagree.
+what stops scenario totals double-counting.
+
+**And conviction *is* recomputed on read, since 2026-09-14 (ruled on STE-65).** This section said
+the opposite until then, and the sentence is corrected here rather than left to be discovered:
+every stored call is re-derived from the feed read the world was built on, each time a screen loads.
+
+**What that changed and what it did not.** It changed the rule that the stored figure is what every
+surface displays. It did not change the rule that sentence existed to protect — *no two surfaces
+disagree* — because the re-derivation calls the engine's own single function (ENGINE-AC-04), so
+there is still exactly one implementation and nothing to disagree with.
+
+**Why the old rule had to go.** The figures are arithmetic over published inputs, so re-deriving
+them costs nothing and calls no model. Leaving them stored meant a conviction on screen could
+contradict the projection printed beside it, on the same card — data moving while the number that
+came from it did not. **Recomputing is not a refresh:** it adds no call, drops none, and decides
+nothing, so *nothing refreshes on its own* (F6-AC-15) is intact.
 
 ---
 
