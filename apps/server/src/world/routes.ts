@@ -59,7 +59,22 @@ export function worldRoutes(deps: WorldDeps) {
     const now = (deps.now ?? Date.now)()
     const newest = await deps.newestFeedReadAt()
     const fresh = newest !== null && now - Date.parse(newest) < COALESCE_MS
-    if (!fresh) await deps.ingest()
+
+    // **A feed that cannot be reached is not a failure of this request** (F6-UP-02).
+    // The squad, the prices and the manager's own decisions are all on file and
+    // still true; what is frozen is anything that needs a new read. So the world
+    // is answered from what is stored, with the fact carried on it — the screen
+    // can then say what is frozen and how old it is, rather than the app looking
+    // broken or, worse, looking fine.
+    let feedsReachable = true
+    if (!fresh) {
+      try {
+        await deps.ingest()
+      } catch (cause) {
+        console.error('[world] the feeds could not be read; answering from what is on file', cause)
+        feedsReachable = false
+      }
+    }
 
     let parts = await deps.loadParts(user)
 
@@ -75,7 +90,13 @@ export function worldRoutes(deps: WorldDeps) {
       throw new Error('The world is still empty after ingesting it. Refusing to answer with nothing.')
     }
 
-    return c.json(assembleWorld(parts) satisfies World)
+    return c.json({
+      ...(assembleWorld(parts) satisfies World),
+      feedsReachable,
+      // What the screen timestamps itself with. Null only before the first read
+      // ever, which cannot reach here.
+      dataReadAt: await deps.newestFeedReadAt(),
+    })
   })
 
   return app

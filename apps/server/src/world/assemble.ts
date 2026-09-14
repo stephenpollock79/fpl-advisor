@@ -148,6 +148,14 @@ export type World = {
   blanks: number
   doubles: number
   attribution: { name: string; href: string }
+  /**
+   * Whether the feeds answered on this open (F6-UP-02). False is not an error:
+   * the squad, the prices and the decisions are on file and still true, and only
+   * what needs a fresh read is frozen. The screen says which.
+   */
+  feedsReachable?: boolean
+  /** When the data on screen was read, for the screen to timestamp itself with. */
+  dataReadAt?: string | null
 }
 
 export type WorldParts = {

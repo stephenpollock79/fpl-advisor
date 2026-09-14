@@ -144,12 +144,13 @@ async function open(
   page: Page,
   decisions: Record<string, string> = {},
   calls: unknown[] = world.calls,
+  extra: Record<string, unknown> = {},
 ): Promise<{ posted: { callKey: string; state: string }[] }> {
   const posted: { callKey: string; state: string }[] = []
   await page.route('**/api/me', (route: Route) =>
     route.fulfill({ json: { manager: { user_id: 'u', fpl_team_id: 6131656, team_name: 'Noggingham Forest', manager_name: 'S', overall_rank: 1 }, needsTeamLink: false } }),
   )
-  await page.route('**/api/world', (route: Route) => route.fulfill({ json: { ...world, decisions, calls } }))
+  await page.route('**/api/world', (route: Route) => route.fulfill({ json: { ...world, decisions, calls, ...extra } }))
   await page.route('**/api/decisions', async (route: Route) => {
     posted.push(JSON.parse(route.request().postData() ?? '{}') as { callKey: string; state: string })
     await route.fulfill({ json: { ok: true } })
@@ -404,4 +405,46 @@ test('F6-AC-02: a selected call reads selected · locked, so it is clear why it 
 
   await expect(page.getByText('Transfers decided')).toBeVisible()
   await expect(page.getByText('SELECTED · LOCKED', { exact: false })).toBeVisible()
+})
+
+test('F6-UP-02: when FPL is not answering the screen says how old it is, and refresh reads off rather than failing on tap', async ({ page }) => {
+  await open(page, {}, world.calls, { feedsReachable: false, dataReadAt: new Date(Date.now() - 39 * 60 * 1000).toISOString() })
+
+  const frozen = page.getByTestId('frozen')
+  await expect(frozen).toContainText('39 minutes old')
+  // What is frozen, what is not, and the risk named rather than implied.
+  await expect(frozen).toContainText('Not frozen')
+  await expect(frozen).toContainText('team news')
+
+  // Off, not broken: it does not fail on tap, and navigation is untouched.
+  await expect(page.getByTestId('refresh')).toContainText('REFRESH OFF')
+  await expect(page.getByTestId('refresh')).toBeDisabled()
+  await page.getByRole('tab', { name: 'Sub' }).click()
+  await expect(page.getByTestId('strength')).toBeVisible()
+})
+
+test('F6-AC-19, F6-AC-16: the Thinking state states how long it takes and can be cancelled the whole way through', async ({ page }) => {
+  await open(page)
+
+  // A request that stays open, so the working state is caught mid-run rather
+  // than raced against its own finish. What the steps *say* is asserted on the
+  // server, which is where the labels come from.
+  await page.route('**/api/runs/stream', async (route: Route) => {
+    await new Promise((resolve) => setTimeout(resolve, 4000))
+    await route.fulfill({ status: 200, headers: { 'Content-Type': 'text/event-stream' }, body: '' })
+  })
+
+  await page.getByTestId('refresh').click()
+  await page.getByRole('button', { name: /^Refresh/ }).click()
+
+  const thinking = page.getByTestId('thinking')
+  await expect(thinking).toBeVisible()
+  // The expected duration is stated rather than left to be guessed at.
+  await expect(thinking).toContainText('Usually under a minute')
+  // And it is cancellable for the whole of it, not only at a convenient moment.
+  await expect(thinking.getByRole('button', { name: 'Cancel' })).toBeEnabled()
+
+  await thinking.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByTestId('thinking')).toHaveCount(0)
+  await expect(page.getByText('Nothing changed', { exact: false })).toBeVisible()
 })

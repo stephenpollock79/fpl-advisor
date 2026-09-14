@@ -256,3 +256,24 @@ must not be read as fully verified from the coverage figure** until that check
 has run on a phone. This is the same shape as `F3-AC-07` and `F3-AC-08` in slice
 5, which were verified by hand for the same reason and are in
 `docs/manual-coverage.md` with the date.
+
+**F6-AC-13 — the tag is built, its transience is not.** The criterion is that
+each affected call carries a tag on its own card **until it has been viewed**.
+The tag is built, tested and on screen; `call.viewed_at` exists in the migration
+because architecture §4.1 specifies it — and **nothing writes it**.
+
+So the two halves behave differently. A *band move* clears on its own, because
+the tag is derived fresh on every world read from the difference between the
+stored figure and the re-derived one: once a run stores the new figure there is
+no difference left to report. A tag a **run** wrote — `returned`, `resurfaced`,
+`new` — has no such mechanism and stands until the next run overwrites it.
+
+**The consequence is the one the criterion was written against.** A tag that
+never clears stops meaning anything, and the manager learns to read past it —
+which is the same failure as a prompt that fires on everything. It is not
+dangerous, because nothing acts on the tag; it is corrosive, because the next
+tag that matters is read the same way.
+
+**F6-AC-13 must not be read as fully met.** What closes it is marking the call
+viewed when its card has been on screen, and clearing the tag from that. *Home:
+STE-65* — it belongs to the slice that built it, not to a later one.

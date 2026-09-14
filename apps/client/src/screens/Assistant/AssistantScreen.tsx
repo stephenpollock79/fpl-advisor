@@ -26,6 +26,7 @@ import {
   recomputeTransfer,
   restoredSwaps,
   shortlistCount,
+  dataAge,
   diffRows,
   storedFigures,
   viceHeldByCaptain,
@@ -381,11 +382,11 @@ export function AssistantScreen({
         <button
           className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
           onClick={() => setAsking(true)}
-          disabled={running || noRunYet}
+          disabled={running || noRunYet || world.feedsReachable === false}
           data-testid="refresh"
           type="button"
         >
-          ↻ {TABS.find((x) => x.category === tab)?.label ?? 'All'}
+          {world.feedsReachable === false ? 'REFRESH OFF' : `↻ ${TABS.find((x) => x.category === tab)?.label ?? 'All'}`}
         </button>
       </nav>
 
@@ -426,6 +427,24 @@ export function AssistantScreen({
         <p className={styles.notice} role="status">
           {notice}
         </p>
+      ) : null}
+
+      {/* F6-UP-02: the source is gone, so the refresh control reads off rather
+          than failing on tap, and the screen timestamps itself. Navigation is
+          never dimmed — everything already on file is still true and still
+          worth looking at. */}
+      {world.feedsReachable === false ? (
+        <div className={styles.frozen} data-testid="frozen">
+          <span className={styles.frozenAge}>{dataAge(world.dataReadAt, Date.now()) ?? 'showing stored data'}</span>
+          <p>
+            <strong>FPL is not answering.</strong> Frozen until it is: new calls, refresh, and chip
+            re-planning. Not frozen: your squad, your prices and every decision you have made.
+          </p>
+          <p className={styles.frozenRisk}>
+            What you cannot see is team news. If someone picks up a knock in the next hour, this
+            screen will not know.
+          </p>
+        </div>
       ) : null}
 
       <section className={styles.content}>

@@ -192,6 +192,14 @@ export type World = {
   priceForecastReadAt: string | null
   blanks: number
   doubles: number
+  /**
+   * The feeds answered on this open (F6-UP-02). False means the source is gone,
+   * not that anything broke: the squad, the prices and every decision are on file
+   * and still true. Only what needs a fresh read is frozen.
+   */
+  feedsReachable?: boolean
+  /** When the data on screen was read. What the amber strip timestamps. */
+  dataReadAt?: string | null
   attribution: { name: string; href: string }
 }
 

@@ -380,3 +380,20 @@ export function diffRows(calls: readonly WorldCall[], nameOf: (id: number) => st
     return []
   })
 }
+
+
+/**
+ * How old the data on screen is, in the manager's words (F6-UP-02).
+ *
+ * Only ever shown when the feeds could not be reached — a timestamp on a live
+ * screen is noise, and one on a frozen screen is the whole point.
+ */
+export function dataAge(readAt: string | null | undefined, nowMs: number): string | null {
+  if (!readAt) return null
+  const minutes = Math.max(0, Math.round((nowMs - Date.parse(readAt)) / 60000))
+  const at = new Date(readAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  if (minutes < 1) return `showing ${at} data`
+  if (minutes < 60) return `showing ${at} data · ${String(minutes)} minutes old`
+  const hours = Math.round(minutes / 60)
+  return `showing ${at} data · ${String(hours)} ${hours === 1 ? 'hour' : 'hours'} old`
+}

@@ -332,3 +332,23 @@
 
 /* Selected · locked (F6-AC-02): it did not change, and this says why. */
 .locked { color: var(--green-text); }
+
+/* F6-UP-02: the feeds are unreachable. Amber rather than red — nothing is
+   broken and nothing is lost; a source is simply not answering, and the screen
+   says how old what it is showing is. */
+.frozen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-field);
+  background: #fdf6e6;
+  border: 1px solid #e8d49a;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.frozenAge { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #8a6d1f; }
+.frozenRisk { color: var(--ink); }
