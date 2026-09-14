@@ -234,3 +234,25 @@ counted covered because a test names it, and each test proves one half:
   Before and After are the Overview's. *Home: STE-66, slice 8.*
 
 None of the three may be read as met from the coverage figure.
+
+
+**F4-AC-02 — the tiles are tested, the swipe is not.** The criterion is that a
+keep reading is *non-interactive*, and there are two independent routes into a
+decision on that card: the three tiles, and the swipe. Both are suppressed in
+code — the reading renders a label in place of the tiles, and the card does not
+bind its pointer handlers at all — and a third lock sits behind them, in the
+screen's own `onDecide`, which refuses a state change on a reading.
+
+**Only the tiles are asserted.** `tests/e2e/assistant.spec.ts` proves no Select
+or Reject control exists and that tapping the card files nothing. It does not
+prove the swipe, because Playwright's synthetic pointer stream does not reach
+this card's handlers: the identical gesture on a *decidable* card also files
+nothing, so "no decision was posted" would be evidence about the harness rather
+than about the card. Asserting it anyway would be the class-name assertion
+`CLAUDE.md` forbids, wearing a gesture's clothes.
+
+So the swipe is item 2 of slice 6's manual checklist on STE-64, and **F4-AC-02
+must not be read as fully verified from the coverage figure** until that check
+has run on a phone. This is the same shape as `F3-AC-07` and `F3-AC-08` in slice
+5, which were verified by hand for the same reason and are in
+`docs/manual-coverage.md` with the date.

@@ -189,3 +189,57 @@ describe('One run, end to end', () => {
     expect(calls.every((c) => c.watch === false)).toBe(true)
   })
 })
+
+describe('F4 · the captaincy calls, through the whole pipeline', () => {
+  it('F4-AC-04, F4-AC-11: a captaincy card uses the master row list, and its breakdown names the captaincy bar', async () => {
+    const { plan, cards } = build()
+    const { calls } = await generateWeek({ plan, cards, model: mockModel() })
+    const captain = calls.find((c) => c.shape === 'captain')
+    const transfer = calls.find((c) => c.category === 'transfer')
+
+    expect(captain).toBeDefined()
+    // Not a captaincy-specific set: the same rows a transfer card shows.
+    expect(captain?.breakdown.weights).toEqual([1])
+    expect(captain?.breakdown.kLabel).toBe('captain/vice')
+    expect(transfer?.breakdown.kLabel).toBe('transfer')
+    // 0.5 alone does not say which bar it is — a substitution reads the same.
+    expect(captain?.k).toBe(0.5)
+  })
+
+  it('F4-UP-01: a captain whose club has no fixture projects zero, and the call is forced rather than re-scored', async () => {
+    const { plan, cards, id } = build()
+    const blanking = id('Semenyo')
+    const squad = plan.squad.map((p) => (p.playerId === blanking ? { ...p, hasFixture: false } : p))
+    const { calls } = await generateWeek({ plan: { ...plan, squad }, cards, model: mockModel() })
+    const captain = calls.find((c) => c.shape === 'captain')
+
+    expect(captain?.outPlayerId).toBe(blanking)
+    expect(captain?.breakdown.out.projections).toEqual([0])
+    expect(captain?.isForced).toBe(true)
+    // Forced, and never shown a negative figure (slice 4's rule).
+    expect(captain?.net).toBeGreaterThanOrEqual(0)
+  })
+
+  it('F4-AC-01, F4-AC-02: a keep reading is stored with no conviction, no band, and no model call behind it', async () => {
+    const { plan, cards } = build()
+    // Both armbands already on the right players.
+    const squad = plan.squad.map((p) => ({
+      ...p,
+      isCaptain: p.name === 'Haaland',
+      isVice: p.name === 'Semenyo',
+    }))
+    const { calls, modelCalls } = await generateWeek({ plan: { ...plan, squad }, cards, model: scriptedModel([], 'x') })
+    const captaincy = calls.filter((c) => c.category === 'captaincy')
+
+    expect(captaincy).toHaveLength(2)
+    for (const call of captaincy) {
+      expect(call.isReading).toBe(true)
+      expect(call.conviction).toBeNull()
+      expect(call.band).toBeNull()
+      expect(call.readingReason).not.toBeNull()
+      expect(call.reasoningSource).toBe('template')
+      expect(call.reasoning.length).toBeGreaterThan(0)
+    }
+    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.length - 2)
+  })
+})

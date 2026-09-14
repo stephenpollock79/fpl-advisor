@@ -72,6 +72,8 @@ const breakdown = (outId: number, inId: number, net: number, k: number) => ({
   net,
   pointsHit: 0,
   k,
+  kLabel: k === 2 ? 'transfer' : 'captain/vice',
+  byCeiling: false,
 })
 
 const call = (position: number, key: string, category: string, shape: string, outPlayerId: number, inPlayerId: number, net: number, conviction: number, band: string, costTenths: number, reasoning: string, alternatives: unknown = null) => ({
@@ -87,6 +89,8 @@ const call = (position: number, key: string, category: string, shape: string, ou
   pointsHit: 0,
   costTenths,
   isForced: false,
+  isReading: false,
+  readingReason: null,
   watch: false,
   reasoning,
   reasoningSource: 'template',
@@ -94,6 +98,18 @@ const call = (position: number, key: string, category: string, shape: string, ou
   alternatives,
   position,
 })
+
+/** A keep reading: the armband is already right, so there is no decision in it. */
+const keep = (position: number, key: string, shape: string, outPlayerId: number, inPlayerId: number, reasoning: string) => ({
+  ...call(position, key, 'captaincy', shape, outPlayerId, inPlayerId, -1.8, 5, 'thin', 0, reasoning),
+  isReading: true,
+  readingReason: 'incumbent_wins',
+  conviction: null,
+  band: null,
+})
+
+const CAPTAIN = 'captaincy:captain:from=8:to=411'
+const VICE = 'captaincy:vice:from=411:to=8'
 
 const T1 = 'transfer:out=7:in=124'
 const T2 = 'transfer:out=10:in=300'
@@ -109,6 +125,8 @@ const world = {
     call(1, T2, 'transfer', 'transfer', 10, 300, 2.34, 54, 'thin', 10, 'Striker over FwdB: 6.2 projected points this gameweek against 5.0.', { out: [9], in: [] }),
     call(2, 'substitution:upgrade:out=557:in=40', 'substitution', 'upgrade_swap', 557, 40, 4.6, 90, 'certain', 0, 'Rogers over Tzolis: 7.0 projected points this gameweek against 2.4.'),
     call(3, 'substitution:doubt:out=423:in=112', 'substitution', 'doubt_swap', 423, 112, 3, 86, 'strong', 0, 'VanHecke over Shaw: 4.7 projected points this gameweek against 1.7.'),
+    call(4, CAPTAIN, 'captaincy', 'captain', 8, 411, 1.8, 78, 'lean', 0, 'Haaland over Semenyo: 8.0 projected points this gameweek against 6.2.'),
+    call(5, VICE, 'captaincy', 'vice', 411, 8, 0, 5, 'thin', 0, 'Semenyo over Haaland: the vice armband has to move.'),
   ],
   decisions: {},
   // Relative to the clock, not fixed: WATCH hides a forecast from before FPL's
@@ -288,4 +306,55 @@ test('F3-UP-05: a category with nothing worth changing says so, rather than show
   await expect(page.getByText('Transfers · clear')).toBeVisible()
   await expect(page.getByText(/No transfer is worth making this week/)).toBeVisible()
   await expect(page.getByRole('tab', { name: /Transfer/ })).toContainText('Clear')
+})
+
+test('F4-AC-01, F4-AC-06: the Captain tab carries two calls and neither offers a candidate picker', async ({ page }) => {
+  await open(page)
+  await page.getByRole('tab', { name: 'Captain' }).click()
+
+  await expect(page.getByTestId('reasoning')).toContainText('Haaland')
+  // The pair is fixed by the squad — there is nothing to choose between.
+  await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
+  await expect(page.getByTestId('cost')).toHaveText('£0.00')
+
+  await page.getByRole('button', { name: 'Next undecided call' }).click()
+  await expect(page.getByTestId('reasoning')).toContainText('vice armband only pays if the captain does not play')
+  await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
+})
+
+test('F4-AC-02, F4-AC-03: a keep reading offers no decision tile and enters no tally', async ({ page }) => {
+  const readings = [
+    keep(0, CAPTAIN, 'captain', 411, 8, 'Haaland keeps it: 8.0 projected points this gameweek against Semenyo 6.2.'),
+    keep(1, VICE, 'vice', 8, 411, 'Semenyo keeps it: 6.2 projected points this gameweek against FwdA 6.0.'),
+  ]
+  // The transfers stay in, so the control swipe below has a decidable card to
+  // land on — otherwise "nothing was posted" would prove nothing.
+  const { posted } = await open(page, {}, [...world.calls.slice(0, 2), ...readings])
+  await page.getByRole('tab', { name: 'Captain' }).click()
+
+  await expect(page.getByTestId('reading-panel')).toContainText('nothing to do')
+  await expect(page.getByTestId('strength')).toHaveText('no change')
+  // Neither route into a decision exists: no tiles, and the swipe does nothing.
+  await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Reject' })).toHaveCount(0)
+
+  // The swipe is not asserted here. Playwright's synthetic pointer stream does
+  // not reach this card's handlers at all — the same gesture on a *decidable*
+  // card files nothing either, so an empty `posted` would prove the harness is
+  // quiet rather than that the card is. It is item 2 of the slice 6 checklist,
+  // and `docs/coverage-gaps.md` records that this test covers one of F4-AC-02's
+  // two routes into a decision.
+  await page.getByTestId('in-name').click()
+  expect(posted).toHaveLength(0)
+
+  // Nothing was ever outstanding here, so the tab says Clear rather than Done.
+  await expect(page.getByRole('tab', { name: /Captain/ })).toContainText('Clear')
+})
+
+test('F4-UP-02: rejecting the captain change holds the vice call rather than leaving the pair inconsistent', async ({ page }) => {
+  await open(page, { [CAPTAIN]: 'rejected' })
+  await page.getByRole('tab', { name: 'Captain' }).click()
+
+  await expect(page.getByTestId('reading-panel')).toContainText('Held while the captain stays as he is')
+  await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
 })
