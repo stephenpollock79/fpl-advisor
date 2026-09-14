@@ -6,8 +6,8 @@
  *
  * - Selected becomes a *constraint*, not a suggestion (F6-AC-01). Its cash and
  *   its free transfer are already spent and its player is part of the squad.
- * - Rejected returns at the next refresh, labelled (F6-AC-03, as ruled
- *   2026-09-14 — see `suppressed` below).
+ * - Rejected stays out until its own figures move materially, and returns
+ *   labelled when they do (F6-AC-03, F6-AC-06).
  * - Pending is discarded and rewritten freely (F6-AC-04).
  * - **A forced call ignores suppression outright** (F6-AC-05). If a starter
  *   becomes unavailable that call must surface, whatever was said about it
@@ -79,39 +79,42 @@ export function committedPairs(
 /**
  * What a rejection does to the next refresh.
  *
- * **Only a selected call is a lock** (ruled 2026-09-14, STE-128). A rejected one
- * comes back at the next refresh, labelled, rather than being held out of it.
+ * **Only a selected call is a lock. A rejected one stays out until the thing he
+ * rejected is no longer the thing in front of him** (ruled 2026-09-14, STE-130).
+ * Then it returns, labelled.
  *
- * It used to hold until the evidence diff touched a player the call names. That
- * test could not do its job: the diff reads FPL's player records, and a call's
- * premise is mostly the projections, for which no previous value is stored
- * (see `refresh/evidence.ts`). So `changedPlayers` was empty in exactly the weeks
- * the numbers had moved most, and a rejected call stayed rejected all gameweek
- * however far its premise had travelled. A substitution worth +0.8 sat behind a
- * "you have the strongest side" for a day.
+ * *Materially changed* is not a fresh judgement — F6-AC-06 already defines it
+ * for the diff report, and this uses the same definition and the same code: the
+ * call's conviction band crosses a boundary, or the call can no longer be
+ * executed. `movedKeys` is that verdict, from `refresh/recompute.ts`.
  *
- * **The labelling is what makes this safe rather than noisy.** A returning call
- * is tagged *RESURFACED* on its own card (F6-AC-13), so it reads as something
- * being put back in front of him — never as the app quietly forgetting he said
- * no.
+ * **The baseline is the call's own stored band, which is why this works at all.**
+ * Two earlier versions of this rule failed on the same missing data. The first
+ * asked whether the evidence diff had touched a player the call names — and that
+ * diff reads FPL's player records, never the projections, so it answered "no" in
+ * exactly the weeks the numbers had moved most. The second gave up and let
+ * everything return, which nags until the reject action means nothing. Neither
+ * needed a projection history: every stored call already carries the figure it
+ * was rejected at.
  *
- * `changedPlayers` is still taken, and still decides nothing here. It is what a
- * per-run projection baseline would restore the old rule on top of, and dropping
- * the parameter would hide that this rule is a consequence of missing data
- * rather than a preference.
+ * A returning call is tagged *RESURFACED* on its own card (F6-AC-13), so it
+ * always says why it is back.
  */
 export function suppressed(
   calls: readonly LockableCall[],
   decisions: Readonly<Record<string, DecisionState>>,
-  _changedPlayers: ReadonlySet<number>,
+  movedKeys: ReadonlySet<string>,
 ): { keys: Set<string>; returning: Set<string> } {
+  const keys = new Set<string>()
   const returning = new Set<string>()
 
   for (const call of calls) {
-    if (decisions[call.key] === 'rejected') returning.add(call.key)
+    if (decisions[call.key] !== 'rejected') continue
+    if (movedKeys.has(call.key)) returning.add(call.key)
+    else keys.add(call.key)
   }
 
-  return { keys: new Set<string>(), returning }
+  return { keys, returning }
 }
 
 /**

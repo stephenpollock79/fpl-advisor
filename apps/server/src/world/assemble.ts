@@ -19,6 +19,7 @@
  */
 
 import { type Band, type CallIdentity, type FplStatus, availabilityOf, sellingPriceTenths } from '@fpl/engine'
+import { identityOf } from '../calls/identity.js'
 import { checkGameweek } from '../gameweek/guard.js'
 import { type Recomputed, type SideNow, type StoredFigure, recomputeCall } from '../refresh/recompute.js'
 import type { FixtureRow } from '../ingest/fixtures.js'
@@ -397,27 +398,6 @@ function refreshedCalls(calls: readonly WorldCall[], world: readonly WorldPlayer
 }
 
 /** The identity a stored call was built from, rebuilt from what the row carries. */
-function identityOf(call: WorldCall): CallIdentity {
-  switch (call.shape) {
-    case 'transfer':
-      return { type: 'transfer', outPlayerId: call.outPlayerId, inPlayerId: call.inPlayerId }
-    case 'captain':
-      return { type: 'captain', fromPlayerId: call.outPlayerId, toPlayerId: call.inPlayerId }
-    case 'vice':
-      return { type: 'vice', fromPlayerId: call.outPlayerId, toPlayerId: call.inPlayerId }
-    case 'bench_order':
-      // Slots are not on the row; the key already holds them and nothing here
-      // rebuilds it, so the pair stands in for the identity's arithmetic only.
-      return { type: 'bench_order', slotA: 0, slotB: 1 }
-    default:
-      return {
-        type: 'substitution',
-        variant: call.shape === 'forced_swap' ? 'forced' : call.shape === 'doubt_swap' ? 'doubt' : 'upgrade',
-        outPlayerId: call.outPlayerId,
-        inPlayerId: call.inPlayerId,
-      }
-  }
-}
 
 
 /**

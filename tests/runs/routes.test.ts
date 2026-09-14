@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'vitest'
 import { type RunDeps, runRoutes } from '../../apps/server/src/runs/routes.js'
 import { type ModelPort, mockModel } from '../../apps/server/src/model/client.js'
+import type { StoredCall } from '../../apps/server/src/runs/generate.js'
 import { gw4Week } from './fixture.js'
 
 const user = { userId: 'u1', accessToken: 't1' }
@@ -80,6 +81,35 @@ const harness = (overrides: Partial<RunDeps> = {}) => {
   return { app, post, events, stored }
 }
 
+// A whole stored row, because that is what a refresh now reads: a rejected
+// call's own band is the baseline for whether its premise moved, and a
+// selected call's row is what gets carried into the next run.
+const storedCall = (extra: Partial<StoredCall> = {}): StoredCall => ({
+  key: 'captaincy:captain:from=1:to=2',
+  category: 'captaincy',
+  shape: 'captain',
+  outPlayerId: 1,
+  inPlayerId: 2,
+  net: 1.4,
+  isReading: false,
+  readingReason: null,
+  conviction: 62,
+  band: 'lean',
+  k: 0.5,
+  pointsHit: 0,
+  costTenths: 0,
+  isForced: false,
+  watch: false,
+  watchReason: null,
+  reasoning: 'Already written, already paid for.',
+  reasoningSource: 'model',
+  diffTag: null,
+  breakdown: {} as StoredCall['breakdown'],
+  alternatives: null,
+  position: 0,
+  ...extra,
+})
+
 describe('POST /api/runs', () => {
   it('answers 401 to a signed-out request and starts nothing', async () => {
     const h = harness()
@@ -142,14 +172,6 @@ describe('POST /api/runs', () => {
 
 describe('STE-128 · every refresh re-runs the pipeline', () => {
   /** A call already on file, so there is something for a reuse to reuse. */
-  const stored = () => ({
-    key: 'captaincy:captain:from=1:to=2',
-    category: 'captaincy' as const,
-    outPlayerId: 1,
-    inPlayerId: 2,
-    costTenths: 0,
-    alternatives: null,
-  })
 
   const player = (id: number, extra: Record<string, unknown> = {}) => ({
     playerId: id,
@@ -170,7 +192,7 @@ describe('STE-128 · every refresh re-runs the pipeline', () => {
     const world = [player(1), player(2), player(3)]
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [stored()], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [storedCall()], decisions: {}, costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -208,7 +230,7 @@ describe('STE-128 · every refresh re-runs the pipeline', () => {
     const after = [player(1, { status: 'd', chanceOfPlayingNextRound: 100, news: 'Knock — expected to feature' })]
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [stored()], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [storedCall()], decisions: {}, costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -259,7 +281,7 @@ describe('STE-128 · every refresh re-runs the pipeline', () => {
     // finished; nothing is recorded failed.
     const world = [player(1)]
     const { post, events } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [stored()], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [storedCall()], decisions: {}, costOfSwap: () => 0 }),
     })
 
     const body = (await post()).body as { reused: boolean; runId: string | null }
@@ -269,6 +291,91 @@ describe('STE-128 · every refresh re-runs the pipeline', () => {
     expect(events.some((e) => e.startsWith('start:'))).toBe(true)
     expect(events.some((e) => e.startsWith('finish:'))).toBe(true)
     expect(events.some((e) => e.startsWith('fail:'))).toBe(false)
+  })
+})
+
+describe('STE-130, STE-132 · what a refresh does with a call already decided', () => {
+  const { plan } = gw4Week()
+  const [tzolis, rogers] = [plan.squad.find((p) => p.name === 'Tzolis'), plan.squad.find((p) => p.name === 'Rogers')]
+  const swap = storedCall({
+    key: `substitution:upgrade:out=${String(tzolis?.playerId ?? 0)}:in=${String(rogers?.playerId ?? 0)}`,
+    category: 'substitution',
+    shape: 'upgrade_swap',
+    outPlayerId: tzolis?.playerId ?? 0,
+    inPlayerId: rogers?.playerId ?? 0,
+  })
+  const quiet = [
+    { playerId: 1, status: 'a' as const, news: null, newsAdded: null, chanceOfPlayingNextRound: null, nowCostTenths: 50 },
+  ]
+  const run = async (decision: 'selected' | 'rejected', extra: Partial<typeof swap> = {}) => {
+    const { post, stored } = harness({
+      refreshInputs: async () => ({
+        before: quiet,
+        after: quiet,
+        feedReadId: 'r2',
+        calls: [{ ...swap, ...extra }],
+        decisions: { [swap.key]: decision },
+      }),
+    })
+    await post()
+    return (stored[0]?.calls ?? []) as { key: string; diffTag: string | null; position: number }[]
+  }
+
+  it('F6-AC-02: a selected call is carried into the run it constrained, so it is still on screen after a refresh', async () => {
+    // **The defect this was written after.** The plan treats a selected call as
+    // a constraint and emits no card for it, which is right — there is nothing
+    // left to decide. But every screen reads the latest run's calls, so the call
+    // he accepted simply vanished at the next refresh, taking *selected ·
+    // locked* with it and leaving the decision row pointing at nothing.
+    const calls = await run('selected')
+    const carried = calls.find((c) => c.key === swap.key)
+
+    expect(carried).toBeDefined()
+    // After the new calls, never on top of one of them.
+    expect(carried?.position).toBe(calls.length - 1)
+  })
+
+  it('STE-132: it is carried whole, so its reasoning is not bought a second time', async () => {
+    const calls = await run('selected')
+    const carried = calls.find((c) => c.key === swap.key) as unknown as { reasoning: string }
+
+    expect(carried.reasoning).toBe(swap.reasoning)
+  })
+
+  /**
+   * What this week's world actually scores that swap at.
+   *
+   * Taken from a run with no decision on it, rather than written in here. A
+   * hand-picked band would make the test pass or fail on whether the fixture's
+   * arithmetic happened to agree with a number someone typed, which is a test of
+   * the fixture rather than of the rule.
+   */
+  const asScoredNow = async () => {
+    const calls = (await run('pending' as 'selected')) as unknown as {
+      key: string
+      conviction: number | null
+      band: string | null
+    }[]
+    const live = calls.find((c) => c.key === swap.key)
+    expect(live).toBeDefined()
+    return live as { conviction: number | null; band: string | null }
+  }
+
+  it('F6-AC-03: a rejected call the world still scores the same way stays out of the refresh', async () => {
+    const now = await asScoredNow()
+    const calls = await run('rejected', { conviction: now.conviction, band: now.band as typeof swap.band })
+
+    expect(calls.find((c) => c.key === swap.key)).toBeUndefined()
+  })
+
+  it('F6-AC-03, F6-AC-06: the same call returns, labelled, once its band no longer holds', async () => {
+    const now = await asScoredNow()
+    const other = now.band === 'thin' ? 'certain' : 'thin'
+    const calls = await run('rejected', { conviction: 10, band: other as typeof swap.band })
+    const back = calls.find((c) => c.key === swap.key)
+
+    expect(back).toBeDefined()
+    expect(back?.diffTag).toBe('resurfaced')
   })
 })
 
@@ -319,7 +426,7 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
 
   it('STE-128: a quiet week still runs every step of the pipeline, scoring included', async () => {
     const same = [{ playerId: 1, status: 'a' as const, news: null, newsAdded: null, chanceOfPlayingNextRound: null, nowCostTenths: 50 }]
-    const onFile = [{ key: 'captaincy:captain:from=1:to=2', category: 'captaincy' as const, outPlayerId: 1, inPlayerId: 2, costTenths: 0, alternatives: null }]
+    const onFile = [storedCall()]
     const { go } = stream({
       refreshInputs: async () => ({ before: same, after: same, feedReadId: 'r2', calls: onFile, decisions: {}, costOfSwap: () => 0 }),
     })
@@ -370,14 +477,18 @@ describe('F6-AC-03, F6-AC-20 · a returning call is labelled, and a cancelled ru
     // the manager saw something he had already said no to with nothing saying why.
     const { plan } = gw4Week()
     const [tzolis, rogers] = [plan.squad.find((p) => p.name === 'Tzolis'), plan.squad.find((p) => p.name === 'Rogers')]
-    const rejected = {
+    // Rejected back when Rogers was a 25% doubt, and filed at a thin band. He is
+    // available now, so re-deriving the call lands somewhere else entirely —
+    // which is what F6-AC-06 means by materially changed.
+    const rejected = storedCall({
       key: `substitution:upgrade:out=${String(tzolis?.playerId ?? 0)}:in=${String(rogers?.playerId ?? 0)}`,
-      category: 'substitution' as const,
+      category: 'substitution',
+      shape: 'upgrade_swap',
       outPlayerId: tzolis?.playerId ?? 0,
       inPlayerId: rogers?.playerId ?? 0,
-      costTenths: 0,
-      alternatives: null,
-    }
+      conviction: 10,
+      band: 'thin',
+    })
     const before = [player(rogers?.playerId ?? 0, { status: 'd', chanceOfPlayingNextRound: 25 })]
     const after = [player(rogers?.playerId ?? 0)]
 
@@ -395,6 +506,10 @@ describe('F6-AC-03, F6-AC-20 · a returning call is labelled, and a cancelled ru
     const back = (stored[0]?.calls ?? []).find((c) => (c as { key: string }).key === rejected.key)
     expect(back).toBeDefined()
     expect((back as { diffTag: string | null }).diffTag).toBe('resurfaced')
+    // The premise really did move. If the fixture ever scores this at thin, the
+    // call would be right to stay suppressed and this test should say so loudly
+    // rather than pass on a coincidence.
+    expect((back as { band: string | null }).band).not.toBe('thin')
   })
 
   // **F6-AC-20 is not asserted here, and the reason is the harness.** A
