@@ -338,6 +338,21 @@ export function AssistantScreen({
       <header className={styles.brandRow}>
         <img className={styles.avatar} src={avatar} alt="" />
         <span className={styles.wordmark}>The Gaffer</span>
+        {/* **Symbol only, and left of the toggle.** The label used to be the
+            tab's name, so it changed width between tabs and took the header's
+            height with it. The scope it would rewrite is named in the
+            confirmation, which is the screen that actually needs to say so
+            (F6-AC-07, F6-AC-10) — and an accessible name carries it here. */}
+        <button
+          className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
+          onClick={() => setAsking(true)}
+          disabled={running || noRunYet || world.feedsReachable === false}
+          aria-label={`Refresh ${(TABS.find((x) => x.category === tab)?.noun ?? 'everything').toLowerCase()}`}
+          data-testid="refresh"
+          type="button"
+        >
+          ↻
+        </button>
         <div className={styles.sections} role="tablist">
           <button className={styles.sectionOff} role="tab" aria-selected="false" onClick={onSquad} type="button">
             Squad
@@ -405,22 +420,6 @@ export function AssistantScreen({
         </span>
       </section>
 
-      {/* **Its own row, directly under the status bar** (F6-AC-07 puts the
-          control there). Not in the tab strip, where it read as a fourth tab;
-          not in the header or the status row itself, where at 390px it pushed
-          FREE TR onto two lines and ran off the edge. It names the scope it
-          would rewrite, so what a tap does is never inferred from where it is. */}
-      <div className={styles.refreshRow}>
-        <button
-          className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
-          onClick={() => setAsking(true)}
-          disabled={running || noRunYet || world.feedsReachable === false}
-          data-testid="refresh"
-          type="button"
-        >
-          {world.feedsReachable === false ? '↻ OFF' : `↻ ${TABS.find((x) => x.category === tab)?.label ?? 'All'}`}
-        </button>
-      </div>
 
       {error ? (
         <p className={styles.error} role="alert">
@@ -463,9 +462,19 @@ export function AssistantScreen({
             </button>
           </div>
         ) : here.length === 0 ? (
-          <div className={styles.empty}>
-            <p className={styles.clearTitle}>{TABS.find((t) => t.category === tab)?.noun} · clear</p>
-            <p>{TABS.find((t) => t.category === tab)?.clear}</p>
+          /* **"Nothing worth changing" is a designed answer, not an absence**
+             (CLAUDE.md, *Do not*), so it is the Gaffer saying it rather than a
+             blank panel — the same green header, cream body and avatar the
+             editorial uses, because it is the same kind of statement. */
+          <div className={styles.verdict} data-testid="verdict">
+            <div className={styles.verdictHead}>
+              <span>{TABS.find((t) => t.category === tab)?.label}</span>
+              <span>NO CHANGE</span>
+            </div>
+            <div className={styles.verdictBody}>
+              <img className={styles.gaffer} src={avatar} alt="" />
+              <p className={styles.verdictText}>{TABS.find((t) => t.category === tab)?.clear}</p>
+            </div>
           </div>
         ) : showCleared ? (
           <CategoryCleared

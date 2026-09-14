@@ -107,6 +107,16 @@ describe('POST /api/runs', () => {
 })
 
 describe('F6-RS-08 · most refreshes should cost nothing', () => {
+  /** A call already on file, so there is something for a reuse to reuse. */
+  const stored = () => ({
+    key: 'captaincy:captain:from=1:to=2',
+    category: 'captaincy' as const,
+    outPlayerId: 1,
+    inPlayerId: 2,
+    costTenths: 0,
+    alternatives: null,
+  })
+
   const player = (id: number, extra: Record<string, unknown> = {}) => ({
     playerId: id,
     status: 'a' as const,
@@ -121,7 +131,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
     const world = [player(1), player(2), player(3)]
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [stored()], decisions: {}, costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -135,12 +145,32 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
     expect(modelCalls).toBe(0)
   })
 
+  it('F6-RS-08: a quiet week with nothing stored to reuse runs anyway, rather than staying empty for ever', async () => {
+    // The hole the first version of this gate left. A run that produced no calls
+    // leaves nothing to carry forward, so reusing it kept an empty week empty:
+    // the diff found nothing new a minute later, declined to spend, and the
+    // screen stayed blank with no way out.
+    const world = [player(1)]
+    let modelCalls = 0
+    const { post } = harness({
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      model: () => {
+        modelCalls += 1
+        return mockModel()
+      },
+    })
+
+    const body = (await (await post()).json()) as { reused: boolean }
+    expect(body.reused).toBe(false)
+    expect(modelCalls).toBe(1)
+  })
+
   it('F6-RS-08: ordinary churn in the news field is not worth paying for either', async () => {
     const before = [player(1, { status: 'd', chanceOfPlayingNextRound: 75, news: 'Knock' })]
     const after = [player(1, { status: 'd', chanceOfPlayingNextRound: 100, news: 'Knock — expected to feature' })]
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [stored()], decisions: {}, costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -194,7 +224,7 @@ describe('F6-RS-08 · most refreshes should cost nothing', () => {
     // anything having gone wrong. Reuse means reuse.
     const world = [player(1)]
     const { post, events } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [stored()], decisions: {}, costOfSwap: () => 0 }),
     })
 
     const body = (await (await post()).json()) as { reused: boolean; runId: string | null }
@@ -254,8 +284,9 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
 
   it('F6-RS-08: a quiet week streams straight to done, reused, with no scoring steps', async () => {
     const same = [{ playerId: 1, status: 'a' as const, news: null, newsAdded: null, chanceOfPlayingNextRound: null, nowCostTenths: 50 }]
+    const onFile = [{ key: 'captaincy:captain:from=1:to=2', category: 'captaincy' as const, outPlayerId: 1, inPlayerId: 2, costTenths: 0, alternatives: null }]
     const { go } = stream({
-      refreshInputs: async () => ({ before: same, after: same, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: same, after: same, feedReadId: 'r2', calls: onFile, decisions: {}, costOfSwap: () => 0 }),
     })
     const events = await read(await go())
 
