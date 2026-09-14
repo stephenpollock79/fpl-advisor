@@ -86,6 +86,19 @@ export function worldDeps(
     },
 
     captureSquad,
+
+    /**
+     * Retire a snapshot rather than delete it. The row is evidence of what the
+     * app was showing and when, and F2's correction path already reads
+     * `superseded_at` for the same reason — a squad that turned out to be wrong
+     * is a thing the manager may need explained, not a thing to make disappear.
+     */
+    async supersedeSnapshot(user, snapshotId) {
+      await userClient(user.accessToken)
+        .from('squad_snapshot')
+        .update({ superseded_at: new Date().toISOString() })
+        .eq('id', snapshotId)
+    },
     loadParts: loadWorldParts,
   }
 }

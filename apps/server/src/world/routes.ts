@@ -40,6 +40,8 @@ export type WorldDeps = {
   lastCompletedGameweek: () => Promise<number>
   captureSquad: (user: AuthenticatedUser, fplTeamId: number, gameweek: number, picksFrom: number) => Promise<string>
   loadParts: (user: AuthenticatedUser) => Promise<WorldParts | null>
+  /** Retire a snapshot the gameweek has moved past, so the next read captures again. */
+  supersedeSnapshot: (user: AuthenticatedUser, snapshotId: string) => Promise<void>
 }
 
 export function worldRoutes(deps: WorldDeps) {
@@ -78,11 +80,33 @@ export function worldRoutes(deps: WorldDeps) {
 
     let parts = await deps.loadParts(user)
 
+    /**
+     * **A snapshot the gameweek has moved past is retired, not reused**
+     * (F6-UP-03: a rollover regenerates from the squad FPL reports *at that
+     * point*).
+     *
+     * Without this the world finds a snapshot for the gameweek it wants and
+     * never captures again — so a squad read from too early a gameweek stays on
+     * screen for the rest of the week, with a correct deadline above it. That is
+     * what happened on 2026-09-14, and fixing the rule that chose the wrong
+     * gameweek could not fix the row already stored.
+     *
+     * `null` is read as stale rather than as fine: a snapshot written before this
+     * column existed cannot say where it came from, and guessing in the generous
+     * direction is how the stale one survives.
+     */
+    const completed = await deps.lastCompletedGameweek()
+    if (parts && (parts.picksFrom ?? -1) < completed) {
+      await deps.supersedeSnapshot(user, parts.snapshot.id)
+      parts = null
+    }
+
     if (!parts) {
-      // First open of the gameweek. Fetch the world, then the squad — in that
-      // order, because the squad's rows point at players and gameweeks.
+      // First open of the gameweek, or the squad has moved on. Fetch the world,
+      // then the squad — in that order, because the squad's rows point at
+      // players and gameweeks.
       const { gameweek } = await deps.ingest()
-      await deps.captureSquad(user, fplTeamId, gameweek, await deps.lastCompletedGameweek())
+      await deps.captureSquad(user, fplTeamId, gameweek, completed)
       parts = await deps.loadParts(user)
     }
 
