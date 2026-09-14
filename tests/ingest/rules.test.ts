@@ -19,7 +19,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { gameweekToAdviseOn, lastScoredGameweek, toGameweekRows } from '../../apps/server/src/ingest/gameweeks.js'
+import { gameweekToAdviseOn, lastCompletedDeadline, lastScoredGameweek, toGameweekRows } from '../../apps/server/src/ingest/gameweeks.js'
 import { fixtureCountsByClub, reportFixtureAnomalies, toFixtureRows } from '../../apps/server/src/ingest/fixtures.js'
 import { effectiveProjection, toProjectionRows } from '../../apps/server/src/ingest/projections.js'
 
@@ -174,5 +174,40 @@ describe('projections come from FFIQ, and only the number', () => {
     // fpl_id is the join. A projection for a player with no FPL id cannot be
     // attached to anything, and inventing a row would break the foreign key.
     expect(toProjectionRows({ players: [{ ...saka, fpl_id: null }] }, 'feed-read-1')).toEqual([])
+  })
+})
+
+describe('F1-AC-01 · which gameweek the squad is read from', () => {
+  // GW4 as the live feed had it on 2026-09-14: its deadline passed on Saturday,
+  // its matches are not settled, and GW5 is the one to advise on.
+  const rows = [
+    { id: 3, name: 'Gameweek 3', deadlineTime: '2026-09-04T17:30:00Z', isNext: false, isCurrent: false, finished: true, dataChecked: true },
+    { id: 4, name: 'Gameweek 4', deadlineTime: '2026-09-12T12:30:00Z', isNext: false, isCurrent: true, finished: false, dataChecked: false },
+    { id: 5, name: 'Gameweek 5', deadlineTime: '2026-09-18T17:30:00Z', isNext: true, isCurrent: false, finished: false, dataChecked: false },
+  ]
+  const monday = Date.parse('2026-09-14T16:00:00Z')
+
+  it('F1-AC-01: the squad comes from the last completed deadline, not the last settled gameweek', () => {
+    // The defect this was written after: reading picks on the points rule gave
+    // gameweek 3, so the app showed a squad a whole gameweek out of date under a
+    // correct deadline, with nothing on screen suggesting anything was wrong.
+    expect(lastCompletedDeadline(rows, monday)?.id).toBe(4)
+    expect(lastScoredGameweek(rows)?.id).toBe(3)
+  })
+
+  it('F1-AC-01: the two questions only diverge between a deadline and its data being checked', () => {
+    // Before Saturday's deadline they agree; the gap is the two days after it.
+    const friday = Date.parse('2026-09-11T12:00:00Z')
+    expect(lastCompletedDeadline(rows, friday)?.id).toBe(3)
+    expect(lastScoredGameweek(rows)?.id).toBe(3)
+  })
+
+  it('F1-AC-01: a deadline in the future is not completed, however close it is', () => {
+    const justBefore = Date.parse('2026-09-12T12:29:59Z')
+    expect(lastCompletedDeadline(rows, justBefore)?.id).toBe(3)
+  })
+
+  it('F1-AC-01: before the season starts there is no squad to read, and that is null rather than a guess', () => {
+    expect(lastCompletedDeadline(rows, Date.parse('2026-08-01T00:00:00Z'))).toBeNull()
   })
 })

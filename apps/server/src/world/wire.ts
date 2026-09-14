@@ -7,6 +7,7 @@
  */
 
 import type { AuthenticatedUser } from '../auth/session.js'
+import { lastCompletedDeadline } from '../ingest/gameweeks.js'
 import { ingestWorld } from '../ingest/run.js'
 import { captureSquad } from '../squad/store.js'
 import { referenceClient, userClient } from '../supabase.js'
@@ -53,18 +54,35 @@ export function worldDeps(
      * last whistle, and a squad read against an unsettled gameweek is read against
      * a moving target.
      */
+    /**
+     * Which gameweek's picks the squad is read from.
+     *
+     * **The last completed *deadline*, not the last *settled* gameweek** — F1's
+     * happy path says so, and the two are different questions with different
+     * answers for two days of every week. Picks lock when the deadline passes;
+     * points settle hours after the last whistle. Reading picks on the points
+     * rule shows a squad one gameweek stale, under a correct deadline, with
+     * nothing on screen to say so (found live 2026-09-14).
+     */
     async lastCompletedGameweek() {
       const { data } = await referenceClient()
         .from('gameweek')
-        .select('id')
-        .eq('data_checked', true)
-        .order('id', { ascending: false })
-        .limit(1)
-      const latest = (data as { id: number }[] | null)?.[0]?.id
-      if (latest === undefined) {
-        throw new Error('No gameweek has settled yet, so there is no squad to read.')
+        .select('id, name, deadline_time, is_next, is_current, finished, data_checked')
+      const rows = ((data ?? []) as Record<string, unknown>[]).map((g) => ({
+        id: g['id'] as number,
+        name: g['name'] as string,
+        deadlineTime: g['deadline_time'] as string,
+        isNext: g['is_next'] as boolean,
+        isCurrent: g['is_current'] as boolean,
+        finished: g['finished'] as boolean,
+        dataChecked: g['data_checked'] as boolean,
+      }))
+
+      const latest = lastCompletedDeadline(rows, Date.now())
+      if (!latest) {
+        throw new Error('No deadline has passed yet, so there is no squad to read.')
       }
-      return latest
+      return latest.id
     },
 
     captureSquad,
