@@ -16,6 +16,8 @@ const side = (playerId: number, projection: number, extra: Partial<SideNow> = {}
   availability: { eligible: true },
   hasFixture: true,
   inSquad: true,
+  priceTenths: 50,
+  sellingPriceTenths: 50,
   ...extra,
 })
 
@@ -111,5 +113,54 @@ describe('F6-AC-15 · recomputing is not a refresh', () => {
   it('the same inputs give the same figures on every run', () => {
     const sides = world(side(1, 2.4), side(2, 7.0))
     expect(recomputeCall(call(), sides)).toEqual(recomputeCall(call(), sides))
+  })
+})
+
+
+describe('a transfer is re-derived too, and that is not a detail', () => {
+  const transfer = (extra: Partial<StoredFigure> = {}): StoredFigure => ({
+    key: 'transfer:out=1:in=2',
+    identity: { type: 'transfer', outPlayerId: 1, inPlayerId: 2 },
+    outPlayerId: 1,
+    inPlayerId: 2,
+    conviction: 68,
+    band: 'lean',
+    isReading: false,
+    pointsHit: 0,
+    ...extra,
+  })
+
+  it('F6-RS-01: a transfer recomputes over three gameweeks, weighted, like the run scored it', () => {
+    // **This is the case the module shipped without.** Every other test here
+    // used a substitution, the engine refuses a transfer that arrives without
+    // its two prices, and the world re-derives every call on every read — so one
+    // transfer in the database returned a 500 for the whole app.
+    const sides = world(side(1, 2.6, { sellingPriceTenths: 65 }), side(2, 4.8, { priceTenths: 76 }))
+    const again = recomputeCall(transfer(), sides)
+
+    expect(again.unexecutable).toBe(false)
+    expect(again.conviction).not.toBeNull()
+    // Three gameweeks at 1.0 / 0.6 / 0.35: 9.36 against 5.07. A one-week call
+    // would have given 2.20, so the horizon is doing its job here.
+    expect(again.net).toBeCloseTo(4.29, 2)
+  })
+
+  it('F3-AC-25: a transfer whose outgoing side has no recoverable selling price is unexecutable, never priced at a guess', () => {
+    const sides = world(side(1, 2.6, { sellingPriceTenths: null }), side(2, 4.8))
+    const again = recomputeCall(transfer(), sides)
+
+    expect(again.unexecutable).toBe(true)
+    expect(again.conviction).toBeNull()
+  })
+
+  it('one call that cannot be re-derived keeps its stored figure rather than taking the read down', () => {
+    // A blank horizon is a shape the engine refuses. The screen must still load.
+    const broken = transfer({ inPlayerId: 9, identity: { type: 'transfer', outPlayerId: 1, inPlayerId: 9 } })
+    const sides = world(side(1, 2.6), side(9, 4.8, { projections: [] }))
+    const { all } = recomputeAll([broken], sides)
+
+    expect(all).toHaveLength(1)
+    expect(all[0]?.conviction).toBe(68)
+    expect(all[0]?.band).toBe('lean')
   })
 })

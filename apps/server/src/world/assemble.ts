@@ -19,7 +19,7 @@
  */
 
 import { type Band, type CallIdentity, type FplStatus, availabilityOf, sellingPriceTenths } from '@fpl/engine'
-import { type SideNow, recomputeCall } from '../refresh/recompute.js'
+import { type Recomputed, type SideNow, type StoredFigure, recomputeCall } from '../refresh/recompute.js'
 import type { FixtureRow } from '../ingest/fixtures.js'
 import type { GameweekRow } from '../ingest/gameweeks.js'
 import type { ClubRow, PlayerRow, PlayerStateRow } from '../ingest/players.js'
@@ -343,12 +343,14 @@ function refreshedCalls(calls: readonly WorldCall[], world: readonly WorldPlayer
         availability: availabilityOf({ status: p.status as FplStatus, chanceOfPlayingNextRound: p.chanceOfPlayingNextRound }),
         hasFixture: p.fixtures.length > 0,
         inSquad: p.isStarter || p.benchOrder !== null,
+        priceTenths: p.nowCostTenths,
+        sellingPriceTenths: p.sellingPriceTenths,
       },
     ]),
   )
 
   return calls.map((call) => {
-    const again = recomputeCall(
+    const again = safeRecompute(
       {
         key: call.key,
         identity: identityOf(call),
@@ -400,5 +402,34 @@ function identityOf(call: WorldCall): CallIdentity {
         outPlayerId: call.outPlayerId,
         inPlayerId: call.inPlayerId,
       }
+  }
+}
+
+
+/**
+ * One call's figures, re-derived — or the ones the run stored, where it cannot be.
+ *
+ * **The world is read on every screen, so an unguarded throw here is the whole
+ * app down.** That is not hypothetical: on 2026-09-14 a transfer was re-derived
+ * without its prices, the engine refused it as it should, and every read
+ * returned a 500 until the first refresh's calls were in the database. Keeping
+ * the stored figure is honest — it is what the run computed from published data
+ * — and a card a moment stale beats a screen that will not load.
+ */
+function safeRecompute(call: StoredFigure, sides: Map<number, SideNow>): Recomputed {
+  try {
+    return recomputeCall(call, sides)
+  } catch (cause) {
+    console.error(`[world] could not re-derive ${call.key}; keeping the stored figure`, cause)
+    return {
+      key: call.key,
+      net: 0,
+      conviction: call.conviction,
+      band: call.band,
+      isReading: call.isReading,
+      previousConviction: null,
+      movedBand: false,
+      unexecutable: false,
+    }
   }
 }
