@@ -324,3 +324,17 @@ put in front of him for something he chose to do.
 
 **What would close it:** read the `run` row after cancelling a real run and
 confirm its status is `cancelled`. *Home: STE-65.*
+
+**F6-UP-03's stop has been run against real data once, and only in the direction
+that proves nothing.** On 2026-09-14, on `97bc6c7`, opening the app with gameweek
+5 ahead correctly showed **no** stop. That is the check working — it does not
+fire when the week is fine — and it is worth having, because a false positive
+would have made the app unusable and would have shown up immediately.
+
+**What it does not establish is that the stop fires when it should.** Nobody has
+seen the red card against a real passed deadline. The unit tests cover both
+directions with fabricated clocks; what is unobserved is the state on a phone.
+
+**It closes itself.** GW5's deadline is Friday 18 September at 18:30 UK. Opening
+the app after it, before GW6 becomes next, is the state — and it is the first
+weekend the app will ever have been live across a deadline. *Home: STE-65.*
