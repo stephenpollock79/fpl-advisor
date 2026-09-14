@@ -174,6 +174,8 @@ export type WorldParts = {
   candidateIds?: number[]
   lastRunAt?: string | null
   priceForecastReadAt?: string | null
+  /** Which gameweek's picks the snapshot holds. Null on rows written before slice 7. */
+  picksFrom?: number | null
 }
 
 export function assembleWorld(parts: WorldParts): World {

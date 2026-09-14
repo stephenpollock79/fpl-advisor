@@ -14,7 +14,8 @@ import type { WorldParts } from '../../apps/server/src/world/assemble.js'
 const NOW = Date.parse('2026-09-14T15:00:00Z')
 const ago = (ms: number) => new Date(NOW - ms).toISOString()
 
-const parts = (): WorldParts => ({
+const parts = (picksFrom: number | null = 4): WorldParts => ({
+  picksFrom,
   gameweek: { id: 5, name: 'Gameweek 5', deadlineTime: '2026-09-18T17:30:00Z', isNext: true, isCurrent: false, finished: false, dataChecked: false },
   lastScored: null,
   snapshot: { id: 's1', source: 'fpl_deadline', capturedAt: ago(0), bankTenths: 10, freeTransfers: 1, chipsRemaining: {} },
@@ -43,6 +44,9 @@ const harness = (overrides: Partial<WorldDeps> = {}) => {
       return 's1'
     },
     loadParts: async () => parts(),
+    supersedeSnapshot: async () => {
+      events.push('supersede')
+    },
     ...overrides,
   }
   const app = worldRoutes(deps)
@@ -85,6 +89,7 @@ describe('F6-RS-02 · the feeds are read on open, which is what gives recomputat
   it('an unauthenticated read fetches nothing at all', async () => {
     const events: string[] = []
     const app = worldRoutes({
+      supersedeSnapshot: async () => undefined,
       authenticate: async () => null,
       linkedTeamId: async () => 1,
       newestFeedReadAt: async () => null,
@@ -101,5 +106,45 @@ describe('F6-RS-02 · the feeds are read on open, which is what gives recomputat
 
     expect(res.status).toBe(401)
     expect(events).toEqual([])
+  })
+})
+
+
+describe('F6-UP-03 · a gameweek rollover re-reads the squad rather than reusing the old one', () => {
+  it('a snapshot the gameweek has moved past is retired, and the squad is captured again', async () => {
+    // The live failure of 2026-09-14: a snapshot for gameweek 5 holding gameweek
+    // 3's picks. Correcting the rule that chose gameweek 3 could do nothing about
+    // the row already stored — the world found a snapshot and never captured
+    // again, so the wrong squad stayed on screen under a correct deadline.
+    let loads = 0
+    const { get, events } = harness({
+      lastCompletedGameweek: async () => 4,
+      loadParts: async () => parts(loads++ === 0 ? 3 : 4),
+    })
+    await get()
+
+    expect(events).toContain('supersede')
+    expect(events).toContain('capture')
+  })
+
+  it('a snapshot that cannot say where it came from is treated as stale, not as fine', async () => {
+    // Rows written before the column existed carry null. Guessing in the
+    // generous direction is exactly how the stale one survives.
+    let loads = 0
+    const { get, events } = harness({
+      lastCompletedGameweek: async () => 4,
+      loadParts: async () => parts(loads++ === 0 ? null : 4),
+    })
+    await get()
+
+    expect(events).toContain('supersede')
+  })
+
+  it('a current snapshot is left alone, so an ordinary open captures nothing', async () => {
+    const { get, events } = harness({ lastCompletedGameweek: async () => 4, loadParts: async () => parts(4) })
+    await get()
+
+    expect(events).not.toContain('supersede')
+    expect(events).not.toContain('capture')
   })
 })

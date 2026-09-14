@@ -65,6 +65,9 @@ export async function captureSquad(
       user_id: user.userId,
       gameweek,
       source: 'fpl_deadline',
+      // Which gameweek's picks these are, so a later open can tell a current
+      // snapshot from one the gameweek has moved past (F6-UP-03).
+      picks_from: picksFrom,
       bank_tenths: entryHistory['bank'] ?? 0,
       free_transfers: freeTransfersRemaining(typedHistory, gameweek),
       chips_remaining: chipsRemaining(typedHistory),

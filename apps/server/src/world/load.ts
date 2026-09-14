@@ -50,7 +50,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
   // never point at a squad that no longer exists.
   const { data: snapshots } = await mine
     .from('squad_snapshot')
-    .select('id, source, captured_at, bank_tenths, free_transfers, chips_remaining')
+    .select('id, source, captured_at, bank_tenths, free_transfers, chips_remaining, picks_from')
     .eq('gameweek', gameweek.id)
     .is('superseded_at', null)
     .order('captured_at', { ascending: false })
@@ -159,6 +159,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
       freeTransfers: snapshot['free_transfers'] as number,
       chipsRemaining: snapshot['chips_remaining'] as Record<string, string>,
     },
+    picksFrom: (snapshot['picks_from'] as number | null) ?? null,
     squad,
     players: (playerRows ?? []).map((p: Row) => ({
       id: p['id'] as number,
