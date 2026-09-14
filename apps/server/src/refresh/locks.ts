@@ -6,8 +6,8 @@
  *
  * - Selected becomes a *constraint*, not a suggestion (F6-AC-01). Its cash and
  *   its free transfer are already spent and its player is part of the squad.
- * - Rejected is suppressed for the gameweek (F6-AC-03), and returns only if the
- *   premise it was rejected on has materially changed.
+ * - Rejected returns at the next refresh, labelled (F6-AC-03, as ruled
+ *   2026-09-14 — see `suppressed` below).
  * - Pending is discarded and rewritten freely (F6-AC-04).
  * - **A forced call ignores suppression outright** (F6-AC-05). If a starter
  *   becomes unavailable that call must surface, whatever was said about it
@@ -77,29 +77,41 @@ export function committedPairs(
 }
 
 /**
- * Keys a refresh must not offer again, and the one exception.
+ * What a rejection does to the next refresh.
  *
- * A rejection holds until the premise behind it moves. "Moved" means the
- * evidence diff touched a player the call names — that is the same definition
- * F6-AC-03 uses when it says a returning call must be *labelled as such*, so the
- * caller can tag what comes back rather than slipping it in unmarked.
+ * **Only a selected call is a lock** (ruled 2026-09-14, STE-128). A rejected one
+ * comes back at the next refresh, labelled, rather than being held out of it.
+ *
+ * It used to hold until the evidence diff touched a player the call names. That
+ * test could not do its job: the diff reads FPL's player records, and a call's
+ * premise is mostly the projections, for which no previous value is stored
+ * (see `refresh/evidence.ts`). So `changedPlayers` was empty in exactly the weeks
+ * the numbers had moved most, and a rejected call stayed rejected all gameweek
+ * however far its premise had travelled. A substitution worth +0.8 sat behind a
+ * "you have the strongest side" for a day.
+ *
+ * **The labelling is what makes this safe rather than noisy.** A returning call
+ * is tagged *RESURFACED* on its own card (F6-AC-13), so it reads as something
+ * being put back in front of him — never as the app quietly forgetting he said
+ * no.
+ *
+ * `changedPlayers` is still taken, and still decides nothing here. It is what a
+ * per-run projection baseline would restore the old rule on top of, and dropping
+ * the parameter would hide that this rule is a consequence of missing data
+ * rather than a preference.
  */
 export function suppressed(
   calls: readonly LockableCall[],
   decisions: Readonly<Record<string, DecisionState>>,
-  changedPlayers: ReadonlySet<number>,
+  _changedPlayers: ReadonlySet<number>,
 ): { keys: Set<string>; returning: Set<string> } {
-  const keys = new Set<string>()
   const returning = new Set<string>()
 
   for (const call of calls) {
-    if (decisions[call.key] !== 'rejected') continue
-    const premiseMoved = changedPlayers.has(call.outPlayerId) || changedPlayers.has(call.inPlayerId)
-    if (premiseMoved) returning.add(call.key)
-    else keys.add(call.key)
+    if (decisions[call.key] === 'rejected') returning.add(call.key)
   }
 
-  return { keys, returning }
+  return { keys: new Set<string>(), returning }
 }
 
 /**

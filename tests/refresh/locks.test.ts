@@ -50,24 +50,31 @@ describe('F6-AC-01 · a selected call is a constraint, not a suggestion', () => 
   })
 })
 
-describe('F6-AC-03, F6-AC-05 · suppression, and the one thing that ignores it', () => {
-  it('F6-AC-03: a rejected call is suppressed for the gameweek while its premise holds', () => {
+describe('F6-AC-03, F6-AC-05 · what a rejection does to the next refresh', () => {
+  it('STE-128: a rejected call comes back at the next refresh, and comes back labelled', () => {
+    // **The defect this replaced.** A rejection used to hold until the evidence
+    // diff touched one of the call's players — and that diff reads FPL's player
+    // records, never the projections, for which no previous value is stored. So
+    // it held hardest in the weeks the numbers had moved most. A +0.8
+    // substitution sat behind "you have the strongest side" for a day.
     const { keys, returning } = suppressed([call()], { 'transfer:out=7:in=124': 'rejected' }, new Set())
-
-    expect([...keys]).toEqual(['transfer:out=7:in=124'])
-    expect([...returning]).toEqual([])
-  })
-
-  it('F6-AC-03: it returns when the premise moves, and returns labelled rather than slipped back in', () => {
-    const { keys, returning } = suppressed([call()], { 'transfer:out=7:in=124': 'rejected' }, new Set([124]))
 
     expect([...keys]).toEqual([])
     expect([...returning]).toEqual(['transfer:out=7:in=124'])
   })
 
-  it('F6-AC-03: a change to some other player does not bring it back', () => {
-    const { keys } = suppressed([call()], { 'transfer:out=7:in=124': 'rejected' }, new Set([999]))
-    expect([...keys]).toEqual(['transfer:out=7:in=124'])
+  it('STE-128: it comes back whether or not the FPL record moved — that diff cannot see the premise', () => {
+    const moved = suppressed([call()], { 'transfer:out=7:in=124': 'rejected' }, new Set([124]))
+    const still = suppressed([call()], { 'transfer:out=7:in=124': 'rejected' }, new Set([999]))
+
+    expect([...moved.returning]).toEqual(['transfer:out=7:in=124'])
+    expect([...still.returning]).toEqual(['transfer:out=7:in=124'])
+    expect(moved.keys.size + still.keys.size).toBe(0)
+  })
+
+  it('F6-AC-01: a selected call is the only lock, so nothing about it returns', () => {
+    const { keys, returning } = suppressed([call()], { 'transfer:out=7:in=124': 'selected' }, new Set())
+    expect(keys.size + returning.size).toBe(0)
   })
 
   it('F6-AC-04: a pending call was never suppressed, so there is nothing to lift', () => {
