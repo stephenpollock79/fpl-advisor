@@ -58,6 +58,10 @@ export type SideNow = {
   /** From the fixture table, never from the projection (PRD 3.5). */
   hasFixture: boolean
   inSquad: boolean
+  /** What he costs now. A transfer cannot be scored without it. */
+  priceTenths: number
+  /** FPL's selling price. Null where the purchase price could not be recovered (F3-AC-25). */
+  sellingPriceTenths: number | null
 }
 
 /**
@@ -96,13 +100,36 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
       : ({ eligible: false, reason: 'unavailable' } as const),
   })
 
-  const weeks = call.identity.type === 'transfer' ? 3 : 1
+  const isTransfer = call.identity.type === 'transfer'
+
+  // **A transfer cannot be scored without both prices, and the engine refuses
+  // rather than guessing** — the same refusal that stops a player with no
+  // recoverable purchase price being offered for sale (F3-AC-25). So a transfer
+  // whose outgoing side has no selling price is unexecutable, not re-derived at
+  // a fabricated cost.
+  if (isTransfer && out.sellingPriceTenths === null) {
+    return {
+      key: call.key,
+      net: 0,
+      conviction: null,
+      band: null,
+      isReading: true,
+      previousConviction: call.conviction,
+      movedBand: false,
+      unexecutable: true,
+    }
+  }
+
+  const weeks = isTransfer ? 3 : 1
   const outcome = evaluateCall({
     identity: call.identity,
     incumbent: side(out, weeks),
     challenger: side(into, weeks),
     pointsHit: call.pointsHit,
     incumbentUnplayable: !out.hasFixture,
+    ...(isTransfer
+      ? { money: { incomingPriceTenths: into.priceTenths, outgoingSellingPriceTenths: out.sellingPriceTenths ?? 0 } }
+      : {}),
   })
 
   const nowReading = outcome.reading !== 'call'
@@ -126,12 +153,37 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
   }
 }
 
-/** Every stored call, re-derived. Reported only where F6-AC-06 says to report. */
+/**
+ * Every stored call, re-derived. Reported only where F6-AC-06 says to report.
+ *
+ * **One call that cannot be re-derived must not take the screen down with it.**
+ * This runs on every world read, so an unguarded throw anywhere in it is the
+ * whole app returning a 500 — which is what a transfer scored without its prices
+ * did on 2026-09-14, the first time a refresh produced one. A call that throws
+ * keeps the figures the run stored: honest, possibly a moment stale, and
+ * visible, which beats a blank screen in every case.
+ */
 export function recomputeAll(
   calls: readonly StoredFigure[],
   sides: Map<number, SideNow>,
 ): { all: Recomputed[]; reported: Recomputed[] } {
-  const all = calls.map((call) => recomputeCall(call, sides))
+  const all = calls.map((call) => {
+    try {
+      return recomputeCall(call, sides)
+    } catch (cause) {
+      console.error(`[refresh] could not re-derive ${call.key}; keeping the stored figure`, cause)
+      return {
+        key: call.key,
+        net: 0,
+        conviction: call.conviction,
+        band: call.band,
+        isReading: call.isReading,
+        previousConviction: null,
+        movedBand: false,
+        unexecutable: false,
+      } satisfies Recomputed
+    }
+  })
   return { all, reported: all.filter((r) => r.movedBand || r.unexecutable) }
 }
 
