@@ -11,7 +11,8 @@ import { ingestWorld } from '../ingest/run.js'
 import { modelFromEnv } from '../model/client.js'
 import { fillMissingPurchasePrices } from '../squad/store.js'
 import type { EvidenceRow } from '../refresh/evidence.js'
-import type { DecisionState, LockableCall } from '../refresh/locks.js'
+import type { DecisionState } from '../refresh/locks.js'
+import type { StoredCall } from './generate.js'
 import { referenceClient, userClient } from '../supabase.js'
 import { loadWeek } from './load.js'
 import type { RunDeps } from './routes.js'
@@ -73,8 +74,20 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
         }))
       }
 
+      // **The whole row, not the lock's subset.** A rejected call's own stored
+      // band is the baseline for "has its premise moved?" (F6-AC-06), and a
+      // selected call's row is what gets carried into the next run so it comes
+      // back reading *selected · locked* (F6-AC-02). Both need what the lock
+      // never did: the figures, the reasoning and the breakdown.
       const { data: callRows } = lastRun
-        ? await db.from('call').select('call_key, category, out_player_id, in_player_id, cost_tenths, alternatives').eq('run_id', lastRun.id)
+        ? await db
+            .from('call')
+            .select(
+              'call_key, category, shape, out_player_id, in_player_id, net, conviction, band, k_used, ' +
+                'points_hit, cost_tenths, is_forced, is_reading, reading_reason, watch_flag, watch_reason, ' +
+                'reasoning, reasoning_source, breakdown, alternatives, position',
+            )
+            .eq('run_id', lastRun.id)
         : { data: [] as Record<string, unknown>[] }
       const { data: decisionRows } = await db.from('decision').select('call_key, state')
 
@@ -82,13 +95,31 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
         before: await rows(lastRun?.feed_read_id ?? null),
         after: (await rows(feedReadId)) ?? [],
         feedReadId,
+        // Structurally a LockableCall and a StoredCall at once, so neither
+        // consumer needs a second query or a second mapping.
         calls: ((callRows ?? []) as Record<string, unknown>[]).map((c) => ({
           key: c['call_key'] as string,
-          category: c['category'] as LockableCall['category'],
+          category: c['category'] as StoredCall['category'],
+          shape: c['shape'] as StoredCall['shape'],
           outPlayerId: c['out_player_id'] as number,
           inPlayerId: c['in_player_id'] as number,
+          net: Number(c['net']),
+          conviction: (c['conviction'] as number | null) ?? null,
+          band: (c['band'] as StoredCall['band']) ?? null,
+          k: Number(c['k_used']),
+          pointsHit: c['points_hit'] as number,
           costTenths: c['cost_tenths'] as number,
-          alternatives: (c['alternatives'] as LockableCall['alternatives']) ?? null,
+          isForced: c['is_forced'] === true,
+          isReading: c['is_reading'] === true,
+          readingReason: (c['reading_reason'] as StoredCall['readingReason']) ?? null,
+          watch: c['watch_flag'] === true,
+          watchReason: (c['watch_reason'] as string | null) ?? null,
+          reasoning: c['reasoning'] as string,
+          reasoningSource: c['reasoning_source'] as StoredCall['reasoningSource'],
+          breakdown: c['breakdown'] as StoredCall['breakdown'],
+          alternatives: (c['alternatives'] as StoredCall['alternatives']) ?? null,
+          position: c['position'] as number,
+          diffTag: null,
         })),
         decisions: Object.fromEntries(
           ((decisionRows ?? []) as Record<string, unknown>[]).map((d) => [d['call_key'] as string, d['state'] as DecisionState]),

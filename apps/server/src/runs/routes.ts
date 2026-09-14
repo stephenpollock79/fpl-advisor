@@ -53,8 +53,11 @@ import type { ModelCallRecord, ModelPort } from '../model/client.js'
 import { transferCostTenths } from '@fpl/engine'
 import type { EvidenceRow } from '../refresh/evidence.js'
 import { diffEvidence } from '../refresh/evidence.js'
-import type { DecisionState, LockableCall } from '../refresh/locks.js'
+import type { DecisionState } from '../refresh/locks.js'
 import { committedPairs, suppressed } from '../refresh/locks.js'
+import type { SideNow } from '../refresh/recompute.js'
+import { recomputeCall } from '../refresh/recompute.js'
+import { identityOf } from '../calls/identity.js'
 import { type CardInfo, type StoredCall, generateWeek } from './generate.js'
 
 export type WeekInputs = {
@@ -70,8 +73,17 @@ export type RefreshInputs = {
   before: EvidenceRow[] | null
   after: EvidenceRow[]
   feedReadId: string | null
-  /** The calls that run produced, and the manager's answers to them. */
-  calls: LockableCall[]
+  /**
+   * The calls that run produced, whole, and the manager's answers to them.
+   *
+   * **Stored rather than lockable.** A `LockableCall` — the pair, the cost and
+   * the picker's alternatives — is enough to resolve a lock and nothing else.
+   * Deciding whether a rejected call's premise has moved needs the figure it was
+   * rejected at, and carrying a selected call into the next run needs the row
+   * entire. A `StoredCall` satisfies `LockableCall` structurally, so the lock
+   * code is unchanged.
+   */
+  calls: StoredCall[]
   decisions: Record<string, DecisionState>
 }
 
@@ -129,6 +141,71 @@ const swapCost = (plan: WeekInputs['plan']) => {
   const sellingOf = new Map(plan.squad.map((p) => [p.playerId, p.sellingPriceTenths]))
   return (outId: number, inId: number): number =>
     transferCostTenths(priceOf.get(inId) ?? 0, sellingOf.get(outId) ?? 0)
+}
+
+/**
+ * Which rejected calls are no longer the call that was rejected (F6-AC-06).
+ *
+ * The verdict is the engine's, re-derived from the world as it stands: the band
+ * crossed a boundary, or the call can no longer be executed. Nothing here
+ * judges; `recomputeCall` already owns both limbs and already runs on every
+ * world read.
+ *
+ * **The baseline is each call's own stored figure**, which is the whole reason
+ * this can be answered without a projection history. A projection that moves
+ * shows up here through its effect on the call it supports.
+ */
+function materiallyMoved(refresh: RefreshInputs, week: WeekInputs): Set<string> {
+  const sides = new Map<number, SideNow>(
+    [
+      ...week.plan.squad.map((p) => [p, true] as const),
+      ...week.plan.pool.map((p) => [p, false] as const),
+    ].map(([p, inSquad]) => [
+      p.playerId,
+      {
+        playerId: p.playerId,
+        projections: p.projections,
+        availability: p.availability,
+        hasFixture: p.hasFixture,
+        inSquad,
+        priceTenths: p.nowCostTenths,
+        sellingPriceTenths: inSquad ? ((p as WeekInputs['plan']['squad'][number]).sellingPriceTenths ?? null) : null,
+      },
+    ]),
+  )
+
+  const moved = new Set<string>()
+  for (const call of refresh.calls) {
+    if (refresh.decisions[call.key] !== 'rejected') continue
+    // One bad row must not take down the run — the same posture the world read
+    // takes, and for the same reason: a call naming a player the latest feed no
+    // longer knows is one call's problem, not the week's.
+    try {
+      const now = recomputeCall({ ...call, identity: identityOf(call) }, sides)
+      if (now.movedBand || now.unexecutable) moved.add(call.key)
+    } catch (cause) {
+      console.error(`[runs] could not re-derive rejected call ${call.key}; leaving it suppressed`, cause)
+    }
+  }
+  return moved
+}
+
+/**
+ * The decided calls this run must carry, so they are still on screen after it.
+ *
+ * Selected only. A rejected call is absent by design and a pending one was never
+ * a decision. Positions continue after the new calls rather than keeping their
+ * old ones, which would collide.
+ *
+ * Carried **whole**: the stored reasoning, breakdown and alternatives come
+ * across untouched. The figures are deliberately not refreshed here — the world
+ * read re-derives every stored call as it loads and reports a band move itself,
+ * so refreshing them a second time here would be a second copy of that rule.
+ */
+function carriedForward(refresh: RefreshInputs, from: number): StoredCall[] {
+  return refresh.calls
+    .filter((call) => refresh.decisions[call.key] === 'selected')
+    .map((call, i) => ({ ...call, position: from + i }))
 }
 
 export function runRoutes(deps: RunDeps) {
@@ -194,8 +271,10 @@ export function runRoutes(deps: RunDeps) {
         }
 
         await send('step', { id: 'propose', label: RUN_STEPS[2].label, scale })
-        const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
-        const { keys, returning } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
+        // Whether a rejected call's premise has moved is answered by the call's
+        // own stored band against the world as it stands (F6-AC-06) — not by the
+        // FPL-record diff, which cannot see the projections move at all.
+        const { keys, returning } = suppressed(refresh.calls, refresh.decisions, materiallyMoved(refresh, week))
 
         await send('step', { id: 'score', label: RUN_STEPS[3].label, scale })
         const { calls, modelCalls } = await generateWeek({
@@ -209,9 +288,18 @@ export function runRoutes(deps: RunDeps) {
           model: deps.model(),
         })
 
-        await send('step', { id: 'explain', label: RUN_STEPS[4].label, scale, calls: calls.length })
-        await deps.finishRun(user, runId, week.gameweek, calls, modelCalls)
-        await send('done', { runId, calls, reused: false })
+        // **A decided call is carried into the run it constrained** (F6-AC-02).
+        // The plan treats a selected call as a constraint and emits no card for
+        // it, which is right — there is nothing left to decide. But every screen
+        // reads the latest run's calls, so a call absent from this one simply
+        // vanishes, taking *selected · locked* with it and leaving the decision
+        // row pointing at nothing. Carried whole: its reasoning is already
+        // bought and must not be bought again.
+        const withCarried = [...calls, ...carriedForward(refresh, calls.length)]
+
+        await send('step', { id: 'explain', label: RUN_STEPS[4].label, scale, calls: withCarried.length })
+        await deps.finishRun(user, runId, week.gameweek, withCarried, modelCalls)
+        await send('done', { runId, calls: withCarried, reused: false })
       } catch (cause) {
         // A closed request is a cancellation, not a failure, and the two must
         // never be recorded as the same thing — a failure ages nothing either,

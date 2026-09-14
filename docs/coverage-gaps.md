@@ -364,23 +364,20 @@ or is retired. If it is to stand, it needs a per-run projection baseline — sto
 the projections each run saw, so a later refresh has something honest to diff
 against. *Home: STE-128.*
 
-**F6-AC-03's suppression half is no longer true of the build either, and it goes
-to the PRD with F6-RS-08.** The criterion says a rejected call is suppressed for
-the rest of the gameweek and returns only if its premise has materially changed.
-On 2026-09-14 (STE-128) the suppression was dropped: a rejected call returns at
-the next refresh, labelled.
+**F6-AC-02 is asserted on a screen, never across a refresh — which is the only
+circumstance the criterion is about.** `tests/e2e/assistant.spec.ts` names it and
+passes: it opens a world in which the selected call is present and checks the
+card reads *selected · locked*. It never runs a refresh.
 
-**Why.** "Premise moved" was decided by the same evidence diff that gated the
-run — FPL's player records only. A call's premise is mostly the projections, and
-no previous copy of those is stored, so the test came back false in exactly the
-weeks the numbers had moved most. Observed live: a rejected substitution worth
-+0.8 stayed behind *"you have the strongest side"* while the projections that
-justified it had been republished.
+That is exactly where the rule was broken. Until 2026-09-14 (STE-132) a selected
+call was applied to the next plan as a constraint and emitted no card, so the
+moment a refresh wrote a new run the accepted call vanished from the screen and
+the decision row pointed at nothing. The green tick said otherwise for four days.
 
-**The labelling half is intact and is what keeps this honest** — a returning call
-is tagged *RESURFACED* on its own card (F6-AC-13), so it never reads as the app
-forgetting he said no.
+**Half of it is closed.** `tests/runs/routes.test.ts` now proves the call is
+carried into the run it constrained, whole and repositioned after the new calls.
+What is still unproven end to end is the two halves joined: accept a call,
+refresh, and see the card still there reading *selected · locked*.
 
-**What would close it:** the same per-run projection baseline F6-RS-08 needs. With
-something honest to diff against, "the premise moved" becomes answerable and the
-suppression can come back. *Home: STE-128.*
+**What would close it:** an end-to-end spec that decides a call, runs a refresh,
+and asserts the card survives it. *Home: STE-132.*
