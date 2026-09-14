@@ -73,3 +73,43 @@ describe('F6-UP-03, F6-AC-15 · the gameweek is a stop, never a prompt', () => {
     expect(verdict.ok).toBe(false)
   })
 })
+
+describe('F6-RS-10, F6-UP-04 · what the model is never asked, and what is deliberately not built', () => {
+  it('F6-RS-10: the model is asked to propose and to explain, and nothing else', async () => {
+    const { mockModel } = await import('../../apps/server/src/model/client.js')
+    const port = mockModel()
+
+    // Materiality is code's, always. A model shown its own prior answer is
+    // reluctant to move; if it also judged whether the manager is told, that
+    // reluctance would compound and a missed update would be indistinguishable
+    // from a genuine no-change. The interface is the guarantee — there is no
+    // method to ask.
+    const methods = Object.keys(port).filter((k) => typeof (port as unknown as Record<string, unknown>)[k] === 'function')
+    expect(methods.sort()).toEqual([
+      'proposeTransfers',
+      'writeReasoning',
+    ])
+  })
+
+  it('F6-UP-04: a deadline passing mid-session is caught at the next open, by this check and no clock', () => {
+    // The criterion parks an in-session deadline clock rather than building one.
+    // What makes that safe is that the guard runs on every read, so the state is
+    // caught the moment the manager next looks — and it takes `nowMs` from the
+    // caller rather than holding a timer of its own.
+    const during = checkGameweek({
+      gameweek: 5,
+      deadlineTime: '2026-09-18T17:30:00Z',
+      projectionsCover: [5],
+      nowMs: AT('2026-09-18T17:29:59Z'),
+    })
+    const after = checkGameweek({
+      gameweek: 5,
+      deadlineTime: '2026-09-18T17:30:00Z',
+      projectionsCover: [5],
+      nowMs: AT('2026-09-18T17:30:01Z'),
+    })
+
+    expect(during.ok).toBe(true)
+    expect(after.ok).toBe(false)
+  })
+})

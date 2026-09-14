@@ -180,5 +180,21 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
         .update({ status: 'failed', finished_at: new Date().toISOString(), model_calls: modelCalls })
         .eq('id', runId)
     },
+
+    /**
+     * A streamed run that stopped. **Cancelled is stored as cancelled, never as
+     * failed** (F6-AC-20): a cancelled run is treated exactly as one that never
+     * started, and calling it a failure would put it in front of the manager as
+     * something that went wrong when he is the one who stopped it.
+     *
+     * Neither ages the advice — the last-run time reads the last *succeeded* run
+     * and neither of these is one.
+     */
+    async endRun(user, runId, status) {
+      await userClient(user.accessToken)
+        .from('run')
+        .update({ status, finished_at: new Date().toISOString() })
+        .eq('id', runId)
+    },
   }
 }

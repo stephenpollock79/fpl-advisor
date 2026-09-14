@@ -21,6 +21,7 @@
  */
 
 import { Hono } from 'hono'
+import { streamSSE } from 'hono/streaming'
 import type { AuthenticatedUser } from '../auth/session.js'
 import type { PlanInput } from '../calls/plan.js'
 import type { ModelCallRecord, ModelPort } from '../model/client.js'
@@ -65,10 +66,102 @@ export type RunDeps = {
     modelCalls: ModelCallRecord[],
   ) => Promise<void>
   failRun: (user: AuthenticatedUser, runId: string, modelCalls: ModelCallRecord[]) => Promise<void>
+  /** Close a streamed run that did not finish. Cancelled is not failed (F6-AC-20). */
+  endRun: (user: AuthenticatedUser, runId: string, status: 'failed' | 'cancelled') => Promise<void>
 }
+
+/**
+ * The steps the Thinking state names, in the order they run (F6-AC-18).
+ *
+ * Stated here rather than in the client so that the label and the state can
+ * never contradict each other: the screen renders what the server says it is
+ * doing, and has no second opinion about what happens next.
+ */
+export const RUN_STEPS = [
+  { id: 'read', label: 'Reading the feeds' },
+  { id: 'diff', label: 'Checking what has changed' },
+  { id: 'propose', label: 'Looking for candidates' },
+  { id: 'score', label: 'Scoring the week' },
+  { id: 'explain', label: 'Writing the reasoning' },
+] as const
 
 export function runRoutes(deps: RunDeps) {
   const app = new Hono()
+
+  /**
+   * The streamed form (F6-AC-16 to F6-AC-20). Same steps, different transport —
+   * the Thinking state needs to know what is happening *while* it happens, and a
+   * request that completes in one lump cannot say.
+   *
+   * **Cancellation is the request closing.** The client aborts, this loop's
+   * writes start failing, and the run is marked `cancelled` — which is treated
+   * exactly as a run that never started, never as a failure, so the last-run
+   * time does not move (F6-AC-20).
+   */
+  app.post('/api/runs/stream', async (c) => {
+    const user = await deps.authenticate(c.req.header('Cookie'))
+    if (!user) return c.json({ error: 'not_signed_in' }, 401)
+
+    return streamSSE(c, async (stream) => {
+      let runId: string | null = null
+      const send = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) })
+
+      try {
+        await send('step', { id: 'read', label: RUN_STEPS[0].label })
+        await deps.prepare(user)
+
+        const week = await deps.loadWeek(user)
+        if (!week) {
+          await send('error', { reason: 'no_squad' })
+          return
+        }
+
+        await send('step', {
+          id: 'diff',
+          label: RUN_STEPS[1].label,
+          // Real figures, never a spinner's worth of words (F6-AC-17).
+          scale: { players: week.plan.squad.length + week.plan.pool.length, squad: week.plan.squad.length },
+        })
+        const refresh = await deps.refreshInputs(user)
+        const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
+
+        runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
+
+        if (evidence && !evidence.worthPaying) {
+          await deps.finishRun(user, runId, week.gameweek, [], [])
+          await send('done', { runId, calls: [], reused: true, changed: evidence.changed.length })
+          return
+        }
+
+        await send('step', { id: 'propose', label: RUN_STEPS[2].label })
+        const changedPlayers = new Set((evidence?.changed ?? []).map((ch) => ch.playerId))
+        const { keys } = suppressed(refresh.calls, refresh.decisions, changedPlayers)
+
+        await send('step', { id: 'score', label: RUN_STEPS[3].label })
+        const { calls, modelCalls } = await generateWeek({
+          plan: {
+            ...week.plan,
+            committed: committedPairs(refresh.calls, refresh.decisions, refresh.costOfSwap),
+            suppressed: keys,
+          },
+          cards: week.cards,
+          model: deps.model(),
+        })
+
+        await send('step', { id: 'explain', label: RUN_STEPS[4].label, calls: calls.length })
+        await deps.finishRun(user, runId, week.gameweek, calls, modelCalls)
+        await send('done', { runId, calls, reused: false })
+      } catch (cause) {
+        // A closed request is a cancellation, not a failure, and the two must
+        // never be recorded as the same thing — a failure ages nothing either,
+        // but it is something the manager is shown and asked about (F6-UP-01).
+        const cancelled = c.req.raw.signal.aborted
+        console.error(`[runs] streamed run ${runId ?? 'unstarted'} ${cancelled ? 'cancelled' : 'failed'}`, cause)
+        if (runId) await deps.endRun(user, runId, cancelled ? 'cancelled' : 'failed')
+        if (!cancelled) await send('error', { reason: 'run_failed', runId })
+      }
+    })
+  })
 
   app.post('/api/runs', async (c) => {
     const user = await deps.authenticate(c.req.header('Cookie'))
