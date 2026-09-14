@@ -74,6 +74,8 @@ const call: WorldCall = {
   breakdown: { net: 4.6 },
   alternatives: { out: [], in: [124] },
   position: 0,
+  diffTag: null,
+  previousConviction: null,
 }
 
 const world = () =>
