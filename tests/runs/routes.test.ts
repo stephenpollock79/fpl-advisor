@@ -23,6 +23,9 @@ const harness = (overrides: Partial<RunDeps> = {}) => {
       events.push('prepare')
     },
     loadWeek: async () => gw4Week(),
+    // No prior run, so there is nothing to diff against and everything is new —
+    // which is what must happen on a first run rather than a skip.
+    refreshInputs: async () => ({ before: null, after: [], feedReadId: 'read-1', calls: [], decisions: {}, costOfSwap: () => 0 }),
     model: () => mockModel(),
     startRun: async (_u, gameweek, snapshotId) => {
       events.push(`start:${String(gameweek)}:${snapshotId}`)
@@ -97,5 +100,98 @@ describe('POST /api/runs', () => {
     const response = await h.post()
     expect(response.status).toBe(409)
     expect(h.events).toEqual(['prepare'])
+  })
+})
+
+describe('F6-RS-08 · most refreshes should cost nothing', () => {
+  const player = (id: number, extra: Record<string, unknown> = {}) => ({
+    playerId: id,
+    status: 'a' as const,
+    news: null,
+    newsAdded: null,
+    chanceOfPlayingNextRound: null,
+    nowCostTenths: 50,
+    ...extra,
+  })
+
+  it('F6-RS-08: nothing has moved, so the model is not called at all and the week stands', async () => {
+    const world = [player(1), player(2), player(3)]
+    let modelCalls = 0
+    const { post } = harness({
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      model: () => {
+        modelCalls += 1
+        return mockModel()
+      },
+    })
+
+    const res = await post()
+    const body = (await res.json()) as { reused: boolean }
+
+    expect(body.reused).toBe(true)
+    expect(modelCalls).toBe(0)
+  })
+
+  it('F6-RS-08: ordinary churn in the news field is not worth paying for either', async () => {
+    const before = [player(1, { status: 'd', chanceOfPlayingNextRound: 75, news: 'Knock' })]
+    const after = [player(1, { status: 'd', chanceOfPlayingNextRound: 100, news: 'Knock — expected to feature' })]
+    let modelCalls = 0
+    const { post } = harness({
+      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      model: () => {
+        modelCalls += 1
+        return mockModel()
+      },
+    })
+
+    const body = (await (await post()).json()) as { reused: boolean; changed: number }
+    expect(body.reused).toBe(true)
+    // It was seen and counted — silence is not the same as blindness.
+    expect(body.changed).toBe(1)
+    expect(modelCalls).toBe(0)
+  })
+
+  it('F6-RS-11, F6-RS-09: a player dropping out of availability does spend, and rewrites the week', async () => {
+    const before = [player(1), player(2)]
+    const after = [player(1, { status: 'i' }), player(2)]
+    let modelCalls = 0
+    const { post, stored } = harness({
+      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      model: () => {
+        modelCalls += 1
+        return mockModel()
+      },
+    })
+
+    const body = (await (await post()).json()) as { reused: boolean }
+    expect(body.reused).toBe(false)
+    expect(modelCalls).toBe(1)
+    expect(stored[0]?.calls.length).toBeGreaterThan(0)
+  })
+
+  it('F6-RS-01: a first run has nothing to diff against and is never skipped on that basis', async () => {
+    let modelCalls = 0
+    const { post } = harness({
+      refreshInputs: async () => ({ before: null, after: [player(1)], feedReadId: 'r1', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      model: () => {
+        modelCalls += 1
+        return mockModel()
+      },
+    })
+
+    const body = (await (await post()).json()) as { reused: boolean }
+    expect(body.reused).toBe(false)
+    expect(modelCalls).toBe(1)
+  })
+
+  it('F6-AC-14: a reused refresh still records a successful run, so the last-run time is honest', async () => {
+    const world = [player(1)]
+    const { post, events } = harness({
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+    })
+
+    await post()
+    expect(events.some((e) => e.startsWith('finish:'))).toBe(true)
+    expect(events.some((e) => e.startsWith('fail:'))).toBe(false)
   })
 })
