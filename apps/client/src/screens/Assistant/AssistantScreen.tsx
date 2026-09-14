@@ -273,7 +273,7 @@ export function AssistantScreen({
           // is now a claim the server can actually make, because it re-derives
           // every stored call before saying it rather than only checking FPL's
           // player records (STE-128).
-          if (event.reused) setNotice('Nothing behind your advice has moved. Your calls stand.')
+          if (event.reused) setNotice('Nothing behind your advice has moved. Your calls stand, and nothing was spent.')
           else setShowDiff(true)
           onReload()
         } else {
