@@ -279,6 +279,54 @@ export function clearedLine(reopened: number): string {
   return `${String(reopened)} calls reopened · tap again to put them back`
 }
 
+/**
+ * What an empty tab says, when "nothing to do" is not the true reason (STE-131).
+ *
+ * **A category can be empty for two different reasons and only one of them is
+ * "nothing to do".** Transfers settle before substitutions, and a player a
+ * transfer already claims is off-limits to a swap — so the app never says *bench
+ * him* and *sell him* in the same week. That is right. What was wrong is that the
+ * Sub tab then read *"Your eleven is already the strongest legal side"* while a
+ * defender projecting 2.1 was starting, because the answer had moved one tab
+ * across and the sentence did not know.
+ *
+ * It cost an evening: the message was read as the app missing an obvious swap,
+ * and two changes were made chasing a defect that was not there.
+ *
+ * **Only substitutions can be silenced this way**, which is why nothing else is
+ * checked. Transfers settle first, so a transfer is never withheld for a
+ * substitution's sake, and captaincy is never empty at all — both armbands are
+ * advised on every week, keeps included (F4-AC-01).
+ *
+ * The claim made is a fact about the squad rather than a reconstruction of the
+ * planner's reasoning: these players are spoken for, and here is where. Naming
+ * *why* the swap was withheld would mean re-deriving the plan in the client,
+ * which is the one thing this layer must never do.
+ */
+export function clearVerdict(
+  category: WorldCall['category'],
+  fallback: string,
+  calls: readonly WorldCall[],
+  players: ReadonlyMap<number, WorldPlayer>,
+): string {
+  if (category !== 'substitution') return fallback
+
+  const spokenFor = calls
+    .filter((c) => c.category === 'transfer')
+    .map((c) => players.get(c.outPlayerId))
+    .filter((p): p is WorldPlayer => p !== undefined)
+    .map((p) => p.surname)
+
+  if (spokenFor.length === 0) return fallback
+
+  const named =
+    spokenFor.length === 1
+      ? spokenFor[0]
+      : `${spokenFor.slice(0, -1).join(', ')} and ${spokenFor[spokenFor.length - 1] ?? ''}`
+  const verb = spokenFor.length === 1 ? 'is' : 'are'
+  return `Nothing to swap here. ${named ?? ''} ${verb} spoken for on the Transfer tab, and a player being sold is never also benched.`
+}
+
 /** £ in millions, from tenths. A substitution's zero reads £0.00 (F3-AC-4, F3-AC-28). */
 export function formatCost(tenths: number): string {
   if (tenths === 0) return '£0.00'

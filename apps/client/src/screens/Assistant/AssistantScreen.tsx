@@ -23,6 +23,7 @@ import {
   formatMoney,
   nbal,
   playerIndex,
+  clearVerdict,
   recomputeTransfer,
   restoredSwaps,
   shortlistCount,
@@ -489,7 +490,9 @@ export function AssistantScreen({
             </div>
             <div className={styles.verdictBody}>
               <img className={styles.gaffer} src={avatar} alt="" />
-              <p className={styles.verdictText}>{TABS.find((t) => t.category === tab)?.clear}</p>
+              <p className={styles.verdictText}>
+                {clearVerdict(tab, TABS.find((t) => t.category === tab)?.clear ?? '', world.calls, players)}
+              </p>
             </div>
           </div>
         ) : showCleared ? (

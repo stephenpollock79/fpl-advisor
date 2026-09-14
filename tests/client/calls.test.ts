@@ -8,6 +8,7 @@ import type { WorldCall, WorldPlayer } from '../../apps/client/src/api'
 import { decide, defer, initialDecisions, reopen, restore } from '../../apps/client/src/calls/decisions'
 import {
   armbandNotes,
+  clearVerdict,
   clearedLine,
   diffRows,
   formatCost,
@@ -51,6 +52,8 @@ const player = (id: number, surname: string, projection: number, extra: Partial<
   priceLockedUntil: null,
   ...extra,
 })
+
+const STRONGEST = 'Your eleven is already the strongest legal side, and the bench is in order.'
 
 const SHAPE: Record<WorldCall['category'], WorldCall['shape']> = {
   transfer: 'transfer',
@@ -202,6 +205,38 @@ describe('F3-AC-01, F3-AC-02, F3-AC-13, F3-AC-14, F3-AC-15 · decisions', () => 
     const restored = restore(reopened, 'a')
     expect(restored.decisions).toEqual({ a: 'rejected' })
     expect(restored.reopened).toEqual({})
+  })
+
+  it('STE-131: an empty Sub tab names the player the Transfer tab has, rather than claiming the side is strongest', () => {
+    // **The message that cost an evening.** Calafiori, projecting 2.1, was
+    // starting; the swap was correctly withheld because a transfer already
+    // claimed him; and the tab said the eleven was already the strongest legal
+    // side. Correct behaviour, false sentence.
+    const players = new Map([
+      [1, player(1, 'Calafiori', 2.1)],
+      [2, player(2, 'Diop', 2.9)],
+    ])
+    const line = clearVerdict('substitution', STRONGEST, [call('t', 'transfer')], players)
+
+    expect(line).not.toBe(STRONGEST)
+    expect(line).toContain('Calafiori')
+    expect(line).toContain('Transfer tab')
+  })
+
+  it('STE-131: with nobody spoken for, the tab still says the side is the strongest — because now it is', () => {
+    const players = new Map([[1, player(1, 'Calafiori', 2.1)]])
+
+    expect(clearVerdict('substitution', STRONGEST, [], players)).toBe(STRONGEST)
+    // A substitution claiming a player says nothing about the Sub tab's silence.
+    expect(clearVerdict('substitution', STRONGEST, [call('s', 'substitution')], players)).toBe(STRONGEST)
+  })
+
+  it('STE-131: only substitutions can be silenced this way, so no other tab is rewritten', () => {
+    const players = new Map([[1, player(1, 'Calafiori', 2.1)]])
+    const withTransfer = [call('t', 'transfer')]
+
+    expect(clearVerdict('transfer', 'Hold the free transfer.', withTransfer, players)).toBe('Hold the free transfer.')
+    expect(clearVerdict('captaincy', 'Both armbands are right.', withTransfer, players)).toBe('Both armbands are right.')
   })
 
   it('F3-AC-15: the line beneath Category cleared reports the live state', () => {
