@@ -43,7 +43,17 @@ export type Evidence = {
   changed: readonly PlayerChange[]
   /** Any change at all, however small (F6-RS-04). */
   anyChange: boolean
-  /** A change that could alter a decision, so a model call is worth proposing. */
+  /**
+   * A change that could alter a decision.
+   *
+   * **This no longer gates the run** (STE-128, 2026-09-14). It once did, and the
+   * gate was unsound: this diff sees FPL's player records only, and a call also
+   * rests on the projections, for which no previous value is stored. `false`
+   * here means *nothing FPL publishes about a player moved* — never *nothing
+   * behind the advice moved*. Kept because it is the honest name for what the
+   * diff can actually tell, and it is what a per-run projection baseline would
+   * plug into.
+   */
   worthPaying: boolean
 }
 

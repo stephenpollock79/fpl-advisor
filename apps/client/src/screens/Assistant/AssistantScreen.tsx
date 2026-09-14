@@ -267,10 +267,10 @@ export function AssistantScreen({
           setStep(event.step)
           if (event.step.scale) setScale(event.step.scale)
         } else if (event.kind === 'done') {
-          // Nothing moved that could change a decision, so nothing was spent and
-          // the week stands. Said plainly rather than shown as an empty report.
-          if (event.reused) setNotice('Nothing has changed since your last run. Your calls stand.')
-          else setShowDiff(true)
+          // Every refresh re-plans now (STE-128), so there is no reuse to
+          // announce. A run that changed nothing says so through an empty diff
+          // sheet (F6-AC-12), which is the same answer arrived at honestly.
+          setShowDiff(true)
           onReload()
         } else {
           setError('The run did not finish, and nothing has changed. Try again.')

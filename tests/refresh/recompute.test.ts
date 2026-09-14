@@ -35,8 +35,8 @@ const call = (extra: Partial<StoredFigure> = {}): StoredFigure => ({
   ...extra,
 })
 
-describe('F6-RS-08, F6-AC-06 · recomputing costs nothing and reports only what the criterion says', () => {
-  it('F6-RS-08: with nothing moved the figure is identical rather than close', () => {
+describe('F6-RS-09, F6-AC-06 · recomputing costs nothing and reports only what the criterion says', () => {
+  it('F6-RS-09: with nothing moved the figure is identical rather than close', () => {
     // 2.4 against 7.0 is GW4's real substitution: net 4.60, 90 · certain.
     const sides = world(side(1, 2.4), side(2, 7.0))
     const again = recomputeCall(call(), sides)

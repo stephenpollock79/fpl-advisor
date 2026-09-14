@@ -10,11 +10,27 @@
  * longest, so it is the moment a progress pipeline is worth most — and it was
  * the one place that did not have one.
  *
- * **Most refreshes should cost nothing** (F6-RS-08). The diff runs first and is
- * mechanical and free; only when it finds something that could change a decision
- * is the model called at all. When it finds nothing the stored calls are reused
- * and the figures are *identical* rather than close, because every one of them is
- * arithmetic over published inputs that have not moved.
+ * **A refresh always re-runs the pipeline** (ruled 2026-09-14, STE-128). It did
+ * not, until tonight: the evidence diff gated the run, and finding nothing it
+ * reused the stored calls.
+ *
+ * The gate was answering a question it could not answer. It diffs FPL's own
+ * player records — status, news, chance, price (F6-RS-02) — and a recommendation
+ * also rests on the projections (F6-RS-01). Those live in `projection`, keyed
+ * `(gameweek, player_id)` and overwritten on every ingest, and `feed_read.raw` is
+ * never written. **So no previous projection exists to compare against, and the
+ * diff cannot see the projections move.** It reported "nothing has changed" while
+ * the captain pick and a legal substitution had both gone stale underneath it.
+ *
+ * Silence that cannot distinguish *nothing moved* from *I cannot see* is the
+ * worse of the two failures, because it reads as the reassuring one. A refresh
+ * is manual, deliberate and confirmed by an interstitial first (F6-AC-10), so
+ * the honest answer to pressing it is to do the work.
+ *
+ * **This contradicts F6-RS-08** ("most refreshes should cost nothing"), which
+ * assumed the diff covered every published input behind a call. It does not, and
+ * for a bought-in feed that overwrites in place it cannot without storing a
+ * per-run projection baseline. Raised for the PRD rather than resolved here.
  *
  * The manager's own decisions go in as constraints (F6-AC-01) and suppressions
  * (F6-AC-03) rather than being applied to the output afterwards — a plan built
@@ -167,14 +183,6 @@ export function runRoutes(deps: RunDeps) {
         await send('step', { id: 'diff', label: RUN_STEPS[1].label, scale })
         const refresh = await deps.refreshInputs(user)
         const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
-
-        // See the note on the JSON route: a reuse writes no run at all. A
-        // succeeded run with no calls does not reuse the week's advice, it
-        // replaces it with nothing.
-        if (evidence && !evidence.worthPaying && refresh.calls.length > 0) {
-          await send('done', { runId: null, calls: [], reused: true, changed: evidence.changed.length })
-          return
-        }
 
         runId = await deps.startRun(user, week.gameweek, week.snapshotId, refresh.feedReadId)
         // The connection may have closed while the feeds were being read, before
