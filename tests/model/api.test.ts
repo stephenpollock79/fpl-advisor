@@ -25,7 +25,7 @@ const player = (projection: number): CardPlayer => ({
   transfersOut: 1000,
 })
 const rows = evaluationRows(player(2.4), player(7.0))
-const reasoning = { outName: 'Tzolis', inName: 'Rogers', rows, summary: { net: 4.6, strength: 90, band: 'certain' as const } }
+const reasoning = { outName: 'Tzolis', inName: 'Rogers', rows, summary: { net: 4.6, strength: 90, band: 'certain' as const }, kind: 'transfer' as const }
 const proposing = { bankTenths: 10, freeTransfers: 1, squad: [], shortlist: [] }
 
 type Params = Record<string, unknown>

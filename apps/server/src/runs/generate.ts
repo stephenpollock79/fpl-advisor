@@ -47,6 +47,15 @@ const NO_SIGNAL: PriceSignal = { likelihoodTonight: null, locked: false }
  * and only the label tells the manager he is looking at the captaincy bar rather
  * than the transfer one.
  */
+/** What the model is told this move actually is. A bench-order swap is a substitution. */
+const KIND: Readonly<Record<CallType, 'transfer' | 'substitution' | 'captain' | 'vice'>> = {
+  transfer: 'transfer',
+  substitution: 'substitution',
+  bench_order: 'substitution',
+  captain: 'captain',
+  vice: 'vice',
+}
+
 const K_LABEL: Readonly<Record<CallType, string>> = {
   transfer: 'transfer',
   substitution: 'substitution',
@@ -154,13 +163,21 @@ export async function generateWeek(input: {
         }
       }
 
+      // A call that moves no money may not be explained in money (F4-AC-09,
+      // F3-AC-28) — on such a call a sentence about freeing up funds is not a
+      // weak argument, it is a false one.
+      const kind = KIND[call.outcome.type]
       const written = await input.model.writeReasoning({
         outName: out.name,
         inName: into.name,
         rows,
         summary: { net: call.outcome.net, strength: call.outcome.conviction, band: call.outcome.band },
+        kind,
       })
-      return { ...finalReasoning(written.text, rows, out.name, into.name), record: written.record }
+      return {
+        ...finalReasoning(written.text, rows, out.name, into.name, { costsNothing: kind !== 'transfer' }),
+        record: written.record,
+      }
     }),
   )
 

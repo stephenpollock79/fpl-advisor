@@ -346,6 +346,19 @@ export function AssistantScreen({
             Assistant
           </span>
         </div>
+        {/* **Up here, not in the tab strip.** Beside the tabs it read as a fourth
+            tab, which made a control that rewrites the week look like a place to
+            navigate to. It still names its own scope, which is what F6-AC-07
+            asks for — that requirement is about the label, not the location. */}
+        <button
+          className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
+          onClick={() => setAsking(true)}
+          disabled={running || noRunYet || world.feedsReachable === false}
+          data-testid="refresh"
+          type="button"
+        >
+          {world.feedsReachable === false ? 'OFF' : `↻ ${TABS.find((x) => x.category === tab)?.label ?? 'All'}`}
+        </button>
       </header>
 
       <nav className={styles.tabs} role="tablist">
@@ -376,18 +389,6 @@ export function AssistantScreen({
             </button>
           )
         })}
-        {/* One control, scoped to the screen it is on and naming that scope on
-            itself (F6-AC-07). There are no per-category shortcuts: one rule is
-            easier to trust than a rule plus three of them (F6-AC-08, slice 8). */}
-        <button
-          className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
-          onClick={() => setAsking(true)}
-          disabled={running || noRunYet || world.feedsReachable === false}
-          data-testid="refresh"
-          type="button"
-        >
-          {world.feedsReachable === false ? 'REFRESH OFF' : `↻ ${TABS.find((x) => x.category === tab)?.label ?? 'All'}`}
-        </button>
       </nav>
 
       <section className={styles.status} aria-label="Status">
