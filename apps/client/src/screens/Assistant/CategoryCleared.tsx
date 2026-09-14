@@ -13,8 +13,14 @@ import styles from './Assistant.module.css'
 
 export type ClearedRow = { key: string; title: string; state: 'selected' | 'rejected' | 'reopened' }
 
+/**
+ * **A selected call reads *selected · locked*** (F6-AC-02), so it is clear why it
+ * did not change when everything around it did. A refresh keeps it and plans
+ * around it; without the word the manager would read an unchanged call as one
+ * the refresh overlooked.
+ */
 const CHIP: Record<ClearedRow['state'], string> = {
-  selected: 'SELECTED ▾',
+  selected: 'SELECTED · LOCKED ▾',
   rejected: 'REJECTED ▾',
   reopened: 'PENDING REVIEW ▾',
 }

@@ -97,6 +97,8 @@ const call = (position: number, key: string, category: string, shape: string, ou
   breakdown: breakdown(outPlayerId, inPlayerId, net, category === 'transfer' ? 2 : 0.5),
   alternatives,
   position,
+  diffTag: null,
+  previousConviction: null,
 })
 
 /** A keep reading: the armband is already right, so there is no decision in it. */
@@ -357,4 +359,49 @@ test('F4-UP-02: rejecting the captain change holds the vice call rather than lea
 
   await expect(page.getByTestId('reading-panel')).toContainText('Held while the captain stays as he is')
   await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
+})
+
+test('F6-AC-07, F6-AC-10: the refresh control names its own scope, and asks before it runs', async ({ page }) => {
+  await open(page)
+
+  // One control, scoped to the screen it is on and saying so on itself — never a
+  // bare icon whose blast radius the manager has to infer from where it sits.
+  await expect(page.getByTestId('refresh')).toContainText('Transfer')
+  await page.getByRole('tab', { name: 'Sub' }).click()
+  await expect(page.getByTestId('refresh')).toContainText('Sub')
+
+  await page.getByTestId('refresh').click()
+
+  // The confirmation explains the outcome rather than asking "are you sure?".
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toContainText('kept')
+  await expect(sheet).toContainText('rewritten from scratch')
+  await expect(sheet).toContainText('stay out')
+  await expect(sheet).toContainText('unavailable')
+
+  // And declining runs nothing at all.
+  await page.getByRole('button', { name: 'Not now' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByTestId('thinking')).toHaveCount(0)
+})
+
+test('F6-AC-13: a call the last run touched carries its tag, and an untouched one carries none', async ({ page }) => {
+  const moved = {
+    ...call(0, T1, 'transfer', 'transfer', 7, 124, 1.95, 49, 'thin', 6, 'Groß over MidB.', { out: [6], in: [200] }),
+    diffTag: 'band_move',
+    previousConviction: 84,
+  }
+  await open(page, {}, [moved, world.calls[1], world.calls[2]])
+
+  await expect(page.getByTestId('diff-tag')).toHaveText('WAS 84')
+
+  await page.getByRole('tab', { name: 'Sub' }).click()
+  await expect(page.getByTestId('diff-tag')).toHaveCount(0)
+})
+
+test('F6-AC-02: a selected call reads selected · locked, so it is clear why it did not change', async ({ page }) => {
+  await open(page, { [T1]: 'selected', [T2]: 'rejected' })
+
+  await expect(page.getByText('Transfers decided')).toBeVisible()
+  await expect(page.getByText('SELECTED · LOCKED', { exact: false })).toBeVisible()
 })

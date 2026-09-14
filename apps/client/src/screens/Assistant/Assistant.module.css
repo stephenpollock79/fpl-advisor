@@ -230,3 +230,105 @@
   font-size: 12px;
   color: var(--ink-2);
 }
+
+/* Refresh: the interstitial, the Thinking pipeline and the diff sheet.
+   All three sit over the calls rather than beside them — a refresh is a thing
+   that happens to the whole week, and a control tucked into a corner reads as
+   though it only affects what is next to it. */
+.sheet {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px 20px;
+  border-radius: 16px 16px 0 0;
+  background: var(--card);
+  border-top: 1px solid var(--border-strong);
+  box-shadow: 0 -8px 24px rgb(35 33 29 / 12%);
+  z-index: 3;
+}
+
+.sheetTitle { font-size: 17px; font-weight: 800; color: var(--ink); }
+.sheetMeta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.sheetList { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+.sheetActions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+
+.thinking {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: auto 0;
+  padding: 18px;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  border: 1px solid var(--border-light);
+}
+
+.thinkingTitle { font-size: 17px; font-weight: 800; color: var(--ink); }
+.thinkingScale { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.thinkingMeta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
+.pipeline { display: flex; flex-direction: column; gap: 6px; margin: 4px 0; padding: 0; list-style: none; }
+
+/* Exactly one step reads as running at any moment (F6-AC-18); a queued step is
+   visibly not started rather than merely paler. */
+.stepDone,
+.stepRunning,
+.stepQueued {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-field);
+  font-size: 12px;
+}
+
+.stepDone { background: var(--green-tint); color: var(--green-text); }
+.stepRunning { background: var(--warm-2); color: var(--ink); font-weight: 700; }
+.stepQueued { background: transparent; color: var(--muted); }
+.stepTime { font-family: var(--font-mono); font-size: 11px; }
+
+/* The refresh control names its own scope on itself (F6-AC-07), so what a tap
+   will rewrite is never something the manager has to infer from where it sits. */
+.refresh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-field);
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.refreshOff { opacity: 0.5; cursor: not-allowed; }
+
+/* A call the last refresh touched, until its card has been seen (F6-AC-13).
+   Truncates before the title does. */
+.diffTag {
+  flex: none;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--warm-2);
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* Selected · locked (F6-AC-02): it did not change, and this says why. */
+.locked { color: var(--green-text); }
