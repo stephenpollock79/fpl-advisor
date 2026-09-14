@@ -62,6 +62,8 @@ coverage script counting it would make the number a lie.
 | F6-AC-17 | Human checklist | 2026-09-14 | Same pass. The state names the process and states the scale in real figures — the fifteen in the squad and the ~650 players considered — rather than showing a spinner with words. |
 | F6-AC-18 | Human checklist | 2026-09-14 | Same pass. The pipeline shows completed steps with their elapsed time, exactly one marked *running*, and the rest *queued*; no step's label contradicted its state. |
 | F6-AC-19 | Human checklist | 2026-09-14 | Same pass, item 3: the state is cancellable for the whole of it, and cancelling returned the screen to its calls with every decision and the last-run time unchanged. **`F6-AC-20` is not entered** — the half about the run being *recorded* cancelled rather than failed is not visible from the phone, and `docs/coverage-gaps.md` carries it. |
+| F6-AC-02 | Human checklist | 2026-09-14 | Checked on the live app after PR #77. A transfer was accepted, then a refresh run: the call came back reading as already selected rather than disappearing. **This is the half the e2e test never reached** — it asserts the badge on a fixed screen and runs no refresh, which is exactly where the rule was broken (`docs/coverage-gaps.md`). |
+| F6-AC-03 | Human checklist | 2026-09-14 | Same pass. A second call was rejected and a refresh run: it did not come back. Its figures had not moved, which is the only condition under which it should return (F6-AC-06). **The returning half is not entered** — nothing resurfaced, so the *RESURFACED* label has not been seen on a real screen. |
 
 Gaps in what the automated suite proves are recorded separately, in
 `docs/coverage-gaps.md` — a register of what *is* verified must not carry prose
