@@ -106,6 +106,15 @@ const isTenths = (v: unknown): v is number => typeof v === 'number' && Number.is
  */
 const normalise = (name: string): string =>
   name
+    /**
+     * **ß first, because it does not decompose.** Every other accent in FPL's
+     * data breaks into a letter plus a mark and survives the strip below —
+     * Kinský becomes kinsky, João becomes joao. `ß` does not: it would be
+     * removed outright, leaving Groß as "gro" while a reader transcribing
+     * "Gross" gives "gross", and the two would never meet. It is one of the
+     * fifteen in the squad this was built for.
+     */
+    .replace(/ß/g, 'ss')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     // Letters and digits: punctuation and spacing differ between a data field
@@ -125,11 +134,19 @@ export function parseSquad(
   const positions = known ? new Map(known.map((p) => [p.id, p.position])) : undefined
 
   /**
-   * **Reading the name is the model's job; resolving it is code's.** The read
-   * returns an id *and* the name it saw, and a three-digit id copied fifteen
-   * times is where a slip happens — one of which failed a whole upload under
-   * the all-or-nothing rule (2026-09-15). Where the id does not land on a known
-   * player, the name decides.
+   * **The name decides; the id only breaks a tie.**
+   *
+   * This was the other way round for one evening and it did not work. The read
+   * returned ids that were perfectly valid and belonged to the wrong players —
+   * Szoboszlai matched to Curtis Jones, van Hecke to Igor, João Pedro to Pedro
+   * Porro. Right club, wrong man. A fallback that fires only on an *invalid*
+   * id never fires on those, because there is nothing invalid about them.
+   *
+   * So the priority is inverted to match where each side is actually reliable:
+   * reading the name off a shirt is what a model does well, and choosing one
+   * row out of six hundred is what a lookup does well. The id is consulted only
+   * when the name belongs to more than one player, which is the one case a name
+   * genuinely cannot settle.
    */
   /**
    * **A name two players share resolves to neither.** Picking the last one
@@ -137,17 +154,35 @@ export function parseSquad(
    * precisely so a doubtful read fails loudly rather than quietly.
    */
   const byName = new Map<string, number | null>()
+  /** Every id behind a name more than one player answers to. */
+  const sharedBy = new Map<string, Set<number>>()
   for (const p of known ?? []) {
     const key = normalise(p.name)
     byName.set(key, byName.has(key) ? null : p.id)
+    const ids = sharedBy.get(key) ?? new Set<number>()
+    ids.add(p.id)
+    sharedBy.set(key, ids)
   }
   const knownIds = new Set((known ?? []).map((p) => p.id))
 
   const resolve = (entry: { playerId?: unknown; name?: unknown }): number | null => {
     const id = entry.playerId
-    if (typeof id === 'number' && Number.isInteger(id) && (knownIds.size === 0 || knownIds.has(id))) return id
-    const matched = typeof entry.name === 'string' ? byName.get(normalise(entry.name)) : undefined
-    return matched ?? null
+    const validId =
+      typeof id === 'number' && Number.isInteger(id) && (knownIds.size === 0 || knownIds.has(id)) ? id : null
+
+    // No list to check against: the id is all there is.
+    if (knownIds.size === 0) return validId
+
+    const key = typeof entry.name === 'string' ? normalise(entry.name) : ''
+    if (!byName.has(key)) return null
+
+    const byThatName = byName.get(key)
+    // One player with that name: the name settles it, whatever the id said.
+    if (byThatName !== null && byThatName !== undefined) return byThatName
+
+    // Shared by several — the one case only the id can settle, and only if it
+    // is one of them.
+    return validId !== null && sharedBy.get(key)?.has(validId) === true ? validId : null
   }
   const players = raw.team?.players ?? []
 
