@@ -81,6 +81,7 @@ export function gw4Week() {
   return {
     gameweek: 4,
     snapshotId: 'snapshot-gw4',
+    squadSource: 'deadline' as const,
     plan: { squad, pool, bankTenths: 10, freeTransfers: 1 },
     cards,
   }

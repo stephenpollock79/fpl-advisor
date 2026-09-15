@@ -8,9 +8,30 @@
  * came back would prove the function returns its argument.
  */
 
+import { readFileSync, readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { DecisionState, World, WorldCall, WorldPlayer } from '../../apps/client/src/api'
 import { weekOf } from '../../apps/client/src/calls/week'
+
+/**
+ * **Taken from the migration, never typed here.** `squad_snapshot.source` has
+ * allowed `screenshot` since slice 3 and the client compared against
+ * `screenshots` for the whole of 2026-09-15 — a branch that could never fire,
+ * green the entire time because the fixture typed the plural by hand. A test
+ * that invents the value it is checking decides its own result (P16).
+ */
+const SCREENSHOT_SOURCE = (() => {
+  const dir = fileURLToPath(new URL('../../supabase/migrations', import.meta.url))
+  const sql = readdirSync(dir)
+    .map((f) => readFileSync(`${dir}/${f}`, 'utf8'))
+    .join('\n')
+  const match = /squad_snapshot[\s\S]*?source\s+text not null check \(source in \(([^)]+)\)\)/.exec(sql)
+  const values = (match?.[1] ?? '').split(',').map((v) => v.trim().replace(/'/g, ''))
+  const found = values.find((v) => v !== 'fpl_deadline')
+  if (!found) throw new Error('no screenshot source found in the migrations')
+  return found
+})()
 
 const player = (id: number, surname: string, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
   playerId: id,
@@ -168,11 +189,16 @@ describe('F8-AC-04 · where the week was built from', () => {
     expect(weekOf(world(), none).squadStateLine).toBe('built from your squad as at the GW4 deadline')
   })
 
+  it('F8-AC-04: the client compares against the value the migration actually allows', () => {
+    // The whole of the defect: the strings simply never matched.
+    expect(SCREENSHOT_SOURCE).toBe('screenshot')
+  })
+
   it('F8-AC-04: a squad corrected from screenshots states the upload time instead', () => {
     // The trigger is the snapshot F2 writes, which is the only thing that
     // distinguishes the two readings.
     const w = world({
-      snapshot: { ...world().snapshot, source: 'screenshots', capturedAt: '2026-09-15T18:12:00' },
+      snapshot: { ...world().snapshot, source: SCREENSHOT_SOURCE, capturedAt: '2026-09-15T18:12:00' },
     })
     expect(weekOf(w, none).squadStateLine).toBe('built from the squad screenshots you uploaded at 18:12')
   })

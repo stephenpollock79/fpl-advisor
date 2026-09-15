@@ -75,7 +75,7 @@ describe('F6-UP-03, F6-AC-15 · the gameweek is a stop, never a prompt', () => {
 })
 
 describe('F6-RS-10, F6-UP-04 · what the model is never asked, and what is deliberately not built', () => {
-  it('F6-RS-10: the model is asked to propose and to explain, and nothing else', async () => {
+  it('F6-RS-10: the model is asked to propose, to explain and to read, and never to judge', async () => {
     const { mockModel } = await import('../../apps/server/src/model/client.js')
     const port = mockModel()
 
@@ -86,12 +86,16 @@ describe('F6-RS-10, F6-UP-04 · what the model is never asked, and what is delib
     // method to ask.
     // **Exhaustive on purpose.** A substring check would let a
     // `judgeMateriality` through; the whole guarantee is that the interface
-    // offers no way to ask. `writeEditorial` joined the list on 2026-09-15 with
-    // the Overview (F8-AC-08) — it is the explain job written over the week
-    // instead of over one card, and it decides nothing.
+    // offers no way to ask. Two joined on 2026-09-15: `writeEditorial` with the
+    // Overview (F8-AC-08), the explain job written over the week instead of one
+    // card; and `readSquadScreenshots` with F2, which reports what is on a
+    // picture. **Neither decides anything** — and the screenshot read in
+    // particular is checked entirely in code, so a model that half-reads a
+    // picture cannot rule its own output good enough (F2-UP-01).
     const methods = Object.keys(port).filter((k) => typeof (port as unknown as Record<string, unknown>)[k] === 'function')
     expect(methods.sort()).toEqual([
       'proposeTransfers',
+      'readSquadScreenshots',
       'writeEditorial',
       'writeReasoning',
     ])

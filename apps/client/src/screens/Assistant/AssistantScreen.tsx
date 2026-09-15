@@ -117,10 +117,10 @@ export function AssistantScreen({
   onReload: () => void
   account: Account
   /**
-   * Onboarding has just finished, so the first advice run starts without
-   * another tap (F7-AC-15). **Not an exception to F6-AC-15** — nothing is
-   * refreshing on its own; this is the manager's own confirmation, one screen
-   * earlier, and it is the only thing that sets this flag.
+   * Something one screen back already asked for a run: a finished team link
+   * (F7-AC-15) or a squad correction (F2-AC-05). **Not an exception to
+   * F6-AC-15** — nothing refreshes on its own; both are the manager's own
+   * action, and nothing else sets this.
    */
   startRun?: boolean
 }) {
@@ -163,9 +163,8 @@ export function AssistantScreen({
   const [showDiff, setShowDiff] = useState(false)
   const abort = useRef<AbortController | null>(null)
 
-  // Onboarding's run, started once. The ref is what stops a re-render from
-  // starting a second one, which would spend twice for one confirmation.
-  const onboarded = useRef(false)
+  /** The run a team link or a correction asks for, started exactly once. */
+  const autoRan = useRef(false)
 
   const fresh = watchFreshness(world)
   // F4-UP-02: turn the captain change down and the vice call's premise is gone
@@ -404,11 +403,20 @@ export function AssistantScreen({
 
   const noRunYet = world.calls.length === 0 && world.lastRunAt === null
 
+  /**
+   * **Two routes arrive here already meaning to run**: the team link finishing
+   * (F7-AC-15) and a squad correction (F2-AC-05). Both are the manager's own
+   * action one screen earlier, so `F6-AC-15`'s *nothing refreshes on its own*
+   * is intact — nothing sets this flag but those two.
+   *
+   * The ref is what stops a re-render starting a second run, which would spend
+   * twice for one action.
+   */
   useEffect(() => {
-    if (!startRun || onboarded.current || !noRunYet) return
-    onboarded.current = true
+    if (!startRun || autoRan.current) return
+    autoRan.current = true
     void onRefresh()
-  }, [startRun, noRunYet])
+  }, [startRun])
 
   /**
    * **One derivation of the week, for the editorial, the token and the tab

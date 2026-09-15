@@ -46,9 +46,16 @@ export const PINNED = {
    * everyone reads as per-card.
    */
   editorial: 'claude-sonnet-5',
+  /**
+   * **Reading a screenshot is extraction, and ADR 0009 routes extraction to
+   * Haiku.** So this is the ADR's choice rather than a judgement made here. Its
+   * own step, not a second `propose`, so an upload's cost is visible on the run
+   * record instead of hiding inside the proposal count (F2, NFR Cost control).
+   */
+  parse: 'claude-haiku-4-5',
 } as const
 
-export type ModelStep = 'propose' | 'reason' | 'editorial'
+export type ModelStep = 'propose' | 'reason' | 'editorial' | 'parse'
 export type ModelRoute = 'api' | 'agent-sdk' | 'mock'
 
 export type ModelCallRecord = {
@@ -126,7 +133,7 @@ export type EditorialInput = {
   calls: { title: string; net: number; band: string | null; forced: boolean }[]
   /** A lead sentence about this is shown above the paragraph (F8-AC-07). */
   exception: 'blank' | 'double' | null
-  squadSource: 'deadline' | 'screenshots'
+  squadSource: 'deadline' | 'screenshot'
 }
 
 export interface ModelPort {
@@ -138,9 +145,54 @@ export interface ModelPort {
    * the same job, written over the week instead of over one card.
    */
   writeEditorial(input: EditorialInput): Promise<{ text: string; record: ModelCallRecord }>
+  /**
+   * The two screenshots, read (F2). **Returns what it saw and nothing more** —
+   * every check on whether the read is usable is `parseSquad`'s, in code, so a
+   * model that half-reads a picture cannot decide the result is good enough.
+   */
+  readSquadScreenshots(input: ScreenshotInput): Promise<{ raw: unknown; record: ModelCallRecord }>
+}
+
+/** Two images, each a base64 data URL as the browser produced it. */
+export type ScreenshotInput = {
+  team: string
+  transfers: string
 }
 
 type Env = Record<string, string | undefined>
+
+/**
+ * A base64 data URL, as the browser produced it, split into what the API wants.
+ * **The media type comes from the URL rather than being assumed**: a phone
+ * screenshot may arrive as PNG, JPEG or WebP depending on how it was shared,
+ * and declaring the wrong one fails the whole request.
+ */
+/** A body that is not JSON is a failed read, never a throw. `parseSquad` says so. */
+function safeJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+/** The four the API accepts. Anything else is a failed read, not a conversion job. */
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
+type ImageType = (typeof IMAGE_TYPES)[number]
+
+const isImageType = (v: string): v is ImageType => (IMAGE_TYPES as readonly string[]).includes(v)
+
+function imageBlock(dataUrl: string): {
+  type: 'image'
+  source: { type: 'base64'; media_type: ImageType; data: string }
+} {
+  const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl)
+  const mediaType = match?.[1]
+  const data = match?.[2]
+  if (!mediaType || !data) throw new Error('an uploaded image was not a base64 data URL')
+  if (!isImageType(mediaType)) throw new Error(`an uploaded image was ${mediaType}, which cannot be read`)
+  return { type: 'image', source: { type: 'base64', media_type: mediaType, data } }
+}
 
 /** At most this many proposals are asked for; the plan decides how many survive. */
 const MAX_PROPOSALS = 3
@@ -223,6 +275,7 @@ const pinnedFrom = (env: Env) => ({
   // Follows the reasoning override, because the two are the same job at two
   // scales and pinning them apart by accident is the likelier mistake.
   editorial: env['ANTHROPIC_MODEL_REASON']?.trim() || PINNED.editorial,
+  parse: env['ANTHROPIC_MODEL_FILTER']?.trim() || PINNED.parse,
 })
 
 const unrecorded = (step: ModelStep, via: ModelRoute, pinned: string, modelId: string, ok: boolean): ModelCallRecord => ({
@@ -263,6 +316,60 @@ const EDITORIAL_SYSTEM = [
   'Do not write either of those yourself and do not repeat them.',
 ].join(' ')
 
+/**
+ * **It is asked to read, never to judge.** Every check on whether the read is
+ * usable lives in `parseSquad`, in code — a model allowed to decide its own
+ * output is good enough will say so, and an all-or-nothing rule decided by the
+ * thing being checked is not a rule (F2-UP-01).
+ */
+const PARSE_SYSTEM = [
+  'You read two screenshots from the Fantasy Premier League app and report exactly what is on them.',
+  'The first is the Team screen: fifteen players, which eleven start, the bench order, the captain,',
+  'the vice-captain, and which chips remain. The second is the Transfers screen: the bank and the',
+  'number of free transfers. Report the FPL player id where the picture shows one, otherwise omit',
+  'the player. Money is a whole number of tenths of a million: £2.8m is 28.',
+  'Report only what you can actually read. Never guess a player, a number or an armband,',
+  'and never fill a gap to make the list complete. Answer with the JSON object only.',
+].join(' ')
+
+/** What is asked for. Every field is checked in code before any of it is used. */
+export const PARSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    team: {
+      type: 'object',
+      properties: {
+        players: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              playerId: { type: 'integer' },
+              isStarter: { type: 'boolean' },
+              benchOrder: { type: ['integer', 'null'] },
+              isCaptain: { type: 'boolean' },
+              isVice: { type: 'boolean' },
+            },
+            required: ['playerId', 'isStarter', 'benchOrder', 'isCaptain', 'isVice'],
+            additionalProperties: false,
+          },
+        },
+        chipsRemaining: { type: 'object', additionalProperties: { type: 'string' } },
+      },
+      required: ['players', 'chipsRemaining'],
+      additionalProperties: false,
+    },
+    transfers: {
+      type: 'object',
+      properties: { bankTenths: { type: 'integer' }, freeTransfers: { type: 'integer' } },
+      required: ['bankTenths', 'freeTransfers'],
+      additionalProperties: false,
+    },
+  },
+  required: ['team', 'transfers'],
+  additionalProperties: false,
+} as const
+
 export function editorialPrompt(input: EditorialInput): string {
   const lines = [
     input.calls.length === 0
@@ -275,7 +382,7 @@ export function editorialPrompt(input: EditorialInput): string {
     ),
   ]
   if (input.exception) lines.push(`A ${input.exception} gameweek is already led with above.`)
-  if (input.squadSource === 'screenshots') {
+  if (input.squadSource === 'screenshot') {
     lines.push('The squad was corrected from screenshots, not read at the deadline.')
   }
   return lines.join('\n')
@@ -378,6 +485,58 @@ export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env
     async writeEditorial(input) {
       const { text, record } = await call('editorial', EDITORIAL_SYSTEM, editorialPrompt(input))
       return { text: text ?? '', record }
+    },
+    async readSquadScreenshots(input) {
+      const model = pinned.parse
+      try {
+        const response = await client.messages.create({
+          model,
+          max_tokens: 2048,
+          system: PARSE_SYSTEM,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text' as const, text: 'The Team screen:' },
+                imageBlock(input.team),
+                { type: 'text' as const, text: 'The Transfers screen:' },
+                imageBlock(input.transfers),
+              ],
+            },
+          ],
+          output_config: { format: { type: 'json_schema' as const, schema: PARSE_SCHEMA } },
+        })
+        const u = response.usage
+        const price = PRICES[response.model]
+        const cacheWrite = u.cache_creation_input_tokens ?? 0
+        const cacheRead = u.cache_read_input_tokens ?? 0
+        const ok = response.stop_reason !== 'refusal'
+        const text = response.content.map((block) => (block.type === 'text' ? block.text : '')).join('')
+        return {
+          // Structured output where the route gives it, the text body otherwise.
+          // Either way `parseSquad` decides whether any of it is usable.
+          raw: (response as unknown as { structured_output?: unknown }).structured_output ?? safeJson(text),
+          record: {
+            step: 'parse',
+            via: 'api',
+            pinned: model,
+            modelId: response.model,
+            inputTokens: u.input_tokens + cacheWrite + cacheRead,
+            outputTokens: u.output_tokens,
+            costUsd: price
+              ? (u.input_tokens * price.input +
+                  cacheWrite * price.input * CACHE_WRITE_MULTIPLIER +
+                  cacheRead * price.input * CACHE_READ_MULTIPLIER +
+                  u.output_tokens * price.output) /
+                1_000_000
+              : null,
+            ok,
+          },
+        }
+      } catch (cause) {
+        console.error('[model] the screenshots could not be read', cause)
+        return { raw: null, record: unrecorded('parse', 'api', model, 'none', false) }
+      }
     },
   }
 }
@@ -493,6 +652,18 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
       const { result, record } = await call('editorial', editorialPrompt(input), EDITORIAL_SYSTEM)
       return { text: result?.result ?? '', record }
     },
+    /**
+     * **Not available on this route, and it says so rather than pretending.**
+     * The Agent SDK carries a prompt, not image blocks, so a screenshot cannot
+     * reach the model this way. Production has a key and uses `apiModel`, where
+     * the parse works; locally an upload reports a failure naming this, which is
+     * the honest answer — a silent empty read would look like an unreadable
+     * screenshot and send the manager back to his camera roll.
+     */
+    // eslint-disable-next-line @typescript-eslint/require-await
+    async readSquadScreenshots() {
+      return { raw: null, record: unrecorded('parse', 'agent-sdk', pinned.parse, 'unsupported', false) }
+    },
   }
 }
 
@@ -508,6 +679,9 @@ export function mockModel(): ModelPort {
     },
     async writeEditorial() {
       return { text: '', record: unrecorded('editorial', 'mock', 'mock', 'mock', true) }
+    },
+    async readSquadScreenshots() {
+      return { raw: null, record: unrecorded('parse', 'mock', 'mock', 'mock', true) }
     },
   }
 }

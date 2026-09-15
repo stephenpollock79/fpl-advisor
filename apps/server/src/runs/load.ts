@@ -49,7 +49,7 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
 
   const { data: snapshots } = await mine
     .from('squad_snapshot')
-    .select('id, bank_tenths, free_transfers')
+    .select('id, bank_tenths, free_transfers, source')
     .eq('gameweek', gameweek)
     .is('superseded_at', null)
     .order('captured_at', { ascending: false })
@@ -191,6 +191,10 @@ export async function loadWeek(user: AuthenticatedUser): Promise<WeekInputs | nu
   return {
     gameweek,
     snapshotId: snapshot['id'] as string,
+    // What the editorial names as where the week's calls were built from
+    // (F8-AC-04). Read, never assumed — slice 8 hardcoded it and its own review
+    // named that as the gap.
+    squadSource: snapshot['source'] === 'screenshot' ? 'screenshot' : 'deadline',
     plan: {
       squad,
       pool: [...planPlayers.values()].filter((p) => !inSquad.has(p.playerId)),

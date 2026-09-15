@@ -116,19 +116,20 @@ that distinction is the whole reason this file exists. Slice 10 (STE-68) owns th
 hardening pass where it would be closed.
 
 
-**F1-AC-07 — the free-transfer figure is tested, and the tests cannot see the risk.**
-`tests/squad/snapshot.test.ts` covers the accrual, the deduction, the cap, the floor
-and the wildcard exemption. Every one of those passes against the rule as it stands
-today, which is the whole problem: **no public FPL endpoint reports the balance**, so
-the figure is reconstructed rather than read, and the tests assert the reconstruction
-rather than the truth.
+**F1-AC-07 — closed 2026-09-15 by slice 9 (STE-67).** The figure is now read from the
+Transfers screenshot, which states it, and a parsed figure always wins.
 
-If FPL changes the accumulation rule — the cap was two until 2024/25 — the suite stays
-green and the header goes quietly wrong. That is the same shape as asserting a policy
-exists rather than that isolation holds. **F1-AC-07 must not be read as fully
-verified**, and the check that would settle it is reading the count from the F2
-screenshot, which states it. STE-110 owns the decision; `docs/specs/architecture.md`
-§8.4 carries the detail.
+**The gap it closes was a real one and worth remembering.** No public FPL endpoint
+reports the free-transfer balance, so slice 3 reconstructed it — accrual, deduction,
+cap, floor, wildcard exemption — and `tests/squad/snapshot.test.ts` covered every part.
+All of it passed against the rule as it stood, which was the whole problem: **the tests
+asserted the reconstruction rather than the truth**. FPL changed the cap from two to
+five in 2024/25; the next such change would have left the suite green and the header
+quietly wrong.
+
+**The derivation is not deleted.** A squad captured from FPL has no screenshot behind
+it and still needs one. Both live on, and the rule is that a figure from a source that
+states it beats a figure worked out from rules — never the other way round.
 
 **F1-AC-10 — closed 2026-09-09.** This entry recorded that no data source had a
 shirt number: FPL leaves `squad_number` null for all 654 players and FFIQ has no
