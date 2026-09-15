@@ -552,3 +552,26 @@ describe('F2-UP-01 · a name the card ran out of room for', () => {
     expect(result.squad.players.find((p) => p.playerId === 15)?.isStarter).toBe(false)
   })
 })
+
+describe('F2-UP-01 · the armbands are two different shirts', () => {
+  it('F2-UP-01: one shirt read as both captain and vice is refused, though each count is still one', () => {
+    // **The hole the two counts leave.** One captain and one vice both pass
+    // when a single player carries both letters — which is what a read that
+    // found one armband and reported it twice looks like. The squad would then
+    // fall back from an unavailable captain to himself.
+    const players = fifteen()
+    const first = players[0] as Record<string, unknown> | undefined
+    const second = players[1] as Record<string, unknown> | undefined
+    if (first) first['isVice'] = true
+    if (second) second['isVice'] = false
+
+    const result = parseSquad({
+      team: { players, chips: [{ chip: 'wildcard', state: 'available' }] },
+      transfers: { bankTenths: 28, freeTransfers: 2 },
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.because).toMatch(/both captain and vice-captain/)
+  })
+})
