@@ -146,7 +146,7 @@ describe('What the world carries for the calls', () => {
   it('F3-AC-23: a player named from outside the squad is carried as a candidate, with his figures', () => {
     const [gross] = world().candidates
     expect(gross?.playerId).toBe(124)
-    expect(gross?.surname).toBe('Groß')
+    expect(gross?.name).toBe('Groß')
     expect(gross?.isStarter).toBe(false)
     expect(gross?.nowCostTenths).toBe(56)
   })

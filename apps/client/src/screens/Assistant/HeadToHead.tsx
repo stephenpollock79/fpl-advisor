@@ -194,7 +194,7 @@ export function HeadToHead({
                   }}
                   type="button"
                 >
-                  <span className={styles.pickerName}>{p.surname}</span>
+                  <span className={styles.pickerName}>{p.name}</span>
                   <span className={styles.pickerMeta}>
                     {p.clubShortName} · {formatMoney(p.nowCostTenths)} · xPts {p.projectedPoints.toFixed(1)}
                   </span>
@@ -305,7 +305,7 @@ function Keep({
     <div className={styles.h2h}>
       <div className={`${styles.card} ${styles.keepCard}`} data-testid="keep-card">
         <span className={styles.keepEyebrow}>No change · nothing to do</span>
-        <span className={styles.keepName}>{out.surname}</span>
+        <span className={styles.keepName}>{out.name}</span>
         <span className={styles.keepMeta}>
           {out.clubShortName} · {out.position}
         </span>
@@ -364,7 +364,7 @@ function Side({ player, direction, onChange }: { player: WorldPlayer; direction:
     <div className={direction === 'out' ? styles.side : styles.sideRight}>
       <span className={styles.dir}>{direction === 'out' ? '▼ OUT' : 'IN ▲'}</span>
       <span data-testid={`${direction}-name`} className={styles.name}>
-        {player.surname}
+        {player.name}
       </span>
       <span className={styles.meta}>
         {player.clubShortName} · {player.position} · {formatMoney(player.nowCostTenths)}
@@ -423,8 +423,8 @@ function Explained({ shown, gameweekId }: { shown: Shown; gameweekId: number }) 
 
   return (
     <div className={styles.explain}>
-      {side('Out', shown.out.surname, b.out)}
-      {side('In', shown.into.surname, b.in)}
+      {side('Out', shown.out.name, b.out)}
+      {side('In', shown.into.name, b.in)}
       <span>Weights: {b.weights.map((w) => w.toFixed(2)).join(' / ')}</span>
       <span>
         Net {formatNet(b.net)} · points hit {String(b.pointsHit)} · k {b.k.toFixed(1)} ({b.kLabel})

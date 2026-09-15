@@ -180,7 +180,7 @@ export function PlayerSlot({ player, tight = false }: { player: WorldPlayer; tig
         <AvailabilityMarker player={player} />
         <Armband player={player} />
       </div>
-      <div className={styles.surname}>{displaySurname(player.surname)}</div>
+      <div className={styles.surname}>{displaySurname(player.name)}</div>
       <FixturePill fixtures={player.fixtures} onPitch />
     </div>
   )

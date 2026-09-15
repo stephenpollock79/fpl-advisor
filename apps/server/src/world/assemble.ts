@@ -42,7 +42,15 @@ export type WorldFixture = {
 
 export type WorldPlayer = {
   playerId: number
-  surname: string
+  /**
+   * **What FPL prints on the shirt**, which is what every screen shows and what
+   * the manager sees in the FPL app itself. Not the second name: that is
+   * "Junqueira de Jesus" for João Pedro and his full family name for Calafiori,
+   * which overflowed a card on 2026-09-15 and matched the wrong player in a
+   * screenshot the same evening. Falls back to the surname where FPL has not
+   * been read since the column existed.
+   */
+  name: string
   shirtNumber: number | null
   clubId: number
   clubShortName: string
@@ -236,7 +244,7 @@ export function assembleWorld(parts: WorldParts): World {
 
     return {
       playerId: player.id,
-      surname: player.surname,
+      name: player.shirtName || player.surname,
       shirtNumber: player.shirtNumber,
       clubId: player.clubId,
       clubShortName: clubById.get(player.clubId)?.shortName ?? '',

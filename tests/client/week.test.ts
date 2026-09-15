@@ -33,9 +33,9 @@ const SCREENSHOT_SOURCE = (() => {
   return found
 })()
 
-const player = (id: number, surname: string, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
+const player = (id: number, name: string, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
   playerId: id,
-  surname,
+  name,
   shirtNumber: null,
   clubId: id,
   clubShortName: 'XXX',

@@ -12,9 +12,9 @@ import { describe, expect, it } from 'vitest'
 import type { DecisionState, World, WorldCall, WorldPlayer } from '../../apps/client/src/api'
 import { callsUnder, scenarioFor } from '../../apps/client/src/calls/scenario'
 
-const player = (id: number, surname: string, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
+const player = (id: number, name: string, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
   playerId: id,
-  surname,
+  name,
   shirtNumber: null,
   clubId: id,
   clubShortName: `C${String(id)}`,

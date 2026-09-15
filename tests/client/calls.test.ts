@@ -23,9 +23,9 @@ import {
   watchFreshness,
 } from '../../apps/client/src/calls/view'
 
-const player = (id: number, surname: string, projection: number, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
+const player = (id: number, name: string, projection: number, extra: Partial<WorldPlayer> = {}): WorldPlayer => ({
   playerId: id,
-  surname,
+  name,
   shirtNumber: null,
   clubId: id,
   clubShortName: 'XXX',

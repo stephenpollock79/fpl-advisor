@@ -75,7 +75,7 @@ export function StatTable({ players }: { players: WorldPlayer[] }) {
                             both lines instead of hanging off the top one. */}
                         <span className={styles.nameCell}>
                           <span className={styles.nameLines}>
-                            <span className={styles.nameRow}>{displaySurname(p.surname)}</span>
+                            <span className={styles.nameRow}>{displaySurname(p.name)}</span>
                             <span className={styles.club}>{p.clubShortName}</span>
                           </span>
                           {!p.isStarter && p.benchOrder !== null ? (

@@ -86,7 +86,7 @@ function Marker({ player, move }: { player: WorldPlayer; move: Move }) {
       >
         {player.isCaptain ? <span className={styles.armband}>C</span> : null}
       </span>
-      <span className={styles.markerName}>{short(player.surname)}</span>
+      <span className={styles.markerName}>{short(player.name)}</span>
     </span>
   )
 }
