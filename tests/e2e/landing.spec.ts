@@ -28,6 +28,14 @@ test('F7-AC-16, F7-AC-17, F7-UP-04: a stranger lands on one card with an invite-
   await expect(page.getByRole('tab', { name: 'What he does' })).toHaveAttribute('aria-selected', 'true')
   // Nothing about any squad is shown before sign-in.
   await expect(page.getByText('Noggingham Forest')).toHaveCount(0)
+
+  // **No scroll** — the criterion says so outright, and it was untrue until
+  // 2026-09-15, when the claims ran off the bottom of the phone. Measured off
+  // the screen's own box rather than `document`, which the test project has no
+  // DOM types for.
+  const box = await page.locator('main').boundingBox()
+  const viewport = page.viewportSize()
+  expect(box?.height ?? 0).toBeLessThanOrEqual(viewport?.height ?? 0)
 })
 
 test('F7-AC-18: there is no sign-up path, no password field and no forgotten-password line', async ({ page }) => {

@@ -60,6 +60,21 @@ asserting the bodies match would pass while the criterion is false — the same
 shape as asserting a policy exists rather than that isolation holds. Recorded in
 full on STE-68, which owns the fix.
 
+**F7-AC-16 — four claims, where the criterion says five.** Most of the criterion
+is genuinely covered by `tests/e2e/landing.spec.ts`: the only screen reachable
+without an account, no app header, one card, two tabs, *What he does* by default,
+no sign-up path, and — since 2026-09-15 — no scroll, which is now asserted rather
+than assumed.
+
+**The count is not.** The design's fourth claim is the chip planner. **F5 is below
+the cut line**, so slice 8 replaced it with team news and then dropped it outright
+on Stephen's instruction, leaving four. Selling a chip planner that does not exist
+on the only screen a stranger sees is the thing being avoided; being one short of
+the criterion is what it costs.
+
+**So `F7-AC-16` may not be read as met from the coverage figure.** It closes with
+F5, when the design's own fifth claim comes back. *Home: STE-70.*
+
 **F8-AC-12 — the control is not where the criterion puts it.** The criterion
 says the refresh "sits in the Assistant status bar (3.1) and is scoped to every
 category at once, **labelled ALL**". Slice 8 built exactly that, and it was

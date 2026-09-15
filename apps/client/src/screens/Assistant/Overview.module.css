@@ -134,7 +134,15 @@
 
 .legend span { display: inline-flex; align-items: center; gap: 4px; }
 
-.key { width: 9px; height: 9px; border-radius: 3px; border: 2px solid transparent; background: var(--warm-2); }
+/* **The keys carry their own colours.** They used to reuse the marker classes,
+   and `.key`'s `border` shorthand is declared after those — same specificity, so
+   the transparent border won and the legend showed three identical grey squares.
+   Separate names, no dependence on the order of this file. */
+.key { width: 10px; height: 10px; border-radius: 3px; background: var(--warm-2); border: 2px solid var(--border-strong); }
+
+.keyIn { border-color: var(--green-dark); }
+.keyOut { border-color: var(--red-disc); }
+.keyMoved { border-color: #d6960f; }
 
 .breaches {
   margin: 0 10px 10px; padding: 7px 8px; border: 1px solid var(--red-card-border); border-radius: 10px;
