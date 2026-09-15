@@ -444,3 +444,111 @@ describe('F2-AC-01, F2-UP-01 · the second picture is read for the fifteen too',
     expect(result.ok).toBe(true)
   })
 })
+
+describe('F2-UP-01 · a name the card ran out of room for', () => {
+  /**
+   * **FPL truncates a long shirt name on the pitch card** — "Calvert-Le…" is
+   * what is printed, and the picture holds nothing else. An honest read reports
+   * it as printed, it matches no player, and the whole upload fails (found live
+   * 2026-09-15 on Calvert-Lewin).
+   *
+   * **The trigger is the truncation**, so every test here supplies a genuinely
+   * cut-off name rather than a flag saying one was cut off (P16).
+   */
+  const positions: Record<number, string> = {
+    1: 'GKP', 12: 'GKP',
+    2: 'DEF', 3: 'DEF', 4: 'DEF', 13: 'DEF', 14: 'DEF',
+    5: 'MID', 6: 'MID', 7: 'MID', 8: 'MID', 15: 'MID',
+    9: 'FWD', 10: 'FWD', 11: 'FWD',
+  }
+  const known = (names: Record<number, string> = {}) =>
+    Object.entries(positions).map(([id, position]) => ({
+      id: Number(id),
+      name: names[Number(id)] ?? `Player${id}`,
+      position,
+    }))
+
+  const teamReading = (override: Record<number, unknown> = {}) =>
+    fifteen().map((p) =>
+      Object.hasOwn(override, p.playerId) ? { ...p, ...(override[p.playerId] as object) } : p,
+    )
+
+  it('F2-UP-01: a shirt name the app cut short resolves to the one player it can be, and a correct id does not rescue it on its own', () => {
+    // The id beside it is right. It changes nothing — the name decides, and a
+    // name no player answers to resolves to nobody. Only the expansion saves it.
+    const result = parseSquad(
+      {
+        team: { players: teamReading({ 9: { name: 'Calvert-Le…' } }), chips: [{ chip: 'wildcard', state: 'available' }] },
+        transfers: { bankTenths: 28, freeTransfers: 2 },
+      },
+      known({ 9: 'Calvert-Lewin' }),
+    )
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players.map((p) => p.playerId)).toContain(9)
+  })
+
+  it('F2-UP-01: a cut-off name two players could both begin with resolves to neither', () => {
+    // **Two candidates is a coin toss.** The all-or-nothing rule exists so a
+    // doubtful read fails loudly rather than shipping a plausible wrong squad.
+    const result = parseSquad(
+      {
+        team: { players: teamReading({ 9: { name: 'Wilson-Ca…' } }), chips: [{ chip: 'wildcard', state: 'available' }] },
+        transfers: { bankTenths: 28, freeTransfers: 2 },
+      },
+      known({ 9: 'Wilson-Carter', 10: 'Wilson-Cavendish' }),
+    )
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.because).toMatch(/could not be matched to a known player/)
+  })
+
+  it('F2-UP-01: a name a player answers to whole is never re-read as the start of a longer one', () => {
+    // A real surname that happens to begin another is matched exactly, because
+    // the expansion runs only once an exact match has already failed.
+    const result = parseSquad(
+      {
+        team: {
+          players: teamReading({ 9: { name: 'Ward' }, 10: { name: 'Ward-Prowse' } }),
+          chips: [{ chip: 'wildcard', state: 'available' }],
+        },
+        transfers: { bankTenths: 28, freeTransfers: 2 },
+      },
+      known({ 9: 'Ward', 10: 'Ward-Prowse' }),
+    )
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players.map((p) => p.playerId)).toContain(9)
+  })
+
+  it('F2-UP-01, F2-AC-01: a cut-off name and a slot the read could not name, together, still make fifteen', () => {
+    // **The upload that failed on 2026-09-15, end to end.** One shirt the app
+    // cut short, and one slot the read reported without being able to name it
+    // at all — the picture was perfectly legible, the read simply came back
+    // short, as it does. The expansion places the first, the other picture
+    // places the second.
+    const result = parseSquad(
+      {
+        team: {
+          players: teamReading({ 9: { name: 'Calvert-Le…' }, 15: { name: '', playerId: 0 } }),
+          chips: [{ chip: 'wildcard', state: 'available' }],
+        },
+        transfers: {
+          bankTenths: 28,
+          freeTransfers: 2,
+          players: Array.from({ length: 15 }, (_, i) => ({ playerId: i + 1, name: `Player${String(i + 1)}` })),
+        },
+      },
+      known({ 9: 'Calvert-Lewin' }),
+    )
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players).toHaveLength(15)
+    expect(result.squad.players.filter((p) => p.isStarter)).toHaveLength(11)
+    expect(result.squad.players.find((p) => p.playerId === 15)?.isStarter).toBe(false)
+  })
+})
