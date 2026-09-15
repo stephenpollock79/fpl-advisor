@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { evaluationRows, type CardPlayer } from '../../packages/engine/src/index.js'
-import { PINNED, liveModel, mockModel } from '../../apps/server/src/model/client.js'
+import { PARSE_SCHEMA, PINNED, PROPOSAL_SCHEMA, liveModel, mockModel } from '../../apps/server/src/model/client.js'
 import { finalReasoning, reasoningIsAcceptable } from '../../apps/server/src/model/reasoning.js'
 
 const player = (projection: number, form: number): CardPlayer => ({
@@ -94,6 +94,67 @@ describe('F3-AC-22, ENGINE-AC-05 · the model\'s line is checked, never trusted'
   it('F3-AC-22: an empty or missing line falls back', () => {
     expect(finalReasoning('', rows, 'Tzolis', 'Rogers').source).toBe('template')
     expect(finalReasoning(null, rows, 'Tzolis', 'Rogers').source).toBe('template')
+  })
+})
+
+describe('ADR 0009 · every schema obeys what structured outputs actually accept', () => {
+  /**
+   * **A comment said this and a schema did not follow it**, and the result was
+   * three uploads refused with HTTP 400 before a picture was ever looked at
+   * (2026-09-15). `PARSE_SCHEMA` declared the chips as an open map —
+   * `additionalProperties` holding a schema — and `benchOrder` as a type union.
+   * Neither is accepted.
+   *
+   * **Nothing else can catch this.** Every test stubs the model, so the schema
+   * is never sent anywhere; the first thing to evaluate it is the API, on a
+   * real upload. A structural assertion is the only guard short of spending.
+   */
+  const walk = (node: unknown, path: string, visit: (n: Record<string, unknown>, path: string) => void): void => {
+    if (Array.isArray(node)) {
+      node.forEach((child, i) => {
+        walk(child, `${path}[${String(i)}]`, visit)
+      })
+      return
+    }
+    if (typeof node !== 'object' || node === null) return
+    const object = node as Record<string, unknown>
+    visit(object, path)
+    for (const [key, value] of Object.entries(object)) walk(value, `${path}.${key}`, visit)
+  }
+
+  const schemas: [string, unknown][] = [
+    ['PROPOSAL_SCHEMA', PROPOSAL_SCHEMA],
+    ['PARSE_SCHEMA', PARSE_SCHEMA],
+  ]
+
+  it('every schema sets additionalProperties to false, never to a schema of its own', () => {
+    for (const [name, schema] of schemas) {
+      walk(schema, name, (node, path) => {
+        if (!('additionalProperties' in node)) return
+        expect(node['additionalProperties'], `${path}.additionalProperties`).toBe(false)
+      })
+    }
+  })
+
+  it('no schema declares a type union, which structured outputs reject', () => {
+    for (const [name, schema] of schemas) {
+      walk(schema, name, (node, path) => {
+        if (!('type' in node)) return
+        expect(Array.isArray(node['type']), `${path}.type`).toBe(false)
+      })
+    }
+  })
+
+  it('every object in a schema says which of its properties are required', () => {
+    // A structured output with no `required` comes back with fields missing and
+    // reads as an unreadable picture rather than as a schema that asked for
+    // nothing.
+    for (const [name, schema] of schemas) {
+      walk(schema, name, (node, path) => {
+        if (node['type'] !== 'object') return
+        expect(node['required'], `${path}.required`).toEqual(Object.keys(node['properties'] ?? {}))
+      })
+    }
   })
 })
 

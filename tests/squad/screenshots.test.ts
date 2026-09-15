@@ -56,7 +56,7 @@ const harness = (overrides: Partial<Parameters<typeof screenshotRoutes>[0]> = {}
 
 /** What a clean model read looks like, built from the squad it should produce. */
 const fromSquad = (s: ParsedSquad) => ({
-  team: { players: s.players, chipsRemaining: s.chipsRemaining },
+  team: { players: s.players, chips: Object.entries(s.chipsRemaining).map(([chip, state]) => ({ chip, state })) },
   transfers: { bankTenths: s.bankTenths, freeTransfers: s.freeTransfers },
 })
 
@@ -78,7 +78,7 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
       model: () =>
         ({
           async readSquadScreenshots() {
-            return { raw: { team: { players: [], chipsRemaining: {} }, transfers: {} }, record: null as never }
+            return { raw: { team: { players: [], chips: [] }, transfers: {} }, record: null as never }
           },
         }) as never,
     })
@@ -294,7 +294,7 @@ describe('F2-AC-02, F1-AC-07 · free transfers are read, not reconstructed', () 
     const result = parseSquad({
       team: {
         players: squad().players,
-        chipsRemaining: { wildcard: 'available' },
+        chips: [{ chip: 'wildcard', state: 'available' }],
       },
       transfers: { bankTenths: 0, freeTransfers: 5 },
     })
