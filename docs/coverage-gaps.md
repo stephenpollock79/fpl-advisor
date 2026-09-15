@@ -184,7 +184,7 @@ component that recomputed a band from a stored conviction would pass every test
 in the engine suite while producing exactly the disagreement between two screens
 that the rule forbids.
 
-*Home: STE-62, slice 5.* That is where conviction first renders, and the check
+*Home: STE-133.* That is where conviction first renders, and the check
 is not another engine test — it is that F3's components take net, conviction and
 band as values and hold no arithmetic over them.
 
@@ -205,7 +205,7 @@ Deliberately **not** entered in `docs/manual-coverage.md`: that register holds
 criteria that have been verified, and an entry made in advance would turn the
 coverage figure into a claim about the future.
 
-*Home: STE-62, slice 5*, as the first slice that puts the figure in front of
+*Home: STE-133*, as the first slice that puts the figure in front of
 anyone.
 
 *Automated half closed 2026-09-11 (slice 5).* The figure is labelled *strength*,
@@ -296,7 +296,7 @@ other halves are still unproven.
 
 **F6-UP-03 must not be read as met**, and what would close it is a test that
 rolls the gameweek and asserts the decisions, the shortlist and the pending
-calls are gone and the squad has been captured again. *Home: STE-65.*
+calls are gone and the squad has been captured again. *Home: STE-133.*
 
 **F6-AC-20 — cancelling is built twice over and asserted nowhere.** A cancelled
 run must be treated exactly as a run that never started: recorded `cancelled`
@@ -323,7 +323,7 @@ half the criterion is about, because a cancel recorded as `failed` is a failure
 put in front of him for something he chose to do.
 
 **What would close it:** read the `run` row after cancelling a real run and
-confirm its status is `cancelled`. *Home: STE-65.*
+confirm its status is `cancelled`. *Home: STE-133.*
 
 **F6-UP-03's stop has been run against real data once, and only in the direction
 that proves nothing.** On 2026-09-14, on `97bc6c7`, opening the app with gameweek
@@ -337,7 +337,7 @@ directions with fabricated clocks; what is unobserved is the state on a phone.
 
 **It closes itself.** GW5's deadline is Friday 18 September at 18:30 UK. Opening
 the app after it, before GW6 becomes next, is the state — and it is the first
-weekend the app will ever have been live across a deadline. *Home: STE-65.*
+weekend the app will ever have been live across a deadline. *Home: STE-133.*
 
 **F6-AC-02 is asserted on a screen, never across a refresh — which is the only
 circumstance the criterion is about.** `tests/e2e/assistant.spec.ts` names it and
@@ -355,4 +355,4 @@ What is still unproven end to end is the two halves joined: accept a call,
 refresh, and see the card still there reading *selected · locked*.
 
 **What would close it:** an end-to-end spec that decides a call, runs a refresh,
-and asserts the card survives it. *Home: STE-132.*
+and asserts the card survives it. *Home: STE-133.*
