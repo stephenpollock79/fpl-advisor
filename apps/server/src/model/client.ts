@@ -51,6 +51,14 @@ export const PINNED = {
    * Haiku.** So this is the ADR's choice rather than a judgement made here. Its
    * own step, not a second `propose`, so an upload's cost is visible on the run
    * record instead of hiding inside the proposal count (F2, NFR Cost control).
+   *
+   * **Changing this model means changing `MAX_EDGE` in
+   * `apps/client/src/screens/Squad/UploadSheet.tsx`, in the same breath.** How
+   * large a picture reaches the model is set by the model's vision tier, not by
+   * the API: Haiku 4.5 downsamples anything past 1568px on its long edge, and
+   * Claude 4.7 and later — Sonnet 5 included — go to 2576px. A switch to Sonnet
+   * made here alone would send the same undersized picture and read exactly as
+   * a model upgrade that changed nothing. The reasoning is beside that constant.
    */
   parse: 'claude-haiku-4-5',
 } as const

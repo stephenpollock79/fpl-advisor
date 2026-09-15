@@ -33,16 +33,42 @@ const READS = {
 type Screen = keyof typeof READS
 
 /**
- * **Downscaled before it is sent**, and 1600 was too generous: a PNG of a tall
- * phone screenshot at that height is several megabytes, and two of them go into
- * one JSON request body. 1200 keeps every name and number on an FPL screen
- * legible — they are flat colour and text, not photographs — while cutting the
- * body to a fraction.
+ * **Downscaled before it is sent, to the largest size the model can actually
+ * use — and 1200 threw away half of it** (found 2026-09-16, STE-136).
+ *
+ * The same two screenshots were read four ways: at full size on Haiku, at full
+ * size on Sonnet, and at 1200 on Sonnet, all produced an acceptable fifteen.
+ * **The only configuration that failed was this one** — Haiku at 1200, which
+ * turns a 1206×2622 phone screenshot into 552×1200, less than half the linear
+ * resolution. It failed three ways at once: an opponent read off a shirt
+ * sponsor, a phantom second captain's armband, and an empty chip row. The
+ * earlier comment here argued 1200 kept every name legible. It does not, and
+ * every corroboration check added the night before was refusing a bad read
+ * rather than a good squad.
+ *
+ * **1568 is Haiku's ceiling, not the API's**, and that distinction is the whole
+ * reason this number is written down rather than rounded. The API applies two
+ * limits — a long edge and a visual-token count — in two tiers: 1568px and 1568
+ * tokens on Haiku 4.5 and everything before Claude 4.7, 2576px and 4784 tokens
+ * on 4.7 and later, Sonnet 5 included. An image costs ⌈w/28⌉ × ⌈h/28⌉ tokens, so
+ * a screenshot of this shape arrives at 721×1568 for 1,456 of the 1,568 allowed:
+ * the long edge binds first, and nothing above it would be paid for.
+ *
+ * **So this constant and `PINNED.parse` move together.** Pointing the parse at
+ * Sonnet 5 while leaving 1568 here would buy none of the resolution that model
+ * can see, while looking exactly like a model upgrade.
+ *
+ * The cost of the change is 860 → 1,456 tokens an image, about a tenth of a
+ * penny an upload on Haiku. An upload is manual and rare; it was never a cost
+ * question.
  *
  * **PNG rather than JPEG**, still: JPEG softens exactly the thin text the read
- * depends on, and the saving is not worth a misread name.
+ * depends on, and the saving is not worth a misread name. If a PNG at this size
+ * ever trips the server's 4 MB refusal, lossless WebP is the answer — it is
+ * supported, it runs well below PNG on flat interface graphics, and it loses
+ * nothing. Dropping the edge back would undo this.
  */
-const MAX_EDGE = 1200
+const MAX_EDGE = 1568
 
 async function shrink(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file)
