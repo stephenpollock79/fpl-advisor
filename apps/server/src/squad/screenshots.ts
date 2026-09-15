@@ -119,16 +119,20 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       )
     }
 
-    const { raw, record } = await deps.model().readSquadScreenshots({ team, transfers, players })
+    const { raw, record, because } = await deps.model().readSquadScreenshots({ team, transfers, players })
     if (deps.recordParse) await deps.recordParse(user, record)
 
     if (raw === null || raw === undefined) {
-      console.error(`[screenshots] the read came back empty — ok=${String(record.ok)} via=${record.via} model=${record.modelId}`)
+      console.error(`[screenshots] the read came back empty — ok=${String(record.ok)} via=${record.via} model=${record.modelId} because=${because ?? 'unknown'}`)
       return c.json(
         {
           error: 'upload_failed',
           screen: 'team',
-          because: 'the reader did not answer, which is our fault and not your picture',
+          // **The reason is on the screen, not only in a log.** Two uploads
+          // failed with nothing to act on, and the cause was a deploy log away.
+          because: because
+            ? `the reader did not answer — ${because}`
+            : 'the reader did not answer, which is our fault and not your picture',
           causes: [],
         } satisfies UploadFailed,
         502,
