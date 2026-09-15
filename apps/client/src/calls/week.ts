@@ -141,7 +141,11 @@ function squadStateLineOf(snapshot: World['snapshot']): string {
     const time = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
     return `built from the squad screenshots you uploaded at ${time}`
   }
-  const week = snapshot.picksFrom
+  // **`?? null`, not `=== null`.** A snapshot written before slice 7 carries no
+  // gameweek at all, and reading `undefined` through `String()` put
+  // "GW undefined" on the entry screen — visible to nobody writing the code and
+  // to everybody using it.
+  const week = snapshot.picksFrom ?? null
   return week === null
     ? 'built from your squad as at the last deadline'
     : `built from your squad as at the GW${String(week)} deadline`

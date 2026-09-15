@@ -119,7 +119,11 @@
 
 .head { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 6px; }
 
-.avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; }
+/* 96px, circular, 3px green border with a soft glow — the handoff's own spec. */
+.avatar {
+  width: 96px; height: 96px; border-radius: 50%; object-fit: cover;
+  border: 3px solid var(--green); box-shadow: 0 10px 26px rgb(10 110 61 / 22%); background: var(--card);
+}
 
 /* Stated under the wordmark, before anything is typed (F7-AC-17). */
 .badge {
@@ -173,3 +177,51 @@
 .disclaimer p { margin: 0 0 4px; font-size: 11px; line-height: 1.45; color: var(--muted); }
 
 .disclaimer a { color: var(--green-dark); }
+
+/* ── The rotating shots (slice 8, corrected 2026-09-15) ────────────────── */
+
+/* It rotates on its own rather than waiting to be tapped: this is the sales tab,
+   and a claim nobody opens says nothing. */
+.about { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px; }
+
+.shot {
+  position: relative; width: 158px; height: 322px; flex: none;
+  border: 3px solid var(--ink); border-radius: 22px; overflow: hidden;
+  background: var(--screen); box-shadow: 0 10px 26px rgb(92 82 62 / 22%);
+}
+
+.shotOn,
+.shotOff {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center;
+  transition: opacity 420ms ease;
+}
+
+.shotOn { opacity: 1; }
+.shotOff { opacity: 0; }
+
+.claim { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; min-height: 74px; }
+
+.claimCap { font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--green-dark); }
+
+.claimTitle { font-size: 15px; font-weight: 800; line-height: 1.25; color: var(--ink); }
+
+.claimBody { font-size: 12px; line-height: 1.45; color: var(--muted); }
+
+.dots { display: flex; gap: 6px; }
+
+.dot,
+.dotOn { width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; position: relative; }
+
+.dot::after,
+.dotOn::after {
+  content: ''; position: absolute; inset: 8px; border-radius: 50%;
+}
+
+.dot::after { background: var(--border-strong); }
+.dotOn::after { background: var(--green-dark); }
+
+.tagline { margin: 0; text-align: center; font-size: 12px; font-weight: 700; line-height: 1.4; color: var(--ink-2); }
+
+.tagline span { display: block; font-weight: 400; color: var(--muted); }
+
+.badge { text-transform: none; }

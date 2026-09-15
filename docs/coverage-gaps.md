@@ -60,6 +60,21 @@ asserting the bodies match would pass while the criterion is false — the same
 shape as asserting a policy exists rather than that isolation holds. Recorded in
 full on STE-68, which owns the fix.
 
+**F8-AC-12 — the control is not where the criterion puts it.** The criterion
+says the refresh "sits in the Assistant status bar (3.1) and is scoped to every
+category at once, **labelled ALL**". Slice 8 built exactly that, and it was
+changed on Stephen's instruction the same evening: it is in the header, as a
+bare symbol, matching every other screen.
+
+**What is still true:** there is one control, it is all-scope, and the scope is
+named — in its accessible name and on the confirmation sheet, which is the
+screen that has to say so. **What is not:** the position and the visible label.
+
+**No test names `F8-AC-12`**, and it will read uncovered in the report until this
+is settled. Two ways to settle it, and both are Stephen's: move the control back
+and take the header's height with it, or amend the criterion in the PRD so the
+label lives where the confirmation already puts it. *Home: STE-66.*
+
 **F7-AC-15 — closed 2026-09-15 by slice 8 (STE-66).** Confirming the team now
 goes straight into the first advice run, which is the Thinking state every other
 route into the world passes through. `tests/e2e/landing.spec.ts` exercises the
