@@ -11,6 +11,7 @@ import type { AuthenticatedUser } from '../auth/session.js'
 import { contradictedBy } from '../refresh/contradicted.js'
 import { modelFromEnv } from '../model/client.js'
 import { referenceClient, userClient } from '../supabase.js'
+import { latestReadId } from '../world/reads.js'
 import { storeCorrectedSquad } from './store.js'
 import type { ScreenshotDeps } from './screenshots.js'
 
@@ -41,10 +42,22 @@ export function screenshotDeps(authenticate: ScreenshotDeps['authenticate']): Sc
       // embedded join that does not resolve comes back as null rather than an
       // error, which would quietly strip the club from every line and leave the
       // model choosing between two players of the same name on nothing.
-      const [{ data: players }, { data: clubs }] = await Promise.all([
+      // **The price comes from the latest read, not from any read.** The table
+      // holds one set of rows per feed read, so an unfiltered select would let
+      // a stale price win — and a stale price would refuse a correct name
+      // (world/reads.ts).
+      const readId = await latestReadId('fpl_bootstrap')
+      const [{ data: players }, { data: clubs }, { data: states }] = await Promise.all([
         reference.from('player').select('id, surname, shirt_name, position, club_id'),
         reference.from('club').select('id, short_name'),
+        readId === null
+          ? Promise.resolve({ data: [] as Record<string, unknown>[] })
+          : reference.from('player_state').select('player_id, now_cost_tenths').eq('feed_read_id', readId),
       ])
+
+      const priceOf = new Map(
+        ((states ?? []) as { player_id: number; now_cost_tenths: number }[]).map((r) => [r.player_id, r.now_cost_tenths]),
+      )
 
       const clubName = new Map(
         ((clubs ?? []) as { id: number; short_name: string }[]).map((c) => [c.id, c.short_name]),
@@ -60,7 +73,38 @@ export function screenshotDeps(authenticate: ScreenshotDeps['authenticate']): Sc
         name: (p['shirt_name'] as string | null) ?? (p['surname'] as string),
         club: clubName.get(p['club_id'] as number) ?? '',
         position: p['position'] as string,
+        // **What the card says he costs.** Undefined where the feed has not
+        // been read yet, and an absent price simply skips the check rather
+        // than refusing every name.
+        priceTenths: priceOf.get(p['id'] as number),
       }))
+    },
+
+    /**
+     * Every fixture in the gameweek, named by the three letters the card
+     * prints. Reference data, so the service key — and **fixtures come from the
+     * FPL feed and nowhere else** (CLAUDE.md, *Data rules* 1).
+     */
+    async gameweekFixtures(gameweek: number) {
+      const reference = referenceClient()
+      const [{ data: fixtures }, { data: clubs }] = await Promise.all([
+        reference.from('fixture').select('home_club, away_club').eq('gameweek', gameweek),
+        reference.from('club').select('id, short_name'),
+      ])
+
+      const shortName = new Map(((clubs ?? []) as { id: number; short_name: string }[]).map((c) => [c.id, c.short_name]))
+
+      // Each fixture is two rows here, one from each club's point of view, so a
+      // lookup by club never has to care which side of it a player is on.
+      return ((fixtures ?? []) as { home_club: number; away_club: number }[]).flatMap((f) => {
+        const home = shortName.get(f.home_club)
+        const away = shortName.get(f.away_club)
+        if (home === undefined || away === undefined) return []
+        return [
+          { club: home, opponent: away, isHome: true },
+          { club: away, opponent: home, isHome: false },
+        ]
+      })
     },
 
     storeCorrectedSquad,

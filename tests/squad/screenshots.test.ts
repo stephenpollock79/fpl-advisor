@@ -51,6 +51,7 @@ const harness = (overrides: Partial<Parameters<typeof screenshotRoutes>[0]> = {}
     // A legal 2/5/5/3, matching the fixture squad's ids — the composition check
     // reads positions off this list, so a stub of one player would fail it.
     trackedPlayers: async () => TRACKED,
+    gameweekFixtures: async () => [],
     storeCorrectedSquad: async (_u, gameweek, parsed) => {
       stored.push({ gameweek, squad: parsed })
       return 'snap-new'
@@ -273,6 +274,7 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
       model: () => ({ async readSquadScreenshots() { throw new Error('never') } }) as never,
       advisedGameweek: async () => 5,
       trackedPlayers: async () => [],
+      gameweekFixtures: async () => [],
       storeCorrectedSquad: async () => 'x',
       breakContradictedLocks: async () => 0,
     })
