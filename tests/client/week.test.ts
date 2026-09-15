@@ -151,6 +151,17 @@ describe('F8-AC-02, F8-AC-06 · the count and the tally come off one list', () =
 })
 
 describe('F8-AC-04 · where the week was built from', () => {
+  it('F8-AC-04: a snapshot carrying no gameweek says so in words, never "GW undefined"', () => {
+    // Every row written before slice 7 is this case, and it reached the live
+    // entry screen on 2026-09-15 reading "GWundefined".
+    const w = world()
+    const snapshot = { ...w.snapshot } as Record<string, unknown>
+    delete snapshot['picksFrom']
+    expect(weekOf({ ...w, snapshot: snapshot as World['snapshot'] }, none).squadStateLine).toBe(
+      'built from your squad as at the last deadline',
+    )
+  })
+
   it('F8-AC-04: a squad read at the deadline names the gameweek it was read from, not the one being advised on', () => {
     // GW5 is being advised; the picks are GW4's. Naming the advised week would
     // be wrong in exactly the way nobody would notice.

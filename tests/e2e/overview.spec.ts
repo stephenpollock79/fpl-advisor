@@ -26,7 +26,9 @@ test('F8-AC-02, F8-AC-06: deciding a call moves the headline count and the tally
   await expect(page.getByTestId('decided')).toContainText('0 of')
 
   // The trigger: a decision taken on the Overview's own panel, not a different
-  // world handed in.
+  // world handed in. The three actions live one tap behind CHANGE, which is what
+  // keeps every row the same height.
+  await page.getByTestId(`change-${T1}`).click()
   await page.getByTestId(`card-${T1}`).getByRole('button', { name: 'Select' }).click()
   await expect(page.getByTestId('decided')).toContainText('1 of')
 })
@@ -144,12 +146,17 @@ test('F8-AC-18: with no news outstanding the last-run line says so instead', asy
   await expect(page.getByTestId('last-run')).toContainText('squad news up to date')
 })
 
-test('F8-AC-12, F6-AC-07, F6-AC-08: the Overview carries one refresh control, reading ALL', async ({ page }) => {
+test('F6-AC-07, F6-AC-08: the Overview carries exactly one refresh control, and it names every category', async ({ page }) => {
+  // **The criterion about this control's position and visible label is
+  // deliberately not cited anywhere in this file** — not even to say it is
+  // unmet, because the coverage script reads whole files and would count the
+  // mention. It is in `docs/coverage-gaps.md` under F8, with why. What this
+  // asserts is the part that is still true: one control, all-scope, scope named.
   await overview(page)
 
   const refresh = page.getByTestId('refresh')
   await expect(refresh).toHaveCount(1)
-  await expect(refresh).toContainText('ALL')
+  await expect(refresh).toHaveAttribute('aria-label', 'Refresh everything')
 
   await refresh.click()
   await expect(page.getByRole('dialog', { name: 'Refresh everything' })).toBeVisible()
@@ -175,18 +182,19 @@ test('F8-AC-28, F8-AC-29, F8-AC-30, F3-AC-10: a card decides in place, and the d
   await overview(page)
 
   const card = page.getByTestId(`card-${CAPTAIN}`)
+  await page.getByTestId(`change-${CAPTAIN}`).click()
   await card.getByRole('button', { name: 'Select' }).click()
-  await expect(card.getByText('selected')).toBeVisible()
+  await expect(card.getByText('SELECTED')).toBeVisible()
 
   // Changed from the card's own panel, without reopening the detail card. The
   // panel reopens to the three actions — not to Category cleared's two-way
   // control, which is a different screen answering a different question.
-  await card.getByRole('button', { name: 'Change' }).click()
+  await page.getByTestId(`change-${CAPTAIN}`).click()
   await expect(card.getByRole('button', { name: 'Select' })).toBeVisible()
 
   // A rejected card stays listed rather than disappearing (F8-AC-30, F3-AC-11).
   await card.getByRole('button', { name: 'Reject' }).click()
-  await expect(card.getByText('rejected')).toBeVisible()
+  await expect(card.getByText('REJECTED')).toBeVisible()
 })
 
 test('F8-UP-02: a category with every call decided reads Done and shows Category cleared', async ({ page }) => {

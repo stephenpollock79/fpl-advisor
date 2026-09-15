@@ -1,24 +1,30 @@
 /**
  * The Assistant Overview — the week in one read (F8).
  *
- * **This screen holds no logic.** Every figure on it comes from `calls/week.ts`
- * and `calls/scenario.ts`, which is what makes `F8-AC-06` true: the tally, the
+ * **This screen holds no logic.** Every figure comes from `calls/week.ts` and
+ * `calls/scenario.ts`, which is what makes `F8-AC-06` true: the tally, the
  * headline count and the flagged summary are three readings of one pair of
- * lists, so no two of them can disagree. A component that recomputed any of
- * them would pass every test and put two answers on one card
- * (`tests/client/surface-rules.test.ts` asserts the rule on the source).
+ * lists, so no two of them can disagree. `tests/client/surface-rules.test.ts`
+ * asserts the rule on the source.
+ *
+ * **Anatomy follows the handoff, behaviour follows the criteria** (`docs/design`).
+ * So the squad widget wears a green header carrying the plan's figures, players
+ * are kit-coloured squares with a three-letter surname, and a call row collapses
+ * its decision into one status control rather than splaying three buttons — all
+ * of which are *how*, not *what*.
  *
  * **The Chips section (F8-AC-34) is deliberately absent** — F5 is below the cut
- * line, so a preview row would open a tab that does not exist. Ruled on
+ * line, so a preview row would open a tab that does not exist. Ruled
  * 2026-09-15; the criterion is owned by STE-70 and ships with F5.
  */
 
 import { useState } from 'react'
 import type { DecisionState, World, WorldCall, WorldPlayer } from '../../api'
 import { type Filter, type Scenario, scenarioFor } from '../../calls/scenario'
-import { formatMoney, formatNet } from '../../calls/view'
+import { availabilityFor, formatCost, formatMoney, formatNet } from '../../calls/view'
 import type { Week } from '../../calls/week'
-import { benchInOrder, displaySurname, startersByPosition } from '../../squad/format'
+import { benchInOrder, startersByPosition } from '../../squad/format'
+import { kitFor } from '../../squad/kits'
 import styles from './Overview.module.css'
 
 /** The four chips, in the criteria's own order (F8-AC-20 – F8-AC-23). */
@@ -46,8 +52,47 @@ type Props = {
   onShowAll: () => void
 }
 
-/** Eleven and bench, at a size that fits two side by side (F8-AC-09). */
-function MiniPitch({ label, players }: { label: string; players: WorldPlayer[] }) {
+/** Three letters, as the design's markers carry them. */
+const short = (surname: string): string => surname.slice(0, 3).toUpperCase()
+
+/** What changed about a player between the two sides, for the marker's border. */
+type Move = 'in' | 'out' | 'moved' | null
+
+function movesIn(before: readonly WorldPlayer[], after: readonly WorldPlayer[]): Map<number, Move> {
+  const wasById = new Map(before.map((p) => [p.playerId, p]))
+  const nowById = new Map(after.map((p) => [p.playerId, p]))
+  const moves = new Map<number, Move>()
+
+  for (const p of after) {
+    const was = wasById.get(p.playerId)
+    if (!was) moves.set(p.playerId, 'in')
+    else if (was.isStarter !== p.isStarter || was.benchOrder !== p.benchOrder) moves.set(p.playerId, 'moved')
+  }
+  for (const p of before) if (!nowById.has(p.playerId)) moves.set(p.playerId, 'out')
+  return moves
+}
+
+/** Only the departures, for the BEFORE side. */
+const leaving = (moves: Map<number, Move>): Map<number, Move> =>
+  new Map([...moves].filter(([, move]) => move === 'out'))
+
+function Marker({ player, move }: { player: WorldPlayer; move: Move }) {
+  const kit = kitFor(player.clubShortName)
+  return (
+    <span className={styles.marker}>
+      <span
+        className={`${styles.chip} ${move ? (styles[move] ?? '') : ''}`}
+        style={{ background: kit.primary, color: kit.ink }}
+      >
+        {player.isCaptain ? <span className={styles.armband}>C</span> : null}
+      </span>
+      <span className={styles.markerName}>{short(player.surname)}</span>
+    </span>
+  )
+}
+
+/** Eleven and bench, small enough for two side by side at 390 (F8-AC-09). */
+function MiniPitch({ label, players, moves }: { label: string; players: WorldPlayer[]; moves: Map<number, Move> }) {
   const lines = startersByPosition(players)
   return (
     <div className={styles.mini}>
@@ -56,18 +101,14 @@ function MiniPitch({ label, players }: { label: string; players: WorldPlayer[] }
         {(['GKP', 'DEF', 'MID', 'FWD'] as const).map((row) => (
           <div key={row} className={styles.miniRow}>
             {lines[row].map((p) => (
-              <span key={p.playerId} className={styles.miniSlot} title={p.surname}>
-                {displaySurname(p.surname)}
-              </span>
+              <Marker key={p.playerId} player={p} move={moves.get(p.playerId) ?? null} />
             ))}
           </div>
         ))}
       </div>
       <div className={styles.miniBench}>
         {benchInOrder(players).map((p) => (
-          <span key={p.playerId} className={styles.miniBenchSlot}>
-            {displaySurname(p.surname)}
-          </span>
+          <Marker key={p.playerId} player={p} move={moves.get(p.playerId) ?? null} />
         ))}
       </div>
     </div>
@@ -75,14 +116,12 @@ function MiniPitch({ label, players }: { label: string; players: WorldPlayer[] }
 }
 
 /**
- * The fixture chip beside a call's flag (F8-AC-31), so an exceptional week is
- * visible without opening the call. **Read off the fixture list, never off a
- * projection** — the count is the FPL feed's and the projection is the other
- * feed's, and inferring one from the other is the data rule this build most
- * needs to get right.
+ * The fixture chip beside a call's flag (F8-AC-31). **Read off the fixture list,
+ * never off a projection** — the count is the FPL feed's and the projection is
+ * the other feed's, and inferring one from the other is the data rule this build
+ * most needs to get right.
  */
-function FixtureChip({ world, call, nameOf }: { world: World; call: WorldCall; nameOf: (id: number) => string }) {
-  void nameOf
+function FixtureChip({ world, call }: { world: World; call: WorldCall }) {
   const sides = [call.outPlayerId, call.inPlayerId]
     .map((id) => [...world.players, ...world.candidates].find((p) => p.playerId === id))
     .filter((p): p is WorldPlayer => p !== undefined)
@@ -95,9 +134,43 @@ function FixtureChip({ world, call, nameOf }: { world: World; call: WorldCall; n
 export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onShowAll }: Props) {
   const [filter, setFilter] = useState<Filter>('all')
   const [expanded, setExpanded] = useState(false)
+  /** Which card has its decision panel open. One at a time, so rows stay level. */
+  const [deciding, setDeciding] = useState<string | null>(null)
 
+  const playerById = new Map([...world.players, ...world.candidates].map((p) => [p.playerId, p]))
   const scenario: Scenario = scenarioFor(world, week.live, filter, decisions)
   const visible = new Set(scenario.calls.map((c) => c.key))
+  const moves = movesIn(scenario.before, scenario.after)
+
+  /** Title and sub-line, in the design's own shapes. */
+  function titleOf(call: WorldCall): string {
+    const out = nameOf(call.outPlayerId)
+    const into = nameOf(call.inPlayerId)
+    if (call.shape === 'captain') return `Armband: ${out} → ${into}`
+    if (call.shape === 'vice') return `Vice armband: ${out} → ${into}`
+    if (call.shape === 'bench_order') return `Bench order: ${into} to 1`
+    return `${out} → ${into}`
+  }
+
+  function sublineOf(call: WorldCall): string {
+    const out = playerById.get(call.outPlayerId)
+    const into = playerById.get(call.inPlayerId)
+    if (call.shape === 'bench_order') return 'auto-sub cover'
+    if (!out) return ''
+    if (call.category === 'transfer') {
+      return `${out.position} · ${out.clubShortName} → ${into?.clubShortName ?? '—'}`
+    }
+    if (call.shape === 'forced_swap') {
+      const gate = availabilityFor(out)
+      const why = gate.eligible ? 'no fixture' : gate.reason.replace(/_/g, ' ')
+      return `${out.position} · ${why}`
+    }
+    if (call.shape === 'doubt_swap') {
+      const chance = out.chanceOfPlayingNextRound
+      return `${out.position} · ${chance === null ? 'flagged' : `${String(chance)}% doubt`}`
+    }
+    return `${out.position} · ${out.clubShortName} → ${into?.clubShortName ?? '—'}`
+  }
 
   return (
     <div className={styles.column} data-testid="overview">
@@ -120,7 +193,7 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
           ) : null}
 
           <p className={expanded ? styles.prose : styles.proseClamped} data-testid="editorial">
-            {world.editorial ?? 'Your week is below.'}
+            {world.editorial ?? 'Your calls are below. The Gaffer writes his read of the week on the next run.'}
           </p>
           <button className={styles.more} onClick={() => setExpanded((e) => !e)} type="button">
             {expanded ? 'LESS' : 'MORE'}
@@ -156,39 +229,64 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
 
       {/* ── The squad widget ───────────────────────────────────────────── */}
       <section className={styles.widget} aria-label="Before and after">
-        <div className={styles.pitches}>
-          <MiniPitch label="BEFORE" players={scenario.before} />
-          <MiniPitch label="AFTER" players={scenario.after} />
+        {/* The plan's three figures, on the card they describe (F8-AC-10). */}
+        <div className={styles.widgetHead}>
+          <span className={styles.widgetTitle}>SQUAD</span>
+          <span className={styles.widgetFigures}>
+            <span data-testid="scenario-xpts">
+              {/* **No sign.** This is the scenario's projected total net of any
+                  hit (F8-AC-10), not a gain over the current squad — and a plus
+                  in front of an absolute reads as a delta. */}
+              xPTS <strong>{scenario.projected.toFixed(1)}</strong>
+            </span>
+            <span data-testid="scenario-nbal">
+              NBAL <strong className={scenario.nbalTenths < 0 ? styles.over : ''}>{formatMoney(scenario.nbalTenths)}</strong>
+            </span>
+          </span>
+          {/* Red with the deduction stated in plain terms (F8-AC-11, F3-UP-02). */}
+          <span className={scenario.hit > 0 ? styles.ftOver : styles.ft} data-testid="scenario-ft">
+            FT {scenario.transfersUsed}/{scenario.transfersAllowed}
+            {scenario.hit > 0 ? ` · −${scenario.hit} PTS` : ''}
+          </span>
         </div>
 
-        <div className={styles.totals}>
-          <span>
-            <span className={styles.eyebrow}>xPTS</span>
-            <span className={styles.figure} data-testid="scenario-xpts">
-              {scenario.projected.toFixed(1)}
-            </span>
-          </span>
-          <span>
-            <span className={styles.eyebrow}>NBAL</span>
-            <span
-              className={`${styles.figure} ${scenario.nbalTenths < 0 ? styles.negative : ''}`}
-              data-testid="scenario-nbal"
-            >
-              {formatMoney(scenario.nbalTenths)}
-            </span>
-          </span>
-          <span>
-            <span className={styles.eyebrow}>FT</span>
-            {/* Red, with the deduction stated in plain terms (F8-AC-11, F3-UP-02). */}
-            <span
-              className={`${styles.figure} ${scenario.hit > 0 ? styles.negative : ''}`}
-              data-testid="scenario-ft"
-            >
-              {scenario.transfersUsed}/{scenario.transfersAllowed}
-              {scenario.hit > 0 ? ` · −${scenario.hit} pts` : ''}
-            </span>
-          </span>
+        {/* **Each side carries the half it can show.** BEFORE marks who is
+            leaving, AFTER who is arriving or moving — marking an incoming player
+            on the squad he is not in yet would be drawing the future on the
+            present. */}
+        <div className={styles.pitches}>
+          <MiniPitch label="BEFORE" players={scenario.before} moves={leaving(moves)} />
+          <MiniPitch label="AFTER" players={scenario.after} moves={moves} />
         </div>
+
+        <div className={styles.legend} aria-hidden="true">
+          <span><i className={`${styles.key} ${styles.in}`} /> IN</span>
+          <span><i className={`${styles.key} ${styles.out}`} /> OUT</span>
+          <span><i className={`${styles.key} ${styles.moved}`} /> MOVED</span>
+        </div>
+
+        {/* ── Filter chips, inside the widget they change ───────────────── */}
+        <nav className={styles.chips} aria-label="Filter">
+          {FILTERS.map((f) => {
+            const breached = scenarioFor(world, week.live, f.id, decisions).breaches.length > 0
+            return (
+              <button
+                key={f.id}
+                className={filter === f.id ? styles.chipOn : styles.chipOff}
+                aria-pressed={filter === f.id}
+                onClick={() => setFilter(f.id)}
+                data-testid={`chip-${f.id}`}
+                type="button"
+              >
+                {f.label}
+                {/* Every chip carries the marker for its own scenario, so an
+                    unimplementable plan is visible without switching to it
+                    (F3-UP-03). */}
+                {breached ? <span className={styles.chipMark}>!</span> : null}
+              </button>
+            )
+          })}
+        </nav>
 
         {/* Stated at plan level, never silently drawn and never blocked
             (F3-UP-01, F3-UP-02, F3-UP-03). */}
@@ -201,34 +299,10 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
         ) : null}
       </section>
 
-      {/* ── Filter chips ───────────────────────────────────────────────── */}
-      <nav className={styles.chips} aria-label="Filter">
-        {FILTERS.map((f) => {
-          const breached =
-            scenarioFor(world, week.live, f.id, decisions).breaches.length > 0
-          return (
-            <button
-              key={f.id}
-              className={filter === f.id ? styles.chipOn : styles.chip}
-              aria-pressed={filter === f.id}
-              onClick={() => setFilter(f.id)}
-              data-testid={`chip-${f.id}`}
-              type="button"
-            >
-              {f.label}
-              {/* Every chip carries the marker for its own scenario, so an
-                  unimplementable plan is visible without switching to it
-                  (F3-UP-03). */}
-              {breached ? <span className={styles.chipMark}>!</span> : null}
-            </button>
-          )
-        })}
-      </nav>
-
       {/* **Stated, not inferred** (F8-AC-25). The counter-intuitive half: under a
           band filter the After squad is the advice as given, rejections
           included. */}
-      {filter !== 'selected' && filter !== 'all' ? (
+      {filter === 'forced' || filter === 'recommended' ? (
         <p className={styles.filterNote} data-testid="filter-note">
           Showing the advice as given — calls you rejected are still counted in After.
         </p>
@@ -244,78 +318,115 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
         return (
           <section key={group.category} className={styles.group} aria-label={group.label}>
             <header className={styles.groupHead}>
-              <span>{group.label}</span>
+              <span>{group.label.toUpperCase()}</span>
               <span className={styles.groupMeta}>{metaFor(group.category, all, world)}</span>
             </header>
 
             {here.map((call) => {
               const decided = decisions[call.key]
+              const open = deciding === call.key
               return (
                 <article
                   key={call.key}
-                  className={decided === 'rejected' ? `${styles.card} ${styles.rejected}` : styles.card}
+                  className={[
+                    styles.card,
+                    call.isForced ? styles.cardForced : '',
+                    decided === 'rejected' ? styles.rejected : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   data-testid={`card-${call.key}`}
                 >
                   {/* Two adjacent panels with a visible seam, so a decision
-                      button never sits inside a fully tappable card
+                      control never sits inside a fully tappable card
                       (F8-AC-28). */}
                   <button className={styles.cardContent} onClick={() => onOpen(call)} type="button">
-                    <span className={styles.cardTitle}>
-                      {nameOf(call.outPlayerId)} → {nameOf(call.inPlayerId)}
-                    </span>
-                    <span className={styles.cardMeta}>
-                      <span className={styles.cardNet}>{formatNet(call.net)}</span>
+                    <span className={styles.cardTop}>
+                      <span className={styles.cardTitle}>{titleOf(call)}</span>
                       {call.isForced ? (
                         <span className={styles.forcedFlag}>FORCED</span>
                       ) : call.watch ? (
                         <span className={styles.watchFlag}>WATCH</span>
                       ) : null}
-                      <FixtureChip world={world} call={call} nameOf={nameOf} />
-                      {call.conviction !== null && call.band !== null ? (
-                        <span className={`${styles.cardBand} ${styles[call.band] ?? ''}`}>
-                          {call.conviction} · {call.band}
-                        </span>
-                      ) : null}
+                      <FixtureChip world={world} call={call} />
+                      <span className={styles.chevron} aria-hidden="true">
+                        ›
+                      </span>
+                    </span>
+
+                    <span className={styles.cardSub}>{sublineOf(call)}</span>
+
+                    {/* Labels above values, as every figure column in the
+                        handoff does. */}
+                    <span className={styles.cardFigures}>
+                      <span>
+                        <span className={styles.eyebrow}>xPTS</span>
+                        <span className={styles.figureGood}>{formatNet(call.net)}</span>
+                      </span>
+                      <span>
+                        <span className={styles.eyebrow}>COST</span>
+                        <span className={styles.figure}>{formatCost(call.costTenths)}</span>
+                      </span>
+                      <span className={styles.convictionCell}>
+                        <span className={styles.eyebrow}>CONVICTION</span>
+                        {call.conviction !== null && call.band !== null ? (
+                          <span className={`${styles.conviction} ${styles[call.band] ?? ''}`}>{call.conviction}%</span>
+                        ) : (
+                          <span className={styles.figure}>—</span>
+                        )}
+                      </span>
                     </span>
                   </button>
 
+                  {/* **One status control, not three splayed buttons.** The
+                      three actions are one tap away, which is what keeps every
+                      row the same height (F8-AC-29, handoff §5). */}
                   <div className={styles.cardDecision}>
-                    {decided !== undefined ? (
-                      /* Already decided: a status pill and a Change control that
-                         reopens the panel in place (F8-AC-29, F3-AC-10). */
-                      <>
-                        <span className={styles.pill}>{decided}</span>
+                    <span className={decided === undefined ? styles.state : styles.stateDecided}>
+                      {decided === undefined ? 'PENDING\nREVIEW' : decided.toUpperCase()}
+                    </span>
+                    {open ? (
+                      <span className={styles.actions}>
                         <button
-                          className={styles.change}
-                          onClick={() => onDecide(call, 'pending')}
+                          className={styles.action}
+                          onClick={() => {
+                            onDecide(call, 'selected')
+                            setDeciding(null)
+                          }}
                           type="button"
                         >
-                          Change
-                        </button>
-                      </>
-                    ) : (
-                      /* **Undecided: the same three actions as F3's gestures**,
-                         and this is also where *Change* lands (F8-AC-29) — the
-                         control reopens the decision panel in place.
-
-                         **Not the two-way reopen/restore of Category cleared**
-                         (F3-AC-14). That screen is a list of decisions already
-                         made, where tapping twice means *put it back*; here the
-                         card is the call itself, and a reopened one is simply
-                         undecided again. Building the two-way control here made
-                         *Change* offer only *Put back*, which is the opposite of
-                         reopening the panel. */
-                      <>
-                        <button className={styles.action} onClick={() => onDecide(call, 'selected')} type="button">
                           Select
                         </button>
-                        <button className={styles.action} onClick={() => onDecide(call, 'rejected')} type="button">
+                        <button
+                          className={styles.action}
+                          onClick={() => {
+                            onDecide(call, 'rejected')
+                            setDeciding(null)
+                          }}
+                          type="button"
+                        >
                           Reject
                         </button>
-                        <button className={styles.action} onClick={() => onOpen(call)} type="button">
+                        <button
+                          className={styles.action}
+                          onClick={() => {
+                            if (decided !== undefined) onDecide(call, 'pending')
+                            setDeciding(null)
+                          }}
+                          type="button"
+                        >
                           Later
                         </button>
-                      </>
+                      </span>
+                    ) : (
+                      <button
+                        className={styles.change}
+                        onClick={() => setDeciding(call.key)}
+                        data-testid={`change-${call.key}`}
+                        type="button"
+                      >
+                        CHANGE ▾
+                      </button>
                     )}
                   </div>
                 </article>
@@ -326,7 +437,14 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
             {hidden > 0 ? (
               <p className={styles.hidden} data-testid={`hidden-${group.category}`}>
                 {hidden} hidden by filter ·{' '}
-                <button className={styles.showAll} onClick={() => { setFilter('all'); onShowAll() }} type="button">
+                <button
+                  className={styles.showAll}
+                  onClick={() => {
+                    setFilter('all')
+                    onShowAll()
+                  }}
+                  type="button"
+                >
                   Show all
                 </button>
               </p>

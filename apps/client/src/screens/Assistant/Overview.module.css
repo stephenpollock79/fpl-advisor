@@ -1,7 +1,13 @@
-/* The Overview's own styles. Sizes and colours from the handoff; behaviour is
-   never decided here (docs/design/README.md — authoritative for HOW, not WHAT). */
+/* The Overview's own styles. Anatomy, colour, type and spacing from the handoff;
+   behaviour is never decided here (docs/design/README.md — HOW, not WHAT). */
 
-.column { display: flex; flex-direction: column; gap: 10px; padding: 0 10px 20px; overflow-y: auto; }
+/* **Children must not shrink.** This is a flex column inside another flex column
+   with a bounded height, so without `flex: none` every child is squashed to fit
+   instead of the column scrolling — and the editorial, which clips its own
+   overflow, collapsed to a hairline. That is exactly what shipped on 2026-09-15
+   and why the card was missing from the screen rather than merely short. */
+.column { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 0 10px 20px; overflow-y: auto; }
+.column > * { flex: none; }
 
 /* ── Editorial ─────────────────────────────────────────────────────────── */
 
@@ -10,35 +16,35 @@
 .editorialHead {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 7px 10px; background: var(--green-dark); color: #fff;
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em;
 }
 
-.editorialCount { opacity: 0.9; letter-spacing: 0.02em; }
+.editorialCount { opacity: 0.92; letter-spacing: 0.04em; text-transform: uppercase; }
 
 .editorialBody { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
 
 .lead { margin: 0; font-size: 14px; font-weight: 800; line-height: 1.35; color: var(--ink); }
 
-.prose { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.prose { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-2); }
 
-/* Five lines, with MORE / LESS (F8-AC-08). The clamp is the card's; the text
-   itself is capped server-side. */
+/* Five lines, with MORE / LESS (F8-AC-08). The clamp is the card's; the text is
+   capped server-side. */
 .proseClamped {
-  margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2);
+  margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-2);
   display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 .more {
   align-self: flex-start; padding: 0; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--green-dark);
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.14em; color: var(--green-dark);
 }
 
 .tally { display: flex; flex-wrap: wrap; gap: 5px; }
 
 .forcedPill,
 .bandPill {
-  padding: 3px 7px; border: 1px solid var(--border-light); border-radius: 999px;
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em;
+  padding: 3px 7px; border: 1px solid var(--border-light); border-radius: 20px;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.02em;
 }
 
 /* Forced is red and first, and it is a property of the call rather than a
@@ -50,146 +56,210 @@
 .lean { background: #fbf1dc; color: #7a5410; border-color: #ecd6a6; }
 .thin { background: var(--warm-1); color: var(--ink-3); border-color: var(--border-light); }
 
-.tallyEmpty { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+.tallyEmpty { font-family: var(--font-mono); font-size: 9px; color: var(--muted); }
 
 .squadState,
-.flagged { margin: 0; font-family: var(--font-mono); font-size: 10px; line-height: 1.4; color: var(--muted); }
+.flagged { margin: 0; font-family: var(--font-mono); font-size: 9px; line-height: 1.5; color: var(--muted); }
 
 .flagged { color: var(--red-text); }
 
 /* ── Squad widget ──────────────────────────────────────────────────────── */
 
-.widget { border: 1px solid var(--border-strong); border-radius: var(--radius-card); background: var(--card); padding: 10px; }
+.widget { border: 1px solid var(--border-strong); border-radius: var(--radius-card); background: var(--card); overflow: hidden; }
 
-.pitches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* The plan's figures ride the card they describe, in the green strip the
+   handoff gives every headline row. */
+.widgetHead {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 10px; background: var(--green-dark); color: #fff;
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+}
 
-.mini { display: flex; flex-direction: column; gap: 4px; }
+.widgetTitle { letter-spacing: 0.14em; font-size: 8px; opacity: 0.92; }
 
-.miniLabel { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; color: var(--muted); }
+.widgetFigures { display: flex; gap: 10px; margin-left: auto; }
+
+.widgetFigures strong { font-weight: 700; }
+
+.over { color: #ffb3bd; }
+
+.ft, .ftOver { padding: 3px 7px; border-radius: 20px; font-size: 8px; letter-spacing: 0.06em; white-space: nowrap; }
+
+.ft { background: rgb(255 255 255 / 18%); }
+
+/* Red and stating the deduction, not merely coloured (F8-AC-11). */
+.ftOver { background: var(--red-disc); color: #fff; }
+
+.pitches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 10px 0; }
+
+.mini { display: flex; flex-direction: column; gap: 5px; }
+
+.miniLabel { font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
 
 .miniPitch {
-  display: flex; flex-direction: column; justify-content: space-between; gap: 3px;
-  min-height: 108px; padding: 5px 3px; border-radius: 8px;
-  background: linear-gradient(var(--green-tint), rgb(16 152 90 / 4%));
-  border: 1px solid var(--green-soft-border);
+  display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
+  min-height: 132px; padding: 8px 4px; border-radius: 10px;
+  background: #cfe6d5; border: 1px solid var(--green-soft-border);
 }
 
-.miniRow { display: flex; justify-content: center; gap: 2px; }
+.miniRow { display: flex; justify-content: center; gap: 4px; }
 
-.miniSlot,
-.miniBenchSlot {
-  flex: 0 1 auto; min-width: 0; max-width: 38px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: 8px; line-height: 1.3; text-align: center; color: var(--ink-2);
+.marker { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+
+/* A kit-coloured square, not a photograph — the handoff's hard constraint 4. */
+.chip {
+  position: relative; width: 17px; height: 17px; border-radius: 4px;
+  border: 2px solid transparent; box-shadow: 0 1px 2px rgb(35 33 29 / 18%);
 }
 
-.miniBench { display: flex; gap: 3px; justify-content: center; }
+.in { border-color: var(--green-dark); }
+.out { border-color: var(--red-disc); }
+.moved { border-color: #d6960f; }
 
-.miniBenchSlot { color: var(--muted); }
+.armband {
+  position: absolute; left: -4px; bottom: -4px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--ink); color: #fff;
+  font-family: var(--font-mono); font-size: 7px; font-weight: 700; line-height: 10px; text-align: center;
+}
 
-.totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
+.markerName {
+  max-width: 30px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.02em; color: var(--ink-3);
+}
 
-.totals > span { display: flex; flex-direction: column; gap: 2px; }
+.miniBench { display: flex; gap: 4px; justify-content: center; padding: 5px 3px; border-radius: 8px; background: var(--warm-2); }
 
-.eyebrow { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; color: var(--muted); }
+.legend { display: flex; justify-content: center; gap: 12px; padding: 8px 10px 0; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.1em; color: var(--muted); }
 
-.figure { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink); }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
 
-.negative { color: var(--red-text); }
+.key { width: 9px; height: 9px; border-radius: 3px; border: 2px solid transparent; background: var(--warm-2); }
 
 .breaches {
-  margin-top: 8px; padding: 7px 8px; border: 1px solid var(--red-card-border); border-radius: 8px;
+  margin: 0 10px 10px; padding: 7px 8px; border: 1px solid var(--red-card-border); border-radius: 10px;
   background: var(--red-card);
 }
 
-.breaches p { margin: 0; font-family: var(--font-mono); font-size: 10px; line-height: 1.5; color: var(--red-text); }
+.breaches p { margin: 0; font-family: var(--font-mono); font-size: 9px; line-height: 1.5; color: var(--red-text); }
 
 /* ── Filter chips ──────────────────────────────────────────────────────── */
 
-.chips { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; }
+/* Four across at 390, inside the widget they change. They used to sit outside it
+   in a scroller, which put two of them off the screen entirely. */
+.chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px 10px 10px; }
 
-.chip,
+.chipOff,
 .chipOn {
-  flex: 0 0 auto; min-height: 30px; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+  min-height: 30px; padding: 5px 2px; border-radius: 20px; cursor: pointer;
   border: 1px solid var(--border-strong); background: var(--card); color: var(--ink-3);
-  font-size: 11px; font-weight: 700; white-space: nowrap;
+  font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.chipOn { background: var(--ink); border-color: var(--ink); color: #fff; }
+.chipOn { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
 
-.chipMark { margin-left: 4px; color: var(--red-disc); font-weight: 800; }
+.chipMark { margin-left: 3px; color: var(--red-disc); font-weight: 800; }
 
 .chipOn .chipMark { color: #ff9aa6; }
 
-.filterNote { margin: 0; font-family: var(--font-mono); font-size: 10px; line-height: 1.4; color: var(--muted); }
+.filterNote { margin: 0; font-family: var(--font-mono); font-size: 9px; line-height: 1.5; color: var(--muted); }
 
 /* ── Call cards ────────────────────────────────────────────────────────── */
 
 .group { display: flex; flex-direction: column; gap: 6px; }
 
 .groupHead {
-  display: flex; align-items: baseline; justify-content: space-between;
-  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--muted);
-  padding-top: 4px;
+  display: flex; align-items: baseline; justify-content: space-between; padding-top: 4px;
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted);
 }
 
-.groupMeta { letter-spacing: 0.02em; }
+.groupMeta { letter-spacing: 0.04em; text-transform: none; }
 
+/* Every row the same height, which is what the collapsed decision control buys. */
 .card {
-  display: flex; align-items: stretch;
+  display: flex; align-items: stretch; min-height: 92px;
   border: 1px solid var(--border-strong); border-radius: var(--radius-card); background: var(--card); overflow: hidden;
 }
+
+.cardForced { border-color: var(--green-dark); box-shadow: 0 0 0 1px var(--green-dark) inset; }
 
 /* A rejected card stays visible and dimmed, so an accidental reject is two taps
    from correction (F3-AC-11, F8-AC-26). */
 .rejected { opacity: 0.55; }
 
 .cardContent {
-  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; align-items: flex-start;
-  padding: 9px 10px; border: 0; background: none; cursor: pointer; text-align: left;
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+  padding: 9px 10px; border: 0; background: none; cursor: pointer; text-align: left; font-family: inherit;
 }
 
-.cardTitle { font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.cardTop { display: flex; align-items: center; gap: 5px; min-width: 0; }
 
-.cardMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.cardTitle { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.cardNet { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--green-dark); }
+.chevron { flex: none; color: var(--muted); font-size: 14px; line-height: 1; }
 
-.cardBand,
+.cardSub { font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.cardFigures { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: end; margin-top: auto; }
+
+.cardFigures > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.convictionCell { align-items: flex-end; }
+
+.eyebrow { font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
+
+.figure { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink); }
+
+.figureGood { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--green-dark); }
+
+.conviction {
+  padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border-light);
+  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+}
+
 .forcedFlag,
 .watchFlag,
 .blankChip,
 .doubleChip {
-  padding: 2px 6px; border-radius: 999px; border: 1px solid var(--border-light);
-  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.02em;
+  flex: none; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--border-light);
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.08em;
 }
 
-.forcedFlag { background: var(--red-card); border-color: var(--red-card-border); color: var(--red-text); }
+.forcedFlag { background: var(--red-disc); border-color: var(--red-disc); color: #fff; }
 .watchFlag { background: #fbf1dc; border-color: #ecd6a6; color: #7a5410; }
 .doubleChip { background: var(--green-tint); border-color: var(--green-tint-border); color: var(--green-dark); }
 .blankChip { background: var(--warm-2); border-style: dashed; border-color: var(--border-strong); color: var(--ink-3); }
 
-/* The seam (F8-AC-28): the decision panel is visibly its own surface, so a
-   decision button never reads as part of a tappable card. */
+/* The seam (F8-AC-28): the decision control is visibly its own surface. */
 .cardDecision {
-  flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 3px;
-  padding: 6px; border-left: 1px solid var(--border-strong); background: var(--warm-1);
+  flex: 0 0 92px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 6px; border-left: 1px solid var(--border-strong); background: var(--warm-1); text-align: center;
 }
 
-.action,
+.state,
+.stateDecided {
+  white-space: pre-line;
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.1em; line-height: 1.4;
+}
+
+.state { color: var(--muted); }
+.stateDecided { color: var(--green-dark); }
+
 .change {
-  min-width: 62px; min-height: 26px; padding: 3px 8px; border-radius: 7px; cursor: pointer;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.1em; color: var(--ink-3);
+}
+
+.actions { display: flex; flex-direction: column; gap: 3px; width: 100%; }
+
+.action {
+  min-height: 22px; padding: 2px 4px; border-radius: 6px; cursor: pointer;
   border: 1px solid var(--border-strong); background: var(--card); color: var(--ink-2);
   font-size: 10px; font-weight: 700;
 }
 
-.pill {
-  text-align: center; padding: 3px 8px; border-radius: 999px;
-  background: var(--green-tint); border: 1px solid var(--green-tint-border); color: var(--green-dark);
-  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.02em;
-}
+.hidden { margin: 0; padding: 6px 8px; border: 1px dashed var(--border-strong); border-radius: 10px; font-family: var(--font-mono); font-size: 9px; color: var(--muted); }
 
-.hidden { margin: 0; padding: 6px 8px; border: 1px dashed var(--border-strong); border-radius: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
-
-.showAll { padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-mono); font-size: 10px; color: var(--green-dark); text-decoration: underline; }
+.showAll { padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-mono); font-size: 9px; color: var(--green-dark); text-decoration: underline; }
 
 .hint { margin: 6px 0 0; text-align: center; font-size: 11px; color: var(--muted); }

@@ -15,12 +15,17 @@ import type { Page, Route } from '@playwright/test'
 
 export type Player = Record<string, unknown>
 
+const CLUBS = ['ARS', 'AVL', 'BOU', 'BRE', 'BHA', 'CHE', 'CRY', 'EVE', 'FUL', 'LIV', 'MCI', 'MUN', 'NEW', 'NFO', 'TOT', 'WHU', 'WOL', 'LEE', 'BUR', 'SUN']
+
 export const player = (id: number, surname: string, position: string, projection: number, extra: Player = {}): Player => ({
   playerId: id,
   surname,
   shirtNumber: id % 30,
   clubId: id,
-  clubShortName: 'C' + String(id % 20),
+  // Real codes: `kitFor` keys off them, and the Landing shots are taken from
+  // this world — grey squares and 'C7 → C4' would be a picture of the fixture
+  // rather than of the product.
+  clubShortName: CLUBS[id % CLUBS.length] ?? 'NFO',
   position,
   isStarter: true,
   benchOrder: null,

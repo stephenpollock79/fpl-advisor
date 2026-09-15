@@ -410,20 +410,17 @@
    the room to say ALL — which on the Overview is both the scope and the truth
    about what a run does. */
 .refresh {
+  margin: 0 8px 0 0;
   flex: none;
-  min-width: 30px;
+  width: 30px;
   height: 30px;
-  padding: 0 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   border-radius: 9px;
   border: 1px solid var(--border-strong);
   background: var(--card);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 15px;
   line-height: 1;
   color: var(--ink-2);
   cursor: pointer;
@@ -583,8 +580,6 @@
 /* The control sits here rather than in the header from 2026-09-15 (F8-AC-12,
    F6-AC-07): one control, in the status bar, naming the scope it would rewrite.
    In the header it could only be a symbol, and a symbol cannot name a scope. */
-.statusRefresh { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-
 .lastRun {
   margin: 0; padding: 4px 12px 6px;
   font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em; color: var(--muted);
