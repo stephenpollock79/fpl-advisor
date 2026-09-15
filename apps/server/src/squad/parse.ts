@@ -15,9 +15,17 @@
  *
  * | Team screen | Transfers screen |
  * | --- | --- |
- * | the fifteen, who starts, the bench order, captain, vice, chips remaining | bank, free transfers |
+ * | the fifteen, who starts, the bench order, captain, vice, chips remaining | bank, free transfers, **the fifteen again** |
  *
  * No single FPL screen carries all of it, which is why there are two.
+ *
+ * **Both pictures show all fifteen names, so both are read for them**
+ * (2026-09-15). The Transfers screen lays the same squad out by position rather
+ * than by selection, which makes it useless for who starts — and a completely
+ * independent second look at who is *in* the squad. The read is not
+ * deterministic: the same two pictures gave fifteen names one attempt and
+ * fourteen the next. Two readings of the same fifteen turn that from a coin
+ * flip into a near-miss that code can close.
  */
 
 import type { SquadPlayer } from './snapshot.js'
@@ -85,7 +93,17 @@ export type RawParse = {
      */
     chips?: { chip?: unknown; state?: unknown }[]
   }
-  transfers?: { bankTenths?: unknown; freeTransfers?: unknown }
+  transfers?: {
+    bankTenths?: unknown
+    freeTransfers?: unknown
+    /**
+     * **The same fifteen, read again off the other picture.** Names only: the
+     * Transfers screen arranges the squad by position, so it says nothing about
+     * who starts, who is captain or what order the bench is in. It is used to
+     * *recover* a name the Team read dropped and never to reject one it made.
+     */
+    players?: { playerId?: unknown; name?: unknown }[]
+  }
 }
 
 const isPlayerId = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0
@@ -121,6 +139,67 @@ const normalise = (name: string): string =>
     // and a transcription, the characters themselves do not.
     .replace(/[^a-zA-Z0-9]/g, '')
     .toLowerCase()
+
+/** One shirt as the Team read described it, plus whoever code matched it to. */
+type TeamEntry = {
+  playerId?: unknown
+  name?: unknown
+  isStarter?: unknown
+  benchOrder?: unknown
+  isCaptain?: unknown
+  isVice?: unknown
+  resolvedId: number | null
+}
+
+/**
+ * Completes a Team read that came back one short, from the other picture.
+ * Returns the list unchanged wherever the answer is not forced.
+ */
+function withSecondReading(team: TeamEntry[], second: readonly number[]): TeamEntry[] {
+  const placed = new Set(team.filter((e) => isPlayerId(e.resolvedId)).map((e) => e.resolvedId as number))
+  const extra = [...new Set(second)].filter((id) => !placed.has(id))
+
+  // One gap, one name to put in it. Anything else is a choice, not a recovery.
+  if (SQUAD_SIZE - placed.size !== 1 || extra.length !== 1) return team
+  const found = extra[0] as number
+
+  /**
+   * **The Team read produced the slot and could not name it.** Everything else
+   * about him was legible — starting or benched, the armband, his place on the
+   * bench — so the recovered name goes into the slot already described.
+   */
+  const slot = team.findIndex((e) => !isPlayerId(e.resolvedId))
+  if (slot >= 0) return team.map((e, i) => (i === slot ? { ...e, resolvedId: found } : e))
+
+  /**
+   * **The Team read never produced the slot at all**, so what it would have
+   * said has to come from what the other fourteen say — and each of those is
+   * forced rather than guessed. A team starts eleven: fourteen read with ten
+   * starting means the missing man starts. There is exactly one captain and one
+   * vice: if neither is among the fourteen, he is that one.
+   */
+  const benchNumbers = team
+    .filter((e) => e.isStarter !== true && typeof e.benchOrder === 'number')
+    .map((e) => e.benchOrder as number)
+  // **Whichever bench place nobody claimed.** The read numbers the bench from
+  // nought in some attempts and from one in others, so the gap is looked for
+  // inside the run it actually used rather than an assumed 0–3.
+  const base = benchNumbers.length > 0 ? Math.min(...benchNumbers) : 0
+  const free = [0, 1, 2, 3].map((n) => base + n).filter((n) => !benchNumbers.includes(n))
+
+  return [
+    ...team,
+    {
+      playerId: found,
+      name: '',
+      resolvedId: found,
+      isStarter: team.filter((e) => e.isStarter === true).length < SQUAD_SIZE - BENCH_SIZE,
+      benchOrder: free.length === 1 ? (free[0] as number) : base + BENCH_SIZE,
+      isCaptain: team.every((e) => e.isCaptain !== true),
+      isVice: team.every((e) => e.isVice !== true),
+    },
+  ]
+}
 
 export function parseSquad(
   raw: RawParse,
@@ -186,7 +265,31 @@ export function parseSquad(
   }
   const players = raw.team?.players ?? []
 
-  const resolved = players.map((p) => ({ ...p, resolvedId: resolve(p) }))
+  const fromTeam = players.map((p) => ({ ...p, resolvedId: resolve(p) }))
+
+  /**
+   * **The second reading, and what it is allowed to do.**
+   *
+   * The Transfers screen shows the same fifteen shirts, so it is a second,
+   * independent look at who is in the squad — and the two readings miss
+   * different players, because neither is deterministic. Where the Team read
+   * comes back one short, the other picture almost always has the one it lost.
+   *
+   * **It recovers, it never rejects.** A name the Transfers read did not see is
+   * not evidence against a name the Team read did: that would be a new way for
+   * a good upload to fail, and this feature has had enough of those. The only
+   * thing it can do is fill a gap.
+   *
+   * **And only when the filling is forced, never guessed.** One player missing
+   * and exactly one name the other picture has that this one does not is a
+   * single possible answer. Two of each is a choice between two arrangements,
+   * and a coin toss dressed as a match is what the all-or-nothing rule exists
+   * to stop — so two missing still fails, and says so.
+   */
+  const resolved = withSecondReading(
+    fromTeam,
+    (raw.transfers?.players ?? []).map((p) => resolve(p)).filter(isPlayerId),
+  )
 
   const legible = resolved.filter(
     (p) =>
@@ -213,10 +316,16 @@ export function parseSquad(
       .filter((p) => !isPlayerId(p.resolvedId))
       .map((p) => (typeof p.name === 'string' && p.name.length > 0 ? p.name : 'an unnamed player'))
 
+    // **Say whether the other picture was any help**, because after tonight the
+    // next question is always which of the two readings fell short. Only when
+    // there was a second reading to speak of.
+    const secondHelped =
+      (raw.transfers?.players ?? []).length > 0 ? ', and the Transfers screenshot did not make up the difference' : ''
+
     const because =
       reported === SQUAD_SIZE
         ? `all ${String(SQUAD_SIZE)} players were read, but ${unplaced.join(', ')} could not be matched to a known player — that is our end, not your picture`
-        : `only ${String(legible.length)} of ${String(SQUAD_SIZE)} players legible on the Team screenshot`
+        : `only ${String(legible.length)} of ${String(SQUAD_SIZE)} players legible on the Team screenshot${secondHelped}`
     return { ok: false, failure: { screen: 'team', because } }
   }
 

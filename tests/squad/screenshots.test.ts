@@ -198,6 +198,50 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
     expect(stored).toEqual([])
   })
 
+  it('F2-UP-01: a read that misses a player is read once more, because the answer is checkable', async () => {
+    // **The trigger is a reader that is not deterministic**: the same two
+    // pictures gave fifteen players on one attempt and fourteen on the next
+    // (2026-09-15). Against an all-or-nothing rule that makes every upload a
+    // coin flip, and the manager pays for the miss by retaking good photographs.
+    let attempts = 0
+    const { post, stored } = harness({
+      model: () =>
+        ({
+          async readSquadScreenshots() {
+            attempts += 1
+            // First read drops a player; the second sees all fifteen.
+            const read = squad()
+            const short = attempts === 1 ? { ...read, players: read.players.slice(0, 14) } : read
+            return { raw: fromSquad(short), record: null as never }
+          },
+        }) as never,
+    })
+
+    expect((await post({ team: IMAGE, transfers: IMAGE })).status).toBe(200)
+    expect(attempts).toBe(2)
+    expect(stored).toHaveLength(1)
+  })
+
+  it('F2-UP-01: a picture that cannot be read is not read a third time', async () => {
+    // Twice, never more. A picture that genuinely cannot be read fails on the
+    // second attempt as surely as the tenth, and a loop turns a bad upload into
+    // an open-ended bill.
+    let attempts = 0
+    const { post, stored } = harness({
+      model: () =>
+        ({
+          async readSquadScreenshots() {
+            attempts += 1
+            return { raw: { team: { players: [], chips: [] }, transfers: {} }, record: null as never }
+          },
+        }) as never,
+    })
+
+    expect((await post({ team: IMAGE, transfers: IMAGE })).status).toBe(422)
+    expect(attempts).toBe(2)
+    expect(stored).toEqual([])
+  })
+
   it('F2-UP-01: one picture is not enough, because no FPL screen carries everything', async () => {
     const { post, stored } = harness()
     expect((await post({ team: IMAGE })).status).toBe(400)
