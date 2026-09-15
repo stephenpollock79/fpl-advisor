@@ -725,3 +725,56 @@ describe('F2-UP-01 · the card carries more than a name', () => {
     expect(result.ok).toBe(true)
   })
 })
+
+describe('F2-UP-01 · the badge is a letter, not a verdict', () => {
+  /**
+   * **Asked outright who the vice-captain was, the read twice gave it to a
+   * shirt carrying a star for bonus points** (2026-09-15, either side of a
+   * prompt that spelled out what an armband looks like). Four other shirts on
+   * that screenshot carried a badge, all in the same corner.
+   *
+   * So the read now reports the character in the badge and code decides what it
+   * means. **Each test supplies real badges rather than the flags they imply**
+   * (P16).
+   */
+  const badged = (badges: Record<number, string>) =>
+    fifteen().map((p) => {
+      const { isCaptain: _c, isVice: _v, ...rest } = p
+      return { ...rest, badge: badges[p.playerId] ?? '' }
+    })
+
+  const read = (badges: Record<number, string>): RawParse => ({
+    team: { players: badged(badges), chips: [{ chip: 'wildcard', state: 'available' }] },
+    transfers: { bankTenths: 28, freeTransfers: 2 },
+  })
+
+  it('F2-UP-01: a C and a V make the captain and the vice, off the letters alone', () => {
+    const result = parseSquad(read({ 1: 'C', 2: 'V' }))
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players.find((p) => p.isCaptain)?.playerId).toBe(1)
+    expect(result.squad.players.find((p) => p.isVice)?.playerId).toBe(2)
+  })
+
+  it('F2-UP-01: a star beside the real V leaves the armband where it belongs', () => {
+    // **The live defect.** The star is on João Pedro for bonus points and the
+    // V is on Calvert-Lewin, and the two used to come back the wrong way round.
+    // A badge that is not a letter now makes nobody anything.
+    const result = parseSquad(read({ 1: 'C', 2: '★', 3: 'V' }))
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players.find((p) => p.isVice)?.playerId).toBe(3)
+  })
+
+  it('F2-UP-01: a screen where no badge holds a V is refused rather than given to the nearest star', () => {
+    // **Loud, not plausible.** A vice-captain who is not the vice-captain shows
+    // nothing wrong on screen, and the advice is built on him.
+    const result = parseSquad(read({ 1: 'C', 2: '★' }))
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.because).toMatch(/vice-captain/)
+  })
+})
