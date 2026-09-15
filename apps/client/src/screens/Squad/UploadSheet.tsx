@@ -46,21 +46,23 @@ type Screen = keyof typeof READS
  * every corroboration check added the night before was refusing a bad read
  * rather than a good squad.
  *
- * **1568 is Haiku's ceiling, not the API's**, and that distinction is the whole
- * reason this number is written down rather than rounded. The API applies two
+ * **This number is the model's ceiling, not the API's**, and that distinction is
+ * the whole reason it is written down rather than rounded. The API applies two
  * limits — a long edge and a visual-token count — in two tiers: 1568px and 1568
- * tokens on Haiku 4.5 and everything before Claude 4.7, 2576px and 4784 tokens
- * on 4.7 and later, Sonnet 5 included. An image costs ⌈w/28⌉ × ⌈h/28⌉ tokens, so
- * a screenshot of this shape arrives at 721×1568 for 1,456 of the 1,568 allowed:
- * the long edge binds first, and nothing above it would be paid for.
+ * tokens before Claude 4.7, **2576px and 4784 tokens on 4.7 and later, Sonnet 5
+ * included.** An image costs ⌈w/28⌉ × ⌈h/28⌉ tokens, so on the parse's own model
+ * a screenshot of this shape arrives at 1185×2576 for 3,956 of the 4,784
+ * allowed: the long edge binds first, and nothing above it would be paid for.
  *
- * **So this constant and `PINNED.parse` move together.** Pointing the parse at
- * Sonnet 5 while leaving 1568 here would buy none of the resolution that model
- * can see, while looking exactly like a model upgrade.
+ * **So this constant and `PINNED.parse` move together**, and on 2026-09-16 they
+ * did. 1568 was Haiku's ceiling, and Haiku at its ceiling put the vice-captain's
+ * armband on the wrong shirt in two uploads out of three (STE-136). The parse
+ * moved to Sonnet 5 and this moved with it, in one commit: either alone sends
+ * the wrong-sized picture to the right model, or the right size to a model that
+ * cannot use it, and both read exactly like a change that did nothing.
  *
- * The cost of the change is 860 → 1,456 tokens an image, about a tenth of a
- * penny an upload on Haiku. An upload is manual and rare; it was never a cost
- * question.
+ * The journey is 860 tokens an image at the original 1200, to 3,956 here — a few
+ * pence an upload. An upload is manual and rare; it was never a cost question.
  *
  * **PNG rather than JPEG**, still: JPEG softens exactly the thin text the read
  * depends on, and the saving is not worth a misread name. If a PNG at this size
@@ -68,7 +70,7 @@ type Screen = keyof typeof READS
  * supported, it runs well below PNG on flat interface graphics, and it loses
  * nothing. Dropping the edge back would undo this.
  */
-const MAX_EDGE = 1568
+const MAX_EDGE = 2576
 
 async function shrink(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file)

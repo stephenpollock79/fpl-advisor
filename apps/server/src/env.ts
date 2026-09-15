@@ -47,6 +47,7 @@ const SPEC: Spec[] = [
   },
   { name: 'ANTHROPIC_MODEL_FILTER', required: false, why: 'Overrides the pinned proposal model. Absent means claude-haiku-4-5.' },
   { name: 'ANTHROPIC_MODEL_REASON', required: false, why: 'Overrides the pinned reasoning model. Absent means claude-sonnet-5.' },
+  { name: 'ANTHROPIC_MODEL_PARSE', required: false, why: 'Overrides the pinned screenshot-reading model. Absent means claude-sonnet-5. Separate from the filter override since 2026-09-16: while both were Haiku they shared one, and a value set there would have silently swallowed the move to Sonnet.' },
   { name: 'MODEL_MODE', required: false, why: '`mock` forces the no-spend path (ADR 0008). Anything else is live.' },
   { name: 'POSTHOG_KEY', required: false, why: 'Analytics.' },
   // Not required: absent means 8787, which is a working default rather than a

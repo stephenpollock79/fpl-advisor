@@ -42,3 +42,38 @@ cap would be reached by accident rather than by use.
 - The routing split is a starting judgement, not a measurement. The first real runs will say
   whether the filtering step needs the stronger model; nothing here should be defended after
   evidence arrives.
+
+## Revisited 2026-09-16 — extraction moved to Sonnet (STE-136)
+
+**The last consequence above is why this is an amendment and not a departure.** The evidence
+arrived, and it was about extraction rather than filtering.
+
+Reading a screenshot is extraction, so the screenshot correction (F2) shipped on Haiku. Three
+uploads of the same two pictures, at 1568px — every pixel Haiku's vision tier accepts — put the
+**vice-captain's armband on the wrong shirt twice, and on the same wrong shirt each time.** The
+captain was right all three times. So it is not a prompt that fails to explain itself and not a
+picture that is too small; it is a read that is not reliable at any size that model can take.
+Sonnet read both armbands correctly on the same pictures, at two different sizes.
+
+**What makes the armband different from everything else on the card, and why no guard could
+cover it.** The corroboration added in #107 works because a name has two facts printed beside it
+— the fixture and the price — and neither agrees with a misread name by accident. No source
+publishes who wears the vice armband *right now*: the public feed reports it as at the last
+deadline. So a wrong V satisfies every guard in `parse.ts`, including the one requiring exactly
+one. The read itself had to get better, because nothing downstream could tell it was wrong.
+
+**Two things this does not change.** The candidate-proposal sweep stays on Haiku — it reads a lot
+and decides little, and nothing has said otherwise. And the £50 prepaid balance stays the only
+enforcement; this is a call-shape change, not a second ceiling.
+
+**What it costs.** Roughly 4p an upload against roughly 1p. An upload is manual, occasional and
+the manager's own act, so it does not recur on its own — unlike a run, which is why this was worth
+its own pinned step in the first place.
+
+**One trap found while making the change, recorded because it is the general shape rather than
+this instance.** The parse model followed `ANTHROPIC_MODEL_FILTER`, the proposal model's override,
+which read as tidiness while both were Haiku. A value already set there would have swallowed this
+change whole: the pin would say Sonnet, the upload would keep using Haiku, and nothing anywhere
+would have said so. The parse now has `ANTHROPIC_MODEL_PARSE` of its own. **Two steps sharing one
+override is a coupling that only shows itself when they need to differ**, which is exactly when
+nobody is looking for it.

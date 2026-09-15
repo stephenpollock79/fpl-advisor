@@ -47,20 +47,38 @@ export const PINNED = {
    */
   editorial: 'claude-sonnet-5',
   /**
-   * **Reading a screenshot is extraction, and ADR 0009 routes extraction to
-   * Haiku.** So this is the ADR's choice rather than a judgement made here. Its
-   * own step, not a second `propose`, so an upload's cost is visible on the run
-   * record instead of hiding inside the proposal count (F2, NFR Cost control).
+   * **Sonnet, because Haiku could not read the armband** (2026-09-16, STE-136).
    *
-   * **Changing this model means changing `MAX_EDGE` in
-   * `apps/client/src/screens/Squad/UploadSheet.tsx`, in the same breath.** How
-   * large a picture reaches the model is set by the model's vision tier, not by
-   * the API: Haiku 4.5 downsamples anything past 1568px on its long edge, and
-   * Claude 4.7 and later — Sonnet 5 included — go to 2576px. A switch to Sonnet
-   * made here alone would send the same undersized picture and read exactly as
-   * a model upgrade that changed nothing. The reasoning is beside that constant.
+   * ADR 0009 routes extraction to Haiku and reading a picture is extraction, so
+   * this began on Haiku. That ADR closes by saying the routing split is a
+   * starting judgement and **nothing in it should be defended after evidence
+   * arrives.** The evidence arrived: three uploads of the same two screenshots,
+   * at 1568px — every pixel Haiku's vision tier accepts — put the vice-captain's
+   * V on the wrong shirt **twice**, and on the same wrong shirt each time. The
+   * captain was right all three times, so this is not a prompt that fails to
+   * explain itself; it is a read that is not good enough at any size Haiku can
+   * take. Sonnet got both armbands right on the same pictures, at two sizes.
+   *
+   * **The armband is the one fact on the card with nothing to check it against.**
+   * A name has the fixture and the price beside it, and neither agrees with a
+   * misread name by accident — that is what the corroboration in #107 rests on.
+   * No source publishes who wears the V right now, so a wrong one passes every
+   * guard in `parse.ts`. That is why the read itself had to get better rather
+   * than the checking around it.
+   *
+   * **This constant and `MAX_EDGE` in
+   * `apps/client/src/screens/Squad/UploadSheet.tsx` move together.** How large a
+   * picture reaches the model is set by the model's vision tier, not by the API:
+   * standard tier stops at 1568px on the long edge, and Claude 4.7 and later —
+   * Sonnet 5 included — go to 2576px. Changing one alone sends the wrong-sized
+   * picture and reads exactly like a change that did nothing. The reasoning in
+   * full is beside that constant.
+   *
+   * Its own step, not a second `propose`, so an upload's cost is visible on the
+   * run record instead of hiding inside the proposal count (F2, NFR Cost
+   * control). About 4p an upload rather than 1p, on a manual and occasional act.
    */
-  parse: 'claude-haiku-4-5',
+  parse: 'claude-sonnet-5',
 } as const
 
 export type ModelStep = 'propose' | 'reason' | 'editorial' | 'parse'
@@ -296,7 +314,16 @@ const pinnedFrom = (env: Env) => ({
   // Follows the reasoning override, because the two are the same job at two
   // scales and pinning them apart by accident is the likelier mistake.
   editorial: env['ANTHROPIC_MODEL_REASON']?.trim() || PINNED.editorial,
-  parse: env['ANTHROPIC_MODEL_FILTER']?.trim() || PINNED.parse,
+  /**
+   * **Its own override, and it stopped following the proposal model's on
+   * 2026-09-16.** While both were Haiku, `ANTHROPIC_MODEL_FILTER` covering the
+   * parse as well looked like tidiness. It was a trap twice over: tuning the
+   * candidate sweep would silently change what reads a screenshot, and — the
+   * sharper edge — a value already set in the environment would have swallowed
+   * the move to Sonnet whole. The pin would have read `claude-sonnet-5`, the
+   * upload would have kept using Haiku, and nothing anywhere would have said so.
+   */
+  parse: env['ANTHROPIC_MODEL_PARSE']?.trim() || PINNED.parse,
 })
 
 const unrecorded = (step: ModelStep, via: ModelRoute, pinned: string, modelId: string, ok: boolean): ModelCallRecord => ({

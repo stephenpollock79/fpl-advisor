@@ -132,6 +132,53 @@ describe('ADR 0008, amended · production sends our prompt and nothing else', ()
   })
 })
 
+describe('ADR 0009, revisited · the screenshot read has its own pin and its own override', () => {
+  /**
+   * **The trap this covers would have made the whole change a no-op.** Until
+   * 2026-09-16 the parse followed `ANTHROPIC_MODEL_FILTER`, the proposal
+   * model's override, which read as tidiness while both were Haiku. Moving the
+   * parse to Sonnet with a value already set there would have left the pin
+   * saying `claude-sonnet-5` and the upload still using Haiku, with nothing
+   * anywhere to say so (STE-136).
+   *
+   * So the trigger is the override actually being set. Asserting the pin alone
+   * proves nothing about the case that bites.
+   */
+  const png = 'data:image/png;base64,iVBORw0KGgo='
+  const shot = { players: [], team: png, transfers: png }
+
+  it('the proposal override no longer reaches the screenshot read', async () => {
+    const captured: Params[] = []
+    const { record } = await apiModel({
+      client: fakeClient(answer('claude-sonnet-5', '{}'), captured),
+      env: { ANTHROPIC_MODEL_FILTER: 'claude-haiku-4-5' },
+    }).readSquadScreenshots(shot)
+
+    expect(captured[0]?.['model']).toBe('claude-sonnet-5')
+    expect(record.pinned).toBe('claude-sonnet-5')
+  })
+
+  it('and the proposal sweep still takes it, so the two are genuinely separate', async () => {
+    const captured: Params[] = []
+    await apiModel({
+      client: fakeClient(answer('claude-haiku-4-5', '[]'), captured),
+      env: { ANTHROPIC_MODEL_FILTER: 'claude-haiku-4-5' },
+    }).proposeTransfers(proposing)
+
+    expect(captured[0]?.['model']).toBe('claude-haiku-4-5')
+  })
+
+  it('its own override reaches it, and nothing else does', async () => {
+    const captured: Params[] = []
+    await apiModel({
+      client: fakeClient(answer('claude-something-new', '{}'), captured),
+      env: { ANTHROPIC_MODEL_PARSE: 'claude-something-new', ANTHROPIC_MODEL_REASON: 'claude-elsewhere' },
+    }).readSquadScreenshots(shot)
+
+    expect(captured[0]?.['model']).toBe('claude-something-new')
+  })
+})
+
 describe('ADR 0008, amended · which route runs', () => {
   it('mock when asked; the direct API when a key is present; the Claude Code session otherwise', () => {
     expect(modelFromEnv({ MODEL_MODE: 'mock', ANTHROPIC_API_KEY: 'placeholder-for-test' }).backend).toBe('mock')
