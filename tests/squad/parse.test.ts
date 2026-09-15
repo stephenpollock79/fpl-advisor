@@ -353,3 +353,94 @@ describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
     expect(result.failure.because).toBe('only 0 of 15 players legible on the Team screenshot')
   })
 })
+
+describe('F2-AC-01, F2-UP-01 · the second picture is read for the fifteen too', () => {
+  /**
+   * **Both screenshots show all fifteen names, and the read is not
+   * deterministic** — the same two pictures gave fifteen one attempt and
+   * fourteen the next (2026-09-15). The Transfers screen lays the squad out by
+   * position rather than by selection, so it is useless for who starts and a
+   * genuinely independent second look at who is *in*.
+   *
+   * **Each test causes its own trigger** (P16): a Team list that is actually
+   * short, beside a Transfers list that actually holds the missing name.
+   */
+  const alsoOnTransfers = (ids: number[]) =>
+    ids.map((id) => ({ playerId: id, name: `Player${String(id)}` }))
+
+  it('F2-UP-01: a substitute the Team read dropped is recovered from the Transfers screen, and lands last on the bench', () => {
+    // Fourteen shirts read, the fourth substitute lost. The other picture has him.
+    const result = parseSquad({
+      team: { players: fifteen().slice(0, 14), chips: [{ chip: 'wildcard', state: 'available' }] },
+      transfers: { bankTenths: 28, freeTransfers: 2, players: alsoOnTransfers([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) },
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players).toHaveLength(15)
+    // **His place is worked out, not guessed.** Eleven already read as starting
+    // means the missing man is a substitute, and the bench place nobody claimed
+    // is the one he stood in.
+    const recovered = result.squad.players.find((p) => p.playerId === 15)
+    expect(recovered?.isStarter).toBe(false)
+    expect(recovered?.benchOrder).toBe(3)
+  })
+
+  it('F2-UP-01: a starter the Team read dropped is recovered, and starts, because only ten were read as starting', () => {
+    const short = fifteen().filter((p) => p.playerId !== 6)
+
+    const result = parseSquad({
+      team: { players: short, chips: [{ chip: 'wildcard', state: 'available' }] },
+      transfers: { bankTenths: 28, freeTransfers: 2, players: alsoOnTransfers([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) },
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players.filter((p) => p.isStarter)).toHaveLength(11)
+    expect(result.squad.players.find((p) => p.playerId === 6)?.isStarter).toBe(true)
+  })
+
+  it('F2-UP-01: a shirt whose name was unreadable keeps the armband the Team read did see', () => {
+    // **The armband was legible and the name was not** — a slot the Team read
+    // described fully and could not put a player in. The recovered name goes
+    // into that slot rather than into a derived one, so the captaincy survives.
+    const players = fifteen()
+    const captain = players[0] as Record<string, unknown> | undefined
+    if (captain) captain['playerId'] = 'smudged'
+
+    const result = parseSquad({
+      team: { players, chips: [{ chip: 'wildcard', state: 'available' }] },
+      transfers: { bankTenths: 28, freeTransfers: 2, players: alsoOnTransfers([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) },
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players.find((p) => p.isCaptain)?.playerId).toBe(1)
+  })
+
+  it('F2-UP-01: two players missing is refused rather than arranged, and the failure says the second picture did not close it', () => {
+    // **One gap and one spare name has a single answer; two of each is a
+    // choice.** A coin toss dressed as a match is what all-or-nothing exists to
+    // stop, so this still applies nothing.
+    const result = parseSquad({
+      team: { players: fifteen().slice(0, 13), chips: [{ chip: 'wildcard', state: 'available' }] },
+      transfers: { bankTenths: 28, freeTransfers: 2, players: alsoOnTransfers([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) },
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.because).toMatch(/did not make up the difference/)
+  })
+
+  it('F2-UP-01: a complete Team read is not second-guessed by a Transfers read that saw fewer', () => {
+    // **It recovers, it never rejects.** A name the other picture missed is not
+    // evidence against a name this one read — treating it as such would be a
+    // new way for a good upload to fail.
+    const result = parseSquad({
+      team: { players: fifteen(), chips: [{ chip: 'wildcard', state: 'available' }] },
+      transfers: { bankTenths: 28, freeTransfers: 2, players: alsoOnTransfers([1, 2, 3, 99]) },
+    })
+
+    expect(result.ok).toBe(true)
+  })
+})

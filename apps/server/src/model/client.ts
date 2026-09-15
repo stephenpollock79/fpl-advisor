@@ -342,6 +342,11 @@ const PARSE_SYSTEM = [
   'always a miscount, not a smaller squad. Also report which eleven start, the bench order, the',
   'captain, the vice-captain, and which chips remain.',
   'The second is the Transfers screen: the bank and the number of free transfers.',
+  '**It shows the same fifteen players over again**, laid out by position rather than by selection —',
+  'two goalkeepers, then the defenders, the midfielders and the forwards. Report those fifteen names',
+  'as well, reading them off that picture on their own. **Do not copy your answer from the Team',
+  'screen and do not make the two lists agree** — reading the second picture separately is the whole',
+  'reason it is here, and where the two differ that difference is the useful part.',
   '**Report the name exactly as it is printed on the shirt, character for character.** That name is',
   'what identifies the player, and it is checked against a list afterwards — so do not correct it,',
   'expand it, or substitute a similar name you recognise. If a shirt reads "Van Hecke", report',
@@ -421,8 +426,26 @@ export const PARSE_SCHEMA = {
     },
     transfers: {
       type: 'object',
-      properties: { bankTenths: { type: 'integer' }, freeTransfers: { type: 'integer' } },
-      required: ['bankTenths', 'freeTransfers'],
+      properties: {
+        bankTenths: { type: 'integer' },
+        freeTransfers: { type: 'integer' },
+        /**
+         * **The same fifteen, read again off this picture.** Names only: this
+         * screen is arranged by position, so it says nothing about who starts.
+         * Code uses it to recover a name the Team read dropped — the two
+         * readings miss different players, and neither is deterministic.
+         */
+        players: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: { playerId: { type: 'integer' }, name: { type: 'string' } },
+            required: ['playerId', 'name'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['bankTenths', 'freeTransfers', 'players'],
       additionalProperties: false,
     },
   },
