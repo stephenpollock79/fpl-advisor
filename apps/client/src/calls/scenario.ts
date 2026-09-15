@@ -46,6 +46,13 @@ export type Scenario = {
   after: WorldPlayer[]
   /** Starters' projected points, less any hit. Net of the deduction (F8-AC-10). */
   projected: number
+  /**
+   * **What taking this scenario is worth**: the After eleven against the Before
+   * one, net of the hit. The absolute total answers *what is this eleven worth*;
+   * this answers *is the plan an improvement*, which is the question the
+   * Before/After widget is asking (ruled 2026-09-15).
+   */
+  delta: number
   /** Bank less the cost of the calls in scope — not the status bar's figure unless this is Selected. */
   nbalTenths: number
   transfersUsed: number
@@ -192,8 +199,11 @@ export function scenarioFor(
   // **A plain sum of the starters, as the Squad screen's total is.** No captain
   // doubling: nothing else in the app doubles it, and introducing it here would
   // put two different answers to "what is this eleven worth" on two screens.
-  const projected =
-    after.filter((p) => p.isStarter).reduce((sum, p) => sum + p.projectedPoints, 0) - hit
+  const startersTotal = (squad: readonly WorldPlayer[]): number =>
+    squad.filter((p) => p.isStarter).reduce((sum, p) => sum + p.projectedPoints, 0)
+
+  const projected = startersTotal(after) - hit
+  const delta = projected - startersTotal(before)
 
   const nbalTenths = calls.reduce((left, c) => left - c.costTenths, world.snapshot.bankTenths)
 
@@ -203,6 +213,7 @@ export function scenarioFor(
     before,
     after,
     projected,
+    delta,
     nbalTenths,
     transfersUsed,
     transfersAllowed,

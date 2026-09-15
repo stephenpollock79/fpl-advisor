@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 import type { CardPlayer } from '../../packages/engine/src/index.js'
 import type { PlanPlayer, SquadEntry } from '../../apps/server/src/calls/plan.js'
 import { type ModelPort, mockModel } from '../../apps/server/src/model/client.js'
-import { type CardInfo, generateWeek } from '../../apps/server/src/runs/generate.js'
+import { type CardInfo, composeEditorial, generateWeek } from '../../apps/server/src/runs/generate.js'
 
 const fit = { eligible: true } as const
 let nextId = 1
@@ -147,6 +147,35 @@ describe('One run, end to end', () => {
     // its own line and asks the model nothing (F4-AC-01).
     expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.filter((c) => !c.isReading).length)
     expect(calls.every((c) => !c.isReading)).toBe(true)
+  })
+
+  it('F8-AC-01, F8-AC-06: the editorial counts the whole week, carried calls included', async () => {
+    // **The trigger is a carried call** — one the manager already selected, which
+    // a run does not re-plan. Writing the editorial inside the pipeline counted
+    // only what the run produced, so the prose read "3 calls this week" over a
+    // screen showing six (found live 2026-09-15). Handing it the planned calls
+    // alone would pass whether the fix were there or not.
+    const { plan, cards } = build()
+    const { calls } = await generateWeek({ plan, cards, model: scriptedModel([], 'x') })
+    const carried = { ...calls[0], key: 'transfer:out=99:in=98', position: calls.length } as (typeof calls)[number]
+
+    let seen = 0
+    const model: ModelPort = {
+      ...mockModel(),
+      async writeEditorial(input) {
+        seen = input.calls.length
+        return { text: '', record: null as never }
+      },
+    }
+
+    await composeEditorial({
+      model,
+      calls: [...calls, carried],
+      nameOf: () => 'Someone',
+      context: { exception: null, squadSource: 'deadline' },
+    })
+
+    expect(seen).toBe(calls.filter((c) => !c.isReading).length + 1)
   })
 
   it('F3-AC-30, F3-AC-31: the breakdown holds every value the card explains, already computed', async () => {

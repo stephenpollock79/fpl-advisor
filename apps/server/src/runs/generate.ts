@@ -137,13 +137,7 @@ export async function generateWeek(input: {
   model: ModelPort
   /** Keys of rejected calls whose premise has moved, so they return labelled (F6-AC-03). */
   resurfaced?: ReadonlySet<string>
-  /**
-   * What the Overview leads with, as facts rather than sentences (F8-AC-07,
-   * F8-AC-04). The client owns the wording; the editorial only needs to know a
-   * lead exists so it does not write one of its own.
-   */
-  context?: { exception: 'blank' | 'double' | null; squadSource: 'deadline' | 'screenshots' }
-}): Promise<{ calls: StoredCall[]; modelCalls: ModelCallRecord[]; editorial: string }> {
+}): Promise<{ calls: StoredCall[]; modelCalls: ModelCallRecord[]; blankWeek: boolean }> {
   const card = (id: number): CardInfo => {
     const found = input.cards.get(id)
     if (!found) throw new Error(`No card data for player ${String(id)}. Refusing to describe a player the world does not hold.`)
@@ -289,30 +283,52 @@ export async function generateWeek(input: {
   // A keep reading made no model call, so there is no record to keep for it.
   const written = lines.map((l) => l.record).filter((r): r is ModelCallRecord => r !== null)
 
-  /**
-   * **The week in one read** (F8-AC-01, F8-AC-08) — one more call, over the
-   * calls just produced and nothing else.
-   *
-   * A keep reading is not in it: it is the app answering *nothing to do*, and
-   * `F4-AC-03` excludes it from the editorial by name. So a week of nothing but
-   * keeps reaches the editorial as a week of no calls, which is what it is.
-   */
+  return {
+    calls,
+    modelCalls: [proposal.record, ...written],
+    blankWeek: input.plan.squad.some((p) => !p.hasFixture),
+  }
+}
+
+/**
+ * **The week in one read** (F8-AC-01, F8-AC-08), written after the week is
+ * whole.
+ *
+ * **It is deliberately not part of `generateWeek`.** A run produces only the
+ * calls it planned; the calls the manager already *selected* are carried
+ * forward afterwards (F6-AC-02), and an editorial written inside the pipeline
+ * counted the first and not the second. On 2026-09-15 that put "3 calls this
+ * week" above a screen showing six. `F8-AC-06` says the week's figures come
+ * from one list — this is that list, and the caller hands it over whole.
+ *
+ * A keep reading is not in it: it is the app answering *nothing to do*, and
+ * `F4-AC-03` excludes it from the editorial by name. So a week of nothing but
+ * keeps reaches the editorial as a week of no calls, which is what it is.
+ *
+ * **A failed editorial never fails the run.** The advice is the product; the
+ * paragraph above it is not, and throwing here would destroy a week of calls
+ * over a sentence (F6-UP-01's principle, one level down).
+ */
+export async function composeEditorial(input: {
+  model: ModelPort
+  /** The whole week as it will be stored — carried calls included. */
+  calls: readonly StoredCall[]
+  nameOf: (playerId: number) => string
+  context: { exception: 'blank' | 'double' | null; squadSource: 'deadline' | 'screenshots' }
+}): Promise<{ text: string; record: ModelCallRecord | null }> {
   const editorialInput: EditorialInput = {
-    calls: calls
+    calls: input.calls
       .filter((c) => !c.isReading)
       .map((c) => ({
-        title: `${card(c.outPlayerId).name} → ${card(c.inPlayerId).name}`,
+        title: `${input.nameOf(c.outPlayerId)} → ${input.nameOf(c.inPlayerId)}`,
         net: c.net,
         band: c.band,
         forced: c.isForced,
       })),
-    exception: input.context?.exception ?? (input.plan.squad.some((p) => !p.hasFixture) ? 'blank' : null),
-    squadSource: input.context?.squadSource ?? 'deadline',
+    exception: input.context.exception,
+    squadSource: input.context.squadSource,
   }
 
-  // **A failed editorial never fails the run.** The advice is the product; the
-  // paragraph above it is not, and a run that threw here would destroy a week of
-  // calls over a sentence (F6-UP-01's principle, one level down).
   let prose = { text: '', record: null as ModelCallRecord | null }
   try {
     const result = await input.model.writeEditorial(editorialInput)
@@ -321,11 +337,7 @@ export async function generateWeek(input: {
     console.error('[runs] the editorial could not be written; the template stands in', cause)
   }
 
-  return {
-    calls,
-    modelCalls: [proposal.record, ...written, ...(prose.record ? [prose.record] : [])],
-    editorial: finalEditorial(prose.text, editorialInput).text,
-  }
+  return { text: finalEditorial(prose.text, editorialInput).text, record: prose.record }
 }
 
 /**

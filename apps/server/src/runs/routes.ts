@@ -56,7 +56,7 @@ import { committedPairs, suppressed } from '../refresh/locks.js'
 import type { SideNow } from '../refresh/recompute.js'
 import { recomputeCall } from '../refresh/recompute.js'
 import { identityOf } from '../calls/identity.js'
-import { type CardInfo, type StoredCall, generateWeek } from './generate.js'
+import { type CardInfo, type StoredCall, composeEditorial, generateWeek } from './generate.js'
 
 export type WeekInputs = {
   gameweek: number
@@ -320,8 +320,13 @@ export function runRoutes(deps: RunDeps) {
         // FPL-record diff, which cannot see the projections move at all.
         const { keys, returning } = suppressed(refresh.calls, refresh.decisions, moved)
 
+        // **One port for the whole run.** Two calls to `deps.model()` would
+        // resolve the route twice and record the run as having chosen its
+        // backend more than once, for no gain.
+        const model = deps.model()
+
         await send('step', { id: 'score', label: RUN_STEPS[3].label, scale })
-        const { calls, modelCalls, editorial } = await generateWeek({
+        const { calls, modelCalls, blankWeek } = await generateWeek({
           resurfaced: returning,
           plan: {
             ...week.plan,
@@ -329,7 +334,7 @@ export function runRoutes(deps: RunDeps) {
             suppressed: keys,
           },
           cards: week.cards,
-          model: deps.model(),
+          model,
         })
 
         // **A decided call is carried into the run it constrained** (F6-AC-02).
@@ -341,8 +346,23 @@ export function runRoutes(deps: RunDeps) {
         // bought and must not be bought again.
         const withCarried = [...calls, ...carriedForward(refresh, calls.length)]
 
+        // **Written last, over the whole week.** A carried call is one the
+        // manager already selected, and an editorial that counted only what this
+        // run planned said "3 calls this week" above a screen showing six
+        // (found 2026-09-15). One list, as F8-AC-06 requires.
+        const named: Map<number, string> = new Map(
+          [...week.cards].map(([id, card]: [number, CardInfo]) => [id, card.name] as const),
+        )
+        const editorial = await composeEditorial({
+          model,
+          calls: withCarried,
+          nameOf: (id) => named.get(id) ?? 'A player',
+          context: { exception: blankWeek ? 'blank' : null, squadSource: 'deadline' },
+        })
+        if (editorial.record) modelCalls.push(editorial.record)
+
         await send('step', { id: 'explain', label: RUN_STEPS[4].label, scale, calls: withCarried.length })
-        await deps.finishRun(user, runId, week.gameweek, withCarried, modelCalls, editorial)
+        await deps.finishRun(user, runId, week.gameweek, withCarried, modelCalls, editorial.text)
         await send('done', { runId, calls: withCarried, reused: false })
       } catch (cause) {
         // A closed request is a cancellation, not a failure, and the two must

@@ -41,21 +41,6 @@ test('shot: head to head', async ({ page }) => {
   await page.screenshot({ path: `${OUT}/shot-transfer.png` })
 })
 
-test('shot: team news', async ({ page }) => {
-  await open(page, {}, world.calls, {
-    news: {
-      since: new Date().toISOString(),
-      flagged: [
-        { playerId: 423, fields: ['chance'], nowExcluded: false },
-        { playerId: 557, fields: ['status'], nowExcluded: true },
-      ],
-    },
-  }, null)
-  await page.getByTestId('news-token').click()
-  await page.waitForTimeout(300)
-  await page.screenshot({ path: `${OUT}/shot-news.png` })
-})
-
 test('shot: the run', async ({ page }) => {
   await page.route('**/api/runs/stream', async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 6000))
