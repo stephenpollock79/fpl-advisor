@@ -37,7 +37,16 @@ export type ScreenshotDeps = {
    * a name and never an id**, so the match is made against a named list rather
    * than asked for outright.
    */
-  trackedPlayers: () => Promise<{ id: number; name: string; club: string; position: string }[]>
+  trackedPlayers: () => Promise<
+    { id: number; name: string; club: string; position: string; priceTenths?: number }[]
+  >
+  /**
+   * **Every fixture in the gameweek being corrected**, so a name read off a
+   * shirt can be checked against the match printed beneath it. The FPL feed
+   * owns fixtures outright, and this is the only thing on the card that a
+   * misread name cannot agree with by accident.
+   */
+  gameweekFixtures: (gameweek: number) => Promise<{ club: string; opponent: string; isHome: boolean }[]>
   /** Writes the snapshot and supersedes the one it replaces. Returns its id. */
   storeCorrectedSquad: (
     user: AuthenticatedUser,
@@ -92,7 +101,8 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       }
     }
 
-    const players = await deps.trackedPlayers()
+    const gameweek = await deps.advisedGameweek()
+    const [players, fixtures] = await Promise.all([deps.trackedPlayers(), deps.gameweekFixtures(gameweek)])
 
     /**
      * **"No players legible" and "the read never came back" are different
@@ -153,7 +163,7 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       if (deps.recordParse) await deps.recordParse(user, read.record)
 
       if (raw === null || raw === undefined) continue
-      result = parseSquad(raw as Parameters<typeof parseSquad>[0], players)
+      result = parseSquad(raw as Parameters<typeof parseSquad>[0], players, fixtures)
       if (result.ok) break
     }
 
@@ -188,7 +198,6 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       )
     }
 
-    const gameweek = await deps.advisedGameweek()
     const snapshotId = await deps.storeCorrectedSquad(user, gameweek, result.squad)
     const locksBroken = await deps.breakContradictedLocks(user, gameweek, snapshotId)
 

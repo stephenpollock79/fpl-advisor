@@ -36,6 +36,16 @@ const SQUAD_SIZE = 15
 /** One outfield keeper on the bench plus three outfielders: 0, 1, 2, 3. */
 const BENCH_SIZE = 4
 
+/**
+ * **£115.0m.** Every manager starts on £100.0m and a squad's total value moves
+ * by a pound or two across a whole season, so nothing real comes near this. It
+ * is a ceiling on a misread digit, not a judgement about a team.
+ */
+const MAX_TOTAL_TENTHS = 1150
+
+/** Tenths of a million, as the failure screen says it. */
+const money = (tenths: number): string => `£${(tenths / 10).toFixed(1)}m`
+
 export type ParsedTeam = {
   players: SquadPlayer[]
   /** Chip name to state, as `squad_snapshot.chips_remaining` holds it. */
@@ -80,6 +90,10 @@ export type RawParse = {
       playerId?: unknown
       /** The name as printed on the shirt, checked when the id does not land. */
       name?: unknown
+      /** The opponent's three letters, printed under the shirt. */
+      opponent?: unknown
+      /** Whether that fixture is at home — the (H) or (A) beside the opponent. */
+      isHome?: unknown
       isStarter?: unknown
       benchOrder?: unknown
       isCaptain?: unknown
@@ -102,7 +116,14 @@ export type RawParse = {
      * who starts, who is captain or what order the bench is in. It is used to
      * *recover* a name the Team read dropped and never to reject one it made.
      */
-    players?: { playerId?: unknown; name?: unknown }[]
+    players?: {
+      playerId?: unknown
+      name?: unknown
+      opponent?: unknown
+      isHome?: unknown
+      /** The price printed on the card, in tenths. This screen shows it; the Team screen does not. */
+      priceTenths?: unknown
+    }[]
   }
 }
 
@@ -208,7 +229,13 @@ export function parseSquad(
    * check; its names are the fallback when an id does not land. Omit to skip
    * both.
    */
-  known?: readonly { id: number; name: string; position: string }[],
+  known?: readonly { id: number; name: string; position: string; club?: string; priceTenths?: number }[],
+  /**
+   * Every fixture in the gameweek being corrected, by club. **The FPL feed owns
+   * fixtures outright** (CLAUDE.md, *Data rules*), and this is the list the card
+   * under each shirt is checked against. Omit to skip that check.
+   */
+  fixtures?: readonly { club: string; opponent: string; isHome: boolean }[],
 ): ParseResult {
   const positions = known ? new Map(known.map((p) => [p.id, p.position])) : undefined
 
@@ -270,7 +297,66 @@ export function parseSquad(
     return hits.size === 1 ? ((hits.values().next().value as number) ?? null) : null
   }
 
-  const resolve = (entry: { playerId?: unknown; name?: unknown }): number | null => {
+  /**
+   * **What else the card prints, and why a name alone was never enough.**
+   *
+   * Every guard in this file until now was about the *shape* of the squad —
+   * fifteen players, eleven starting, one captain, 2/5/5/3. A wrong player who
+   * happens to play the right position satisfies every one of them, and on
+   * 2026-09-15 one slot came back as three different Chelsea defenders across
+   * three uploads while the pitch drew a perfectly ordinary 3-4-3 each time.
+   *
+   * But the card carries two more facts beside the name — **who the club plays
+   * this week, and what the player costs** — and we hold both already. Neither
+   * is read off the name, so neither agrees with a misread one by accident:
+   * Chelsea are not away at Brighton, and Badiashile is not £5.6m.
+   *
+   * **A fact the card does not carry cannot disagree**, so each check is skipped
+   * where either side is silent — a blanking club prints no fixture, and the
+   * Team screen prints no price.
+   */
+  const priceOf = new Map(
+    (known ?? []).filter((p) => typeof p.priceTenths === 'number').map((p) => [p.id, p.priceTenths as number]),
+  )
+  const clubOf = new Map((known ?? []).filter((p) => typeof p.club === 'string').map((p) => [p.id, (p.club as string).toUpperCase()]))
+
+  const fixturesByClub = new Map<string, { opponent: string; isHome: boolean }[]>()
+  for (const f of fixtures ?? []) {
+    const club = f.club.toUpperCase()
+    fixturesByClub.set(club, [...(fixturesByClub.get(club) ?? []), { opponent: f.opponent.toUpperCase(), isHome: f.isHome }])
+  }
+
+  const corroborates = (id: number, entry: { opponent?: unknown; isHome?: unknown; priceTenths?: unknown }): boolean => {
+    const printed = entry.priceTenths
+    const ours = priceOf.get(id)
+    if (isTenths(printed) && printed > 0 && ours !== undefined && printed !== ours) return false
+
+    const opponent = typeof entry.opponent === 'string' ? entry.opponent.trim().toUpperCase() : ''
+    const club = clubOf.get(id)
+    if (opponent.length === 0 || club === undefined) return true
+
+    // **A club with no fixture this week blanks**, and the card prints nothing
+    // to check. A club with two is a double, and either of them agreeing is
+    // agreement — nothing here is summed or chosen between (CLAUDE.md, rule 2).
+    const theirs = fixturesByClub.get(club)
+    if (theirs === undefined || theirs.length === 0) return true
+
+    const venueKnown = typeof entry.isHome === 'boolean'
+    return theirs.some((f) => f.opponent === opponent && (!venueKnown || f.isHome === entry.isHome))
+  }
+
+  const resolve = (entry: {
+    playerId?: unknown
+    name?: unknown
+    opponent?: unknown
+    isHome?: unknown
+    priceTenths?: unknown
+  }): number | null => {
+    const id = named(entry)
+    return id !== null && corroborates(id, entry) ? id : null
+  }
+
+  const named = (entry: { playerId?: unknown; name?: unknown }): number | null => {
     const id = entry.playerId
     const validId =
       typeof id === 'number' && Number.isInteger(id) && (knownIds.size === 0 || knownIds.has(id)) ? id : null
@@ -496,6 +582,36 @@ export function parseSquad(
     return {
       ok: false,
       failure: { screen: 'transfers', because: 'free transfers were not found on the Transfers screenshot' },
+    }
+  }
+
+  /**
+   * **A bank has nothing to answer to, so it is answered against the fifteen.**
+   *
+   * Every other value here is constrained by something — a player by his
+   * position, a starter by the count of eleven. The bank is one figure, and a
+   * wrong one is accepted in silence and then decides what the app says the
+   * manager can afford. On 2026-09-15 a budget printed as £0.2m was read as
+   * £20.2m: the pound sign in front of it was taken for a 2.
+   *
+   * Every manager starts on £100.0m and the total moves by only a pound or two
+   * across a season, so squad value plus bank has a ceiling. The ceiling is set
+   * well above any real squad — this is here to catch a digit, not to grade a
+   * team — and the check is skipped unless we hold a price for all fifteen.
+   */
+  const prices = squad.map((p) => priceOf.get(p.playerId))
+  if (prices.every((v) => v !== undefined)) {
+    const total = (prices as number[]).reduce((sum, v) => sum + v, 0) + bank
+    if (total > MAX_TOTAL_TENTHS) {
+      return {
+        ok: false,
+        failure: {
+          screen: 'transfers',
+          because:
+            `the bank read as ${money(bank)}, which with a squad worth ${money(total - bank)} comes to ${money(total)} — ` +
+            'more than any squad is worth, so one of the two was misread',
+        },
+      }
     }
   }
 

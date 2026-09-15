@@ -169,7 +169,7 @@ export type ScreenshotInput = {
    * proposal step already works, and it makes the match exact rather than a
    * recollection.
    */
-  players: { id: number; name: string; club: string; position: string }[]
+  players: { id: number; name: string; club: string; position: string; priceTenths?: number }[]
 }
 
 type Env = Record<string, string | undefined>
@@ -356,6 +356,13 @@ const PARSE_SYSTEM = [
   '**If a card is covered, cropped or otherwise unreadable, still report it** with an empty name',
   'rather than leaving it out: a slot with no name is something the other picture can fill, and a',
   'slot that is simply absent is not.',
+  '**Every card also prints, under the name, the opponent\'s three letters and whether the match is',
+  'at home or away — "BHA (A)". Report both, for every player, on both screens.** They are checked',
+  'against the real fixture list, and they are how a name read wrongly is caught: report what the',
+  'card says even where it disagrees with the player you think you are looking at. Where a card shows',
+  'no fixture at all, report the opponent as an empty string.',
+  '**On the Transfers screen each card also prints the price — "£5.6m". Report it in tenths: 56.**',
+  'Again, the pound sign is not a digit. The Team screen shows no price; report 0 there.',
   'Give the matching id from the list below where you are sure of it; where you are not, report the',
   'name alone and leave the id as 0. A wrong id is worse than none.',
   'For each substitute report benchOrder as his place on the bench, reading left to right: 1 for the',
@@ -375,7 +382,13 @@ const PARSE_SYSTEM = [
 
 /** The candidate list, one line each. Named fields — never a feed response passed through. */
 const playerList = (players: ScreenshotInput['players']): string =>
-  players.map((p) => `${String(p.id)} ${p.name} (${p.club}, ${p.position})`).join('\n')
+  players
+    .map(
+      (p) =>
+        `${String(p.id)} ${p.name} (${p.club}, ${p.position}` +
+        `${p.priceTenths === undefined ? '' : `, £${(p.priceTenths / 10).toFixed(1)}m`})`,
+    )
+    .join('\n')
 
 /**
  * What is asked for. Every field is checked in code before any of it is used.
@@ -414,12 +427,19 @@ export const PARSE_SCHEMA = {
                * resolves the name when the id does not land.
                */
               name: { type: 'string' },
+              /**
+               * **The fixture printed under the shirt.** Checked against the
+               * real fixture list, and the only thing on the card that a
+               * misread name cannot agree with by accident.
+               */
+              opponent: { type: 'string' },
+              isHome: { type: 'boolean' },
               isStarter: { type: 'boolean' },
               benchOrder: { type: 'integer' },
               isCaptain: { type: 'boolean' },
               isVice: { type: 'boolean' },
             },
-            required: ['playerId', 'name', 'isStarter', 'benchOrder', 'isCaptain', 'isVice'],
+            required: ['playerId', 'name', 'opponent', 'isHome', 'isStarter', 'benchOrder', 'isCaptain', 'isVice'],
             additionalProperties: false,
           },
         },
@@ -451,8 +471,15 @@ export const PARSE_SCHEMA = {
           type: 'array',
           items: {
             type: 'object',
-            properties: { playerId: { type: 'integer' }, name: { type: 'string' } },
-            required: ['playerId', 'name'],
+            properties: {
+              playerId: { type: 'integer' },
+              name: { type: 'string' },
+              opponent: { type: 'string' },
+              isHome: { type: 'boolean' },
+              /** In tenths. This screen prints a price; the Team screen does not. */
+              priceTenths: { type: 'integer' },
+            },
+            required: ['playerId', 'name', 'opponent', 'isHome', 'priceTenths'],
             additionalProperties: false,
           },
         },

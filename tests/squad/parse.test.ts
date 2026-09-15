@@ -575,3 +575,153 @@ describe('F2-UP-01 · the armbands are two different shirts', () => {
     expect(result.failure.because).toMatch(/both captain and vice-captain/)
   })
 })
+
+describe('F2-UP-01 · the card carries more than a name', () => {
+  /**
+   * **Every guard before these was about the shape of the squad**, and a wrong
+   * player in the right position satisfies all of them. On 2026-09-15 one slot
+   * came back as three different Chelsea defenders across three uploads while
+   * the pitch drew an ordinary 3-4-3 each time, and a budget printed £0.2m was
+   * stored as £20.2m.
+   *
+   * Both facts the checks use are printed on the card beside the name — the
+   * fixture and the price — and neither is derived from the name, so neither
+   * agrees with a misread one by accident.
+   */
+  const positions: Record<number, string> = {
+    1: 'GKP', 12: 'GKP',
+    2: 'DEF', 3: 'DEF', 4: 'DEF', 13: 'DEF', 14: 'DEF',
+    5: 'MID', 6: 'MID', 7: 'MID', 8: 'MID', 15: 'MID',
+    9: 'FWD', 10: 'FWD', 11: 'FWD',
+  }
+
+  /** The squad is all Arsenal, who are away at Brighton. Badiashile is not. */
+  const pool = (over: Record<number, Partial<{ name: string; club: string; priceTenths: number }>> = {}) => [
+    ...Object.entries(positions).map(([id, position]) => ({
+      id: Number(id),
+      name: over[Number(id)]?.name ?? (Number(id) === 3 ? 'Calafiori' : `Player${id}`),
+      position,
+      club: over[Number(id)]?.club ?? 'ARS',
+      priceTenths: over[Number(id)]?.priceTenths ?? 66,
+    })),
+    { id: 99, name: 'Badiashile', position: 'DEF', club: 'CHE', priceTenths: 66 },
+  ]
+
+  const FIXTURES = [
+    { club: 'ARS', opponent: 'BHA', isHome: false },
+    { club: 'BHA', opponent: 'ARS', isHome: true },
+    { club: 'CHE', opponent: 'LIV', isHome: true },
+  ]
+
+  /** Fifteen Arsenal cards, each printing "BHA (A)" under the name. */
+  const cards = (over: Record<number, Record<string, unknown>> = {}) =>
+    fifteen().map((p) => ({
+      ...p,
+      name: p.playerId === 3 ? 'Calafiori' : p.name,
+      opponent: 'BHA',
+      isHome: false,
+      ...(over[p.playerId] ?? {}),
+    }))
+
+  const read = (over: Record<number, Record<string, unknown>> = {}, bank = 28): RawParse => ({
+    team: { players: cards(over), chips: [{ chip: 'wildcard', state: 'available' }] },
+    transfers: { bankTenths: bank, freeTransfers: 2 },
+  })
+
+  it('F2-UP-01: a defender read as another club’s defender is refused, because his club does not play that opponent', () => {
+    // **The live defect.** The card says Calafiori, BHA (A) — Arsenal away at
+    // Brighton. The read says Badiashile, who is Chelsea. He is a defender, so
+    // the squad is still 2/5/5/3 and nothing about its shape objects.
+    const wrong = { 3: { name: 'Badiashile', playerId: 99 } }
+
+    // Without the fixture list there is nothing to catch it, and this is
+    // exactly the squad that reached the pitch.
+    expect(parseSquad(read(wrong), pool()).ok).toBe(true)
+
+    const result = parseSquad(read(wrong), pool(), FIXTURES)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.screen).toBe('team')
+  })
+
+  it('F2-UP-01: the venue is checked too, so the right opponent on the wrong side of the tie is refused', () => {
+    // Arsenal are away at Brighton. A card read as BHA (H) is not this fixture,
+    // and reading the wrong column is how a hard match renders as an easy one.
+    const result = parseSquad(read({ 3: { isHome: true } }), pool(), FIXTURES)
+
+    expect(result.ok).toBe(false)
+  })
+
+  it('F2-UP-01: a club with no fixture this week prints none, and nothing is refused for its absence', () => {
+    // **A fact the card does not carry cannot disagree.** A blanking club's
+    // card is empty where the fixture goes, and refusing on that would fail
+    // every upload in a blank gameweek.
+    const result = parseSquad(
+      read({ 3: { opponent: '', isHome: false } }),
+      pool({ 3: { club: 'NFO' } }),
+      FIXTURES,
+    )
+
+    expect(result.ok).toBe(true)
+  })
+
+  it('F2-UP-01: a doubling club plays twice, and either match agreeing is agreement', () => {
+    // Nothing is summed and nothing is chosen between — the second fixture is
+    // as much this club's week as the first.
+    const result = parseSquad(read({ 3: { opponent: 'LIV', isHome: true } }), pool(), [
+      ...FIXTURES,
+      { club: 'ARS', opponent: 'LIV', isHome: true },
+    ])
+
+    expect(result.ok).toBe(true)
+  })
+
+  it('F2-UP-01: the second picture can no longer fill a gap with a name its own price contradicts', () => {
+    // **The hole the recovery opened, closed.** A slot the Team read could not
+    // place used to be filled from the other picture with nothing to check the
+    // filled name against — turning a refused upload into a silently wrong
+    // player. The price printed beside it is that check: the card says £6.6m
+    // and this player is £4.9m, so he is not the man on the card.
+    const short = cards().filter((p) => p.playerId !== 3)
+
+    const result = parseSquad(
+      {
+        team: { players: short, chips: [{ chip: 'wildcard', state: 'available' }] },
+        transfers: {
+          bankTenths: 28,
+          freeTransfers: 2,
+          players: [{ playerId: 99, name: 'Badiashile', opponent: 'LIV', isHome: true, priceTenths: 49 }],
+        },
+      },
+      pool(),
+      FIXTURES,
+    )
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.because).toMatch(/did not make up the difference/)
+  })
+
+  it('F2-UP-01: a bank read an order of magnitude high is refused, and the failure names both figures', () => {
+    // **£0.2m read as £20.2m**, because the pound sign in front of it was taken
+    // for a 2. Fifteen at £6.6m is £99.0m, which with £20.2m in the bank comes
+    // to £119.2m — more than any squad has ever been worth.
+    const result = parseSquad(read({}, 202), pool(), FIXTURES)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.screen).toBe('transfers')
+    expect(result.failure.because).toMatch(/£20\.2m/)
+    expect(result.failure.because).toMatch(/£99\.0m/)
+  })
+
+  it('F2-UP-01: the same bank passes where the squad it sits beside is cheap enough to allow it', () => {
+    // The ceiling catches a misread digit, not a rich team. Fifteen at £4.0m
+    // leaves room for a bank that would be absurd beside an expensive squad.
+    const cheap = Object.fromEntries(Object.keys(positions).map((id) => [Number(id), { priceTenths: 40 }]))
+    const result = parseSquad(read({}, 202), pool(cheap), FIXTURES)
+
+    expect(result.ok).toBe(true)
+  })
+})
