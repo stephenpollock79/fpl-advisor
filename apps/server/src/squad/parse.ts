@@ -425,6 +425,20 @@ export function parseSquad(
   }
 
   /**
+   * **One captain and one vice is not the same as two different players.** Both
+   * counts pass when a single shirt carries both letters, which is what a read
+   * that found one armband and reported it twice looks like — and the squad
+   * would then have a vice-captain who is already the captain, so an
+   * unavailable captain would fall back to himself.
+   */
+  if (squad.some((p) => p.isCaptain && p.isVice)) {
+    return {
+      ok: false,
+      failure: { screen: 'team', because: 'one shirt on the Team screenshot was read as both captain and vice-captain' },
+    }
+  }
+
+  /**
    * **Every legal FPL squad is 2/5/5/3, so one that is not was misread.** This
    * is the check that turns a wrong name from a plausible squad into a refused
    * upload — and it costs nothing, because the positions are already on the
