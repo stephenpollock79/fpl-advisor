@@ -150,7 +150,9 @@ export interface ModelPort {
    * every check on whether the read is usable is `parseSquad`'s, in code, so a
    * model that half-reads a picture cannot decide the result is good enough.
    */
-  readSquadScreenshots(input: ScreenshotInput): Promise<{ raw: unknown; record: ModelCallRecord }>
+  readSquadScreenshots(
+    input: ScreenshotInput,
+  ): Promise<{ raw: unknown; record: ModelCallRecord; because?: string }>
 }
 
 /** Two images, each a base64 data URL as the browser produced it. */
@@ -554,7 +556,22 @@ export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env
         }
       } catch (cause) {
         console.error('[model] the screenshots could not be read', cause)
-        return { raw: null, record: unrecorded('parse', 'api', model, 'none', false) }
+        /**
+         * **The reason travels back with the failure.** Stephen reads a phone,
+         * not a log: two uploads failed with nothing on screen to say why, and
+         * the only route to the cause was a deploy log he would have had to go
+         * and find. A short reason costs nothing and ends the guessing.
+         *
+         * The message and status only — never the stack, and never the request,
+         * which carries the images.
+         */
+        const status = (cause as { status?: number }).status
+        const message = cause instanceof Error ? cause.message : String(cause)
+        return {
+          raw: null,
+          record: unrecorded('parse', 'api', model, 'none', false),
+          because: `${status ? `HTTP ${String(status)}: ` : ''}${message}`.slice(0, 160),
+        }
       }
     },
   }
@@ -681,7 +698,11 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
      */
     // eslint-disable-next-line @typescript-eslint/require-await
     async readSquadScreenshots() {
-      return { raw: null, record: unrecorded('parse', 'agent-sdk', pinned.parse, 'unsupported', false) }
+      return {
+        raw: null,
+        record: unrecorded('parse', 'agent-sdk', pinned.parse, 'unsupported', false),
+        because: 'this build reads screenshots through the direct API route, and no key is set here',
+      }
     },
   }
 }

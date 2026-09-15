@@ -141,6 +141,27 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
     expect(stored).toEqual([])
   })
 
+  it('F2-UP-01: where the reader says why it could not answer, the screen says it too', async () => {
+    // **The trigger is a failure that carries a reason.** Two uploads failed
+    // with nothing on screen to act on, and the cause sat in a deploy log
+    // (2026-09-15). A reason that exists and is not shown is one nobody reads.
+    const { post } = harness({
+      model: () =>
+        ({
+          async readSquadScreenshots() {
+            return {
+              raw: null,
+              record: { ok: false, via: 'api', modelId: 'none' } as never,
+              because: 'HTTP 400: image exceeds 5 MB maximum',
+            }
+          },
+        }) as never,
+    })
+
+    const body = (await (await post({ team: IMAGE, transfers: IMAGE })).json()) as { because: string }
+    expect(body.because).toContain('image exceeds 5 MB maximum')
+  })
+
   it('F2-UP-01: an empty player list is our fault too, and never reported as an unreadable picture', async () => {
     const { post, stored } = harness({ trackedPlayers: async () => [] })
 
