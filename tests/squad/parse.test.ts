@@ -301,16 +301,34 @@ describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
     expect(result.failure.because).toMatch(/starts eleven/)
   })
 
-  it('F2-UP-01: a bench whose order is not legible fails rather than guessing it', () => {
+  it('F2-UP-01: two substitutes claiming one slot are ranked by the order they were read', () => {
+    // **The bench order is a ranking, and it is derived rather than demanded.**
+    // Requiring four distinct integers made this the one thing standing between
+    // a correct fifteen and a refused upload on 2026-09-15 — every name matched
+    // and it failed on "the bench order was not legible". Reading who is on the
+    // bench is the job; not repeating a number is bookkeeping, and that is ours.
     const players = fifteen()
     const last = players[14] as { benchOrder: number | null } | undefined
-    // Two bench players claiming slot 1: an order that was not actually read.
     if (last) last.benchOrder = 1
+
+    const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }))
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    // Still four, still 0 to 3, and in the order they were listed.
+    expect(result.squad.players.filter((p) => !p.isStarter).map((p) => p.benchOrder).sort()).toEqual([0, 1, 2, 3])
+  })
+
+  it('F2-UP-01: three substitutes is a failed read of the eleven, and says so', () => {
+    const players = fifteen()
+    const twelfth = players[11] as { isStarter: boolean } | undefined
+    if (twelfth) twelfth.isStarter = true
+
     const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }))
 
     expect(result.ok).toBe(false)
     if (result.ok) return
-    expect(result.failure.because).toMatch(/bench order/)
+    expect(result.failure.because).toMatch(/starts eleven|substitutes/)
   })
 
   it('F2-UP-01: two captains fails, because the armband was not actually read', () => {
