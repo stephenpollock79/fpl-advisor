@@ -15,6 +15,10 @@ import { type RawParse, parseSquad } from '../../apps/server/src/squad/parse'
 
 const player = (id: number, extra: Record<string, unknown> = {}) => ({
   playerId: id,
+  // **The name is what identifies a player now**, and the id only breaks a tie
+  // between two who share one. A fixture that carried ids alone was testing the
+  // design that shipped wrong players on 2026-09-15.
+  name: `Player${String(id)}`,
   isStarter: true,
   benchOrder: null,
   isCaptain: false,
@@ -139,7 +143,48 @@ describe('F2-UP-01 · a wrong match is caught by the shape of the squad', () => 
     expect(result.failure.because).toContain('Ajayi')
   })
 
-  it('F2-UP-01: a name two players share resolves to neither, rather than to a coin toss', () => {
+  it('F2-UP-01: a valid id belonging to the wrong player loses to the name on the shirt', () => {
+    // **The failure this design replaces.** The read returned ids that were
+    // perfectly valid and belonged to the wrong players — Szoboszlai matched to
+    // Curtis Jones, van Hecke to Igor, both right club and wrong man. A
+    // fallback that fires only on an *invalid* id never fires on those.
+    const players = fifteen()
+    const wrongMan = players[6] as Record<string, unknown> | undefined
+    if (wrongMan) {
+      wrongMan['playerId'] = 3 // a real player, and not this one
+      wrongMan['name'] = 'Player7'
+    }
+
+    const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }), legal)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    // The name won. Player 3 is not in twice, and player 7 is present.
+    expect(result.squad.players.map((p) => p.playerId)).toContain(7)
+    expect(result.squad.players.filter((p) => p.playerId === 3)).toHaveLength(1)
+  })
+
+  it('F2-UP-01: where two players share a name, the id is what settles it', () => {
+    // The one case a name genuinely cannot decide — and the only case the id is
+    // still trusted for. Player 7 and player 900 both read as "Silva"; the read
+    // names Silva and gives 7, which is one of the two.
+    const players = fifteen()
+    const shared = players[6] as Record<string, unknown> | undefined
+    if (shared) shared['name'] = 'Silva'
+
+    const twoSilvas = [
+      ...legal.map((p) => (p.id === 7 ? { ...p, name: 'Silva' } : p)),
+      { id: 900, name: 'Silva', position: 'MID' },
+    ]
+
+    const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }), twoSilvas)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players.map((p) => p.playerId)).toContain(7)
+  })
+
+  it('F2-UP-01: a name two players share, with an id belonging to neither, resolves to nobody', () => {
     // The fallback must not become a guess. Two players called the same thing
     // is a real case, and picking the last one would be a coin toss wearing a
     // match's clothes.
