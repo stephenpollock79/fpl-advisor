@@ -598,7 +598,7 @@ which it could reach one.
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Auth: sending and verifying codes. |
 | `SUPABASE_SERVICE_KEY` | Reference-table reads and the service tables. **Never user data** (§3). |
 | `ANTHROPIC_API_KEY` | The production reasoning path (ADR 0008). Absent locally, where the Claude Code session authenticates instead. |
-| `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON` | Overrides for the pinned identifiers, which are otherwise set in code. Recorded per call, beside the identifier the provider reports it ran. |
+| `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON`, `ANTHROPIC_MODEL_PARSE` | Overrides for the pinned identifiers, which are otherwise set in code. Recorded per call, beside the identifier the provider reports it ran. **The parse gained its own on 2026-09-16** (STE-136): it used to follow the filter override, so a value set there would have silently swallowed its move to Sonnet. |
 | `MODEL_MODE` | `mock` forces the no-spend route. Otherwise a present `ANTHROPIC_API_KEY` means the direct Messages API, and its absence means the Claude Code session (ADR 0008, amended 2026-09-11). |
 | `SESSION_COOKIE_SECRET` | Signing the session cookie. |
 | `POSTHOG_KEY` | Analytics. |

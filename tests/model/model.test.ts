@@ -159,17 +159,22 @@ describe('ADR 0009 · every schema obeys what structured outputs actually accept
 })
 
 describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened', () => {
-  it('pins Haiku for reading and Sonnet for writing, by exact identifier', () => {
+  it('pins Haiku for the sweep and Sonnet for writing and reading, by exact identifier', () => {
     // Exhaustive rather than per-key: a step appearing here is a model call
     // somewhere, and the point of pinning is that nobody adds one by accident.
     // `editorial` joined on 2026-09-15 with the Overview (F8-AC-08); `parse`
     // the same day with the screenshot correction (F2), on Haiku because
     // ADR 0009 routes extraction there and reading a picture is extraction.
+    // **`parse` moved to Sonnet on 2026-09-16** (STE-136), which is that ADR's
+    // own closing instruction rather than a departure from it: the split is a
+    // starting judgement and nothing in it survives evidence. Haiku put the
+    // vice-captain's armband on the wrong shirt twice in three uploads at the
+    // largest picture its vision tier accepts.
     expect(PINNED).toEqual({
       propose: 'claude-haiku-4-5',
       reason: 'claude-sonnet-5',
       editorial: 'claude-sonnet-5',
-      parse: 'claude-haiku-4-5',
+      parse: 'claude-sonnet-5',
     })
   })
 
