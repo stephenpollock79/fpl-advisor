@@ -15,7 +15,7 @@
  */
 
 import { useRef, useState } from 'react'
-import { type UploadFailure, uploadScreenshots } from '../../api'
+import { ApiError, type UploadFailure, uploadScreenshots } from '../../api'
 import styles from './UploadSheet.module.css'
 
 /** What each picture owes, stated before anything is chosen. */
@@ -33,11 +33,16 @@ const READS = {
 type Screen = keyof typeof READS
 
 /**
- * **Downscaled before it is sent.** A phone screenshot is about 2 MB; two
- * untouched ones are roughly 5.5 MB of base64 in one request body. 1600px on
- * the long edge keeps every number on an FPL screen legible.
+ * **Downscaled before it is sent**, and 1600 was too generous: a PNG of a tall
+ * phone screenshot at that height is several megabytes, and two of them go into
+ * one JSON request body. 1200 keeps every name and number on an FPL screen
+ * legible — they are flat colour and text, not photographs — while cutting the
+ * body to a fraction.
+ *
+ * **PNG rather than JPEG**, still: JPEG softens exactly the thin text the read
+ * depends on, and the saving is not worth a misread name.
  */
-const MAX_EDGE = 1600
+const MAX_EDGE = 1200
 
 async function shrink(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file)
@@ -88,8 +93,17 @@ export function UploadSheet({ onCancel, onCorrected }: { onCancel: () => void; o
         return
       }
       setFailure(result.failure)
-    } catch {
-      setFailure({ screen: 'team', because: 'the app could not be reached', causes: [] })
+    } catch (cause) {
+      /**
+       * **Say what came back, not "could not be reached".** A catch-all that
+       * hides the status is the same fault the server had earlier today: it
+       * tells the manager nothing he can act on, and sends him back to his
+       * camera roll. The code and the size sent are the two things that
+       * separate a rejected upload from a broken one.
+       */
+      const code = cause instanceof ApiError ? cause.code : 'no response'
+      const mb = ((team.length + transfers.length) / 1_048_576).toFixed(1)
+      setFailure({ screen: 'team', because: `${code}, sending ${mb} MB`, causes: [] })
     } finally {
       setBusy(false)
     }
