@@ -400,6 +400,31 @@ export function AssistantScreen({
           <img className={styles.avatar} src={avatar} alt="" />
         </button>
         <span className={styles.wordmark}>The Gaffer</span>
+        {/* **Symbol only, in the header.** The label changed width between tabs
+            and took the header's height with it, so what a tap would rewrite is
+            named in the confirmation and in the accessible name, which is where
+            it does the work (F6-AC-07, F6-AC-10). */}
+        <NewsToken
+          flagged={week.flagged}
+          since={world.news?.since ?? null}
+          disabled={running || world.feedsReachable === false}
+          onRefreshAll={() => {
+            // Always every scope: new team news is squad-wide, and a scoped run
+            // must never half-clear the token (F8-AC-16, F6-AC-09).
+            setTab('overview')
+            setAsking(true)
+          }}
+        />
+        <button
+          className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
+          onClick={() => setAsking(true)}
+          disabled={running || noRunYet || world.feedsReachable === false}
+          aria-label={`Refresh ${refreshScope}`}
+          data-testid="refresh"
+          type="button"
+        >
+          ↻
+        </button>
         <div className={styles.sections} role="tablist">
           <button className={styles.sectionOff} role="tab" aria-selected="false" onClick={onSquad} type="button">
             Squad
@@ -481,34 +506,6 @@ export function AssistantScreen({
               decisions.decisions,
             )}
           </span>
-        </span>
-
-        {/* **One control, in the status bar, naming its own scope** (F6-AC-07,
-            F8-AC-12). On the Overview that scope is ALL — and ALL is the one
-            label that matches what a run actually does today, which is why no
-            per-category control is added here (F6-AC-08). */}
-        <span className={styles.statusRefresh}>
-          <NewsToken
-            flagged={week.flagged}
-            since={world.news?.since ?? null}
-            disabled={running || world.feedsReachable === false}
-            onRefreshAll={() => {
-              // Always every scope: new team news is squad-wide, and a scoped
-              // run must never half-clear the token (F8-AC-16, F6-AC-09).
-              setTab('overview')
-              setAsking(true)
-            }}
-          />
-          <button
-            className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
-            onClick={() => setAsking(true)}
-            disabled={running || noRunYet || world.feedsReachable === false}
-            aria-label={`Refresh ${refreshScope}`}
-            data-testid="refresh"
-            type="button"
-          >
-            ↻ {onOverview ? 'ALL' : (TABS.find((x) => x.category === tab)?.label ?? '')}
-          </button>
         </span>
       </section>
 
