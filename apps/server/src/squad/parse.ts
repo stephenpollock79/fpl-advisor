@@ -228,10 +228,31 @@ export function parseSquad(
     return { ok: false, failure: { screen: 'team', because: 'the chips row was not found on the Team screenshot' } }
   }
 
-  const squad: SquadPlayer[] = legible.map((p) => ({
+  /**
+   * **The bench order is a ranking, and it is derived rather than demanded.**
+   *
+   * Requiring the read to emit four distinct integers made it the one thing
+   * standing between a correct fifteen and a refused upload: every name matched
+   * and the whole thing failed on "the bench order was not legible"
+   * (2026-09-15). Reading *which four are on the bench and in what order* is
+   * the job; producing 0, 1, 2, 3 without repeating itself is bookkeeping, and
+   * bookkeeping is code's.
+   *
+   * So the four substitutes are ranked by whatever the read reported, and where
+   * it reported the same number twice the order they were listed in decides —
+   * which is the order they appear on the screen, and therefore the answer.
+   */
+  const bench = legible
+    .map((p, index) => ({ p, index, order: typeof p.benchOrder === 'number' ? p.benchOrder : index }))
+    .filter((e) => e.p.isStarter !== true)
+    .sort((a, b) => a.order - b.order || a.index - b.index)
+
+  const benchRank = new Map(bench.map((e, rank) => [e.index, rank as 0 | 1 | 2 | 3]))
+
+  const squad: SquadPlayer[] = legible.map((p, index) => ({
     playerId: p.resolvedId as number,
     isStarter: p.isStarter as boolean,
-    benchOrder: (p.isStarter === true ? null : (p.benchOrder as 0 | 1 | 2 | 3)),
+    benchOrder: p.isStarter === true ? null : (benchRank.get(index) ?? null),
     isCaptain: p.isCaptain as boolean,
     isVice: p.isVice as boolean,
   }))
@@ -247,9 +268,16 @@ export function parseSquad(
     }
   }
 
-  const benchOrders = squad.filter((p) => !p.isStarter).map((p) => p.benchOrder)
-  if (new Set(benchOrders).size !== BENCH_SIZE || benchOrders.some((o) => o === null)) {
-    return { ok: false, failure: { screen: 'team', because: 'the bench order was not legible on the Team screenshot' } }
+  // **Four on the bench, or the eleven above was not really eleven.** The
+  // ranking itself can no longer fail; only the count can.
+  if (bench.length !== BENCH_SIZE) {
+    return {
+      ok: false,
+      failure: {
+        screen: 'team',
+        because: `${String(bench.length)} players read as substitutes on the Team screenshot, where a squad has ${String(BENCH_SIZE)}`,
+      },
+    }
   }
 
   if (squad.filter((p) => p.isCaptain).length !== 1) {
