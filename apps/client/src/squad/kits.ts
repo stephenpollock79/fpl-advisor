@@ -9,7 +9,11 @@
  *
  * Presentation only. Nothing downstream reads a colour, and a club missing from
  * this map renders in the neutral fallback rather than failing — a promoted club
- * next season should look plain, not break the pitch.
+ * next season should look plain, not break the pitch. **That fallback is why a
+ * missing club is invisible**: Hull City and Coventry City came up this season
+ * and drew grey on the pitch for a fortnight before anyone said so (2026-09-15).
+ * Nothing in the repo lists the twenty — they arrive from the feed — so this map
+ * is checked against a live squad by eye, not by a test.
  *
  * **The second colour is the sleeve, and for a club that plays in one colour it
  * is a darker shade of the first rather than a contrast.** The first pass gave
@@ -30,9 +34,11 @@ const KITS: Record<string, Kit> = {
   BHA: { primary: '#0057b8', secondary: '#ffffff', ink: '#ffffff' },
   BUR: { primary: '#6c1d45', secondary: '#99d6ea', ink: '#ffffff' },
   CHE: { primary: '#034694', secondary: '#022f66', ink: '#ffffff' },
+  COV: { primary: '#78d0f3', secondary: '#4a9dc4', ink: '#0b2340' },
   CRY: { primary: '#1b458f', secondary: '#c4122e', ink: '#ffffff' },
   EVE: { primary: '#003399', secondary: '#00246b', ink: '#ffffff' },
   FUL: { primary: '#ffffff', secondary: '#000000', ink: '#23211d' },
+  HUL: { primary: '#f18a00', secondary: '#000000', ink: '#000000' },
   IPS: { primary: '#3a64a3', secondary: '#2b4c7d', ink: '#ffffff' },
   LEE: { primary: '#ffffff', secondary: '#1d428a', ink: '#1d428a' },
   LEI: { primary: '#003090', secondary: '#002166', ink: '#ffffff' },
