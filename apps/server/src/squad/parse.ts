@@ -105,13 +105,19 @@ export function parseSquad(
   )
 
   if (legible.length !== SQUAD_SIZE) {
-    return {
-      ok: false,
-      failure: {
-        screen: 'team',
-        because: `only ${String(legible.length)} of ${String(SQUAD_SIZE)} players legible on the Team screenshot`,
-      },
-    }
+    /**
+     * **Two different faults wear this message, and they need different
+     * answers** (2026-09-15). Fifteen shirts reported but one not matched to a
+     * known player is *ours* — the name on that shirt is not in the list we
+     * gave the reader — and no amount of retaking the photo fixes it. Fewer
+     * than fifteen reported is the picture.
+     */
+    const reported = players.length
+    const because =
+      reported === SQUAD_SIZE
+        ? `all ${String(SQUAD_SIZE)} players were read, but ${String(SQUAD_SIZE - legible.length)} could not be matched to a known player — that is our end, not your picture`
+        : `only ${String(legible.length)} of ${String(SQUAD_SIZE)} players legible on the Team screenshot`
+    return { ok: false, failure: { screen: 'team', because } }
   }
 
   // **A squad with no chip row is a failed Team read, not an empty chip row.**

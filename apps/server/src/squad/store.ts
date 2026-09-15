@@ -204,12 +204,6 @@ export async function storeCorrectedSquad(
 ): Promise<string> {
   const db = userClient(user.accessToken)
 
-  await db
-    .from('squad_snapshot')
-    .update({ superseded_at: new Date().toISOString() })
-    .eq('gameweek', gameweek)
-    .is('superseded_at', null)
-
   const { data, error } = await db
     .from('squad_snapshot')
     .insert({
@@ -243,6 +237,24 @@ export async function storeCorrectedSquad(
     })),
   )
   if (playersError) throw new Error(`could not store the corrected fifteen: ${playersError.message}`)
+
+  /**
+   * **The old squad is retired last, and only once the new one is whole.**
+   *
+   * It used to be retired first. Anything that then failed — and on
+   * 2026-09-15 something did — left the manager with a superseded squad and
+   * no replacement: an empty pitch, and no way back, because an uploaded
+   * squad is never aged out and so nothing re-captured. There are no
+   * transactions across these two tables from here, so the order *is* the
+   * safety: a failure before this line changes nothing at all.
+   */
+  const { error: retireError } = await db
+    .from('squad_snapshot')
+    .update({ superseded_at: new Date().toISOString() })
+    .eq('gameweek', gameweek)
+    .is('superseded_at', null)
+    .neq('id', snapshotId)
+  if (retireError) throw new Error(`could not retire the previous squad: ${retireError.message}`)
 
   return snapshotId
 }

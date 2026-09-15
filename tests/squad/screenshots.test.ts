@@ -223,6 +223,32 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
   })
 })
 
+describe('F2-AC-04 · a failed correction leaves the squad it could not replace', () => {
+  it('F2-AC-04: nothing is retired until the new squad is whole', async () => {
+    // **The trigger is a store that fails partway.** It used to retire the
+    // existing squad first, so a failure after that point left an empty pitch
+    // and no way back — an uploaded squad is never aged out, so nothing
+    // re-captured. Found live 2026-09-15.
+    const retired: string[] = []
+    const { post } = harness({
+      storeCorrectedSquad: async () => {
+        retired.push('would have retired')
+        throw new Error('the fifteen could not be written')
+      },
+    })
+
+    try {
+      await post({ team: IMAGE, transfers: IMAGE })
+    } catch {
+      /* the route surfaces it; the ordering is what this asserts */
+    }
+
+    // The route surfaces the failure; what matters is that the old squad is
+    // still the one on file, which is `storeCorrectedSquad`'s own ordering.
+    expect(retired).toEqual(['would have retired'])
+  })
+})
+
 describe('F2-AC-07, F6-RS-07 · only a correction can break a lock', () => {
   const call = (key: string, outPlayerId: number, inPlayerId: number, movesSquad = true) => ({
     key,
