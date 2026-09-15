@@ -591,3 +591,22 @@
 /* The avatar became the account sheet's route on 2026-09-15 (F7-AC-21), so it
    is a button — with no chrome of its own, because it is still the portrait. */
 .avatarButton { flex: none; padding: 0; border: 0; background: none; line-height: 0; cursor: pointer; }
+
+/* ── A decided call, opened to be read (2026-09-15) ───────────────────── */
+
+/* It occupies the tiles' row, so the card does not change height between a
+   decidable call and one being read — and *Change* is the one control on it,
+   because reading a decision must not cost it. */
+.decidedPanel {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 56px; padding: 10px 14px;
+  border-top: 1px solid var(--border-strong); background: var(--warm-1);
+}
+
+.decidedState { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--green-dark); }
+
+.decidedChange {
+  min-height: 36px; padding: 7px 16px; border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--card); color: var(--ink-2);
+  font-family: inherit; font-size: 13px; font-weight: 800;
+}

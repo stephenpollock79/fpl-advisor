@@ -29,11 +29,19 @@ export function HeadToHead({
   gameweekId,
   onDecide,
   picker,
+  decided,
 }: {
   shown: Shown
   gameweekId: number
   onDecide: (state: 'selected' | 'rejected' | 'pending') => void
   picker?: Picker | undefined
+  /**
+   * **This call has already been decided, and was opened from the Overview to
+   * be read** (F3-AC-13: browsing back to a decided call "happens from the
+   * overview"). Undefined on every card reached by the arrows, which walk
+   * undecided calls only.
+   */
+  decided?: 'selected' | 'rejected'
 }) {
   const { call, out, into, figures } = shown
   const [pickerSide, setPickerSide] = useState<'out' | 'in' | null>(null)
@@ -48,7 +56,15 @@ export function HeadToHead({
    * a decision — the three tiles below, and the swipe. Suppressing only the tiles
    * would leave a swipe that files a decision on a card with no decision in it.
    */
-  const decidable = figures.reading === 'call'
+  /**
+   * **Reading a decision must not cost it.** A decided card opens read-only —
+   * both routes into a decision are closed, the tiles *and* the swipe, and
+   * *Change* is the one control that reopens it. The alternative considered and
+   * rejected on 2026-09-15 was a confirmation asking to move the call back to
+   * undecided before showing it, which makes looking destructive and puts a
+   * dialog on a common tap.
+   */
+  const decidable = figures.reading === 'call' && decided === undefined
   const isForced = figures.reading === 'call' && figures.isForced
   // At most one flag, and FORCED outranks WATCH (F3-AC-17). WATCH reads WATCH with
   // no qualifier; its reason is one tap away (F3-AC-18).
@@ -234,7 +250,23 @@ export function HeadToHead({
         </div>
       </div>
 
-      {decidable ? (
+      {decided !== undefined ? (
+        /* It says which it is, so the card answers the question that brought
+           the manager here — *why did this not change?* (F6-AC-02). */
+        <div className={styles.decidedPanel} data-testid="decided-panel">
+          <span className={styles.decidedState}>
+            {decided === 'selected' ? 'SELECTED · LOCKED' : 'REJECTED'}
+          </span>
+          <button className={styles.decidedChange} onClick={() => onDecide('pending')} data-testid="reopen" type="button">
+            Change
+          </button>
+        </div>
+      ) : figures.reading !== 'call' ? (
+        <div data-testid="reading-panel" className={styles.readingPanel}>
+          <span className={styles.readingTitle}>No change · nothing to do</span>
+          <span className={styles.readingWhy}>{readingLine(figures.because)}</span>
+        </div>
+      ) : (
         <div className={styles.tiles}>
           <button className={styles.tileReject} onClick={() => onDecide('rejected')} type="button">
             <span aria-hidden="true">←</span>
@@ -248,11 +280,6 @@ export function HeadToHead({
             <span aria-hidden="true">→</span>
             Select
           </button>
-        </div>
-      ) : (
-        <div data-testid="reading-panel" className={styles.readingPanel}>
-          <span className={styles.readingTitle}>No change · nothing to do</span>
-          <span className={styles.readingWhy}>{readingLine(figures.because)}</span>
         </div>
       )}
     </div>

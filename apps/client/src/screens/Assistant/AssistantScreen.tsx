@@ -134,6 +134,16 @@ export function AssistantScreen({
     restoredSwaps(world.calls, world.decisions),
   )
   const [cursor, setCursor] = useState(0)
+  /**
+   * A call opened from the Overview by its key, rather than by position among
+   * the undecided ones.
+   *
+   * **This is how a decided call is read** (F3-AC-13 names the overview as the
+   * route). Looking up a decided call's position among the *undecided* ones
+   * returned −1, which clamped to zero and opened somebody else's card — found
+   * on the live app, 2026-09-15.
+   */
+  const [openedKey, setOpenedKey] = useState<string | null>(null)
   const [holdCleared, setHoldCleared] = useState(false)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -215,9 +225,20 @@ export function AssistantScreen({
   // is never decided, so a tab holding one never empties `pending`, never sets
   // `holdCleared`, and never has the cleared summary take the card's place. The
   // Captain tab always has something to show, which is F4-AC-01.
-  const showCleared = here.length > 0 && (pending.length === 0 || holdCleared)
+  /**
+   * The card on screen. A deliberately opened call wins over the cursor, and the
+   * cursor is what the arrows move — so the arrows still walk undecided calls
+   * only, which is the half of F3-AC-13 that still holds.
+   */
+  const opened = openedKey === null ? undefined : shown.find((c) => c.key === openedKey)
+  const current = opened ?? (pending.length > 0 ? pending[cursor % pending.length] : undefined)
+  /** Undefined unless the card on screen is one already decided. */
+  const currentDecision = current ? decisions.decisions[current.key] : undefined
 
-  const current = pending.length > 0 ? pending[cursor % pending.length] : undefined
+  // A deliberately opened card outranks the cleared summary: the manager asked
+  // for that call, and a tab whose every call is decided is exactly when he does.
+  const showCleared = opened === undefined && here.length > 0 && (pending.length === 0 || holdCleared)
+
 
   async function record(key: string, state: 'selected' | 'rejected' | 'pending', apply: (d: Decisions) => Decisions) {
     const before = decisions
@@ -234,6 +255,22 @@ export function AssistantScreen({
 
   function onDecide(state: 'selected' | 'rejected' | 'pending') {
     if (!current) return
+
+    /**
+     * **Change, on a card opened to be read.** It reopens the call in place —
+     * the same two-way control Category cleared offers (F3-AC-14) — and the card
+     * stays on screen, now undecided, so the manager can act on what he just
+     * read. It must not fall through to *Later* below, which advances to the
+     * next card without recording anything.
+     */
+    if (currentDecision !== undefined && state === 'pending') {
+      const key = current.key
+      setOpenedKey(null)
+      setCursor(Math.max(0, pending.findIndex((c) => c.key === key)))
+      void record(key, 'pending', (d) => reopen(d, key))
+      return
+    }
+
     // A keep reading is not decidable (F4-AC-02). The card renders a label in
     // place of the tiles and does not bind the swipe handlers, so nothing should
     // reach here — this is the second lock, not the first, because a decision
@@ -444,6 +481,7 @@ export function AssistantScreen({
           className={tab === 'overview' ? styles.tabOn : styles.tab}
           onClick={() => {
             setTab('overview')
+            setOpenedKey(null)
             setNotice(null)
           }}
           data-testid="tab-overview"
@@ -469,6 +507,7 @@ export function AssistantScreen({
               data-testid={`tab-${t.category}`}
               onClick={() => {
                 setTab(t.category)
+                setOpenedKey(null)
                 setCursor(0)
                 setHoldCleared(false)
                 setNotice(null)
@@ -528,7 +567,10 @@ export function AssistantScreen({
           <span className={styles.stepper}>
             <button
               className={styles.pager}
-              onClick={() => setCursor((c) => (c + pending.length - 1) % pending.length)}
+              onClick={() => {
+                setOpenedKey(null)
+                setCursor((c) => (c + pending.length - 1) % pending.length)
+              }}
               aria-label="Previous undecided call"
               type="button"
             >
@@ -536,7 +578,10 @@ export function AssistantScreen({
             </button>
             <button
               className={styles.pager}
-              onClick={() => setCursor((c) => (c + 1) % pending.length)}
+              onClick={() => {
+                setOpenedKey(null)
+                setCursor((c) => (c + 1) % pending.length)
+              }}
               aria-label="Next undecided call"
               type="button"
             >
@@ -625,7 +670,7 @@ export function AssistantScreen({
             nameOf={(id) => players.get(id)?.surname ?? 'A player'}
             onOpen={(call) => {
               setTab(call.category)
-              setCursor(Math.max(0, pendingIn(call.category).findIndex((s) => s.key === call.key)))
+              setOpenedKey(call.key)
               setHoldCleared(false)
               setNotice(null)
             }}
@@ -673,6 +718,7 @@ export function AssistantScreen({
             gameweekId={world.gameweek.id}
             onDecide={onDecide}
             picker={picker}
+            {...(currentDecision ? { decided: currentDecision } : {})}
           />
         ) : null}
 
