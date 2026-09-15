@@ -74,16 +74,33 @@ export const candidates = [
   player(300, 'Striker', 'FWD', 6.2, { isStarter: false, nowCostTenths: 60, purchasePriceTenths: null, sellingPriceTenths: null }),
 ]
 
-export const breakdown = (outId: number, inId: number, net: number, k: number) => ({
-  weights: k === 2 ? [1, 0.6, 0.35] : [1],
-  out: { playerId: outId, projections: [0], gate: { eligible: true }, total: 0 },
-  in: { playerId: inId, projections: [0], gate: { eligible: true }, total: net },
-  net,
-  pointsHit: 0,
-  k,
-  kLabel: k === 2 ? 'transfer' : 'captain/vice',
-  byCeiling: false,
-})
+/**
+ * **Internally consistent with the net it is given.** The projections used to be
+ * `[0]` on both sides, which made every card's this-gameweek figure read
+ * `+0.00` — fine while nothing displayed them, wrong the moment the Overview's
+ * rows started showing this week's difference (2026-09-15), and wrong in the
+ * Landing screenshots taken from this world.
+ *
+ * A transfer is weighted 1 / 0.6 / 0.35, so a steady per-week difference `d`
+ * produces a net of `1.95 d`; a substitution or captaincy call is scored on this
+ * gameweek alone, so its net *is* the difference.
+ */
+export const breakdown = (outId: number, inId: number, net: number, k: number) => {
+  const weights = k === 2 ? [1, 0.6, 0.35] : [1]
+  const perWeek = Number((net / weights.reduce((a, b) => a + b, 0)).toFixed(2))
+  const out = weights.map(() => 2)
+  const into = weights.map(() => Number((2 + perWeek).toFixed(2)))
+  return {
+    weights,
+    out: { playerId: outId, projections: out, gate: { eligible: true }, total: 0 },
+    in: { playerId: inId, projections: into, gate: { eligible: true }, total: net },
+    net,
+    pointsHit: 0,
+    k,
+    kLabel: k === 2 ? 'transfer' : 'captain/vice',
+    byCeiling: false,
+  }
+}
 
 export const call = (position: number, key: string, category: string, shape: string, outPlayerId: number, inPlayerId: number, net: number, conviction: number, band: string, costTenths: number, reasoning: string, alternatives: unknown = null) => ({
   key,

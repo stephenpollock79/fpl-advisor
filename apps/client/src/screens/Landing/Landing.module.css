@@ -4,11 +4,17 @@
 .screen {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  /* **No scroll** (F7-AC-16). The small viewport, not the dynamic one, so the
+     screen does not resize as a browser toolbar slides in and out — the same
+     choice the Assistant makes, and for the same reason. */
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
   padding:
-    calc(28px + env(safe-area-inset-top)) 20px
-    calc(20px + env(safe-area-inset-bottom));
-  min-height: 100dvh;
+    calc(10px + env(safe-area-inset-top)) 20px
+    calc(10px + env(safe-area-inset-bottom));
+  height: 100svh;
+  overflow: hidden;
 }
 
 .wordmark {
@@ -117,12 +123,13 @@
 
 /* ── Landing's own pieces (slice 8) ────────────────────────────────────── */
 
-.head { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 6px; }
+.head { display: flex; flex-direction: column; align-items: center; gap: 5px; padding-top: 2px; }
 
-/* 96px, circular, 3px green border with a soft glow — the handoff's own spec. */
+/* The handoff's 96px circle with its green ring, trimmed to 80 so the claims
+   below it stay on the screen. The ring and the glow are the part that matters. */
 .avatar {
-  width: 96px; height: 96px; border-radius: 50%; object-fit: cover;
-  border: 3px solid var(--green); box-shadow: 0 10px 26px rgb(10 110 61 / 22%); background: var(--card);
+  width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+  border: 3px solid var(--green); box-shadow: 0 8px 20px rgb(10 110 61 / 22%); background: var(--card);
 }
 
 /* Stated under the wordmark, before anything is typed (F7-AC-17). */
@@ -178,16 +185,17 @@
 
 .disclaimer a { color: var(--green-dark); }
 
-/* ── The rotating shots (slice 8, corrected 2026-09-15) ────────────────── */
+/* ── One screen, no scroll (F7-AC-16), corrected 2026-09-15 ───────────── */
 
-/* It rotates on its own rather than waiting to be tapped: this is the sales tab,
-   and a claim nobody opens says nothing. */
-.about { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px; }
+/* The top block used more height than it earns, which pushed the claims off the
+   bottom. Tighter avatar, tighter gaps, and the claim list beside the device
+   rather than under it. */
+.about { display: grid; grid-template-columns: 118px 1fr; gap: 10px; padding: 10px; align-items: start; }
 
 .shot {
-  position: relative; width: 158px; height: 322px; flex: none;
-  border: 3px solid var(--ink); border-radius: 22px; overflow: hidden;
-  background: var(--screen); box-shadow: 0 10px 26px rgb(92 82 62 / 22%);
+  position: relative; width: 118px; height: 240px;
+  border: 3px solid var(--ink); border-radius: 18px; overflow: hidden;
+  background: var(--screen); box-shadow: 0 8px 20px rgb(92 82 62 / 20%);
 }
 
 .shotOn,
@@ -199,29 +207,33 @@
 .shotOn { opacity: 1; }
 .shotOff { opacity: 0; }
 
-.claim { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; min-height: 74px; }
+.claims { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
 
-.claimCap { font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--green-dark); }
-
-.claimTitle { font-size: 15px; font-weight: 800; line-height: 1.25; color: var(--ink); }
-
-.claimBody { font-size: 12px; line-height: 1.45; color: var(--muted); }
-
-.dots { display: flex; gap: 6px; }
-
-.dot,
-.dotOn { width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; position: relative; }
-
-.dot::after,
-.dotOn::after {
-  content: ''; position: absolute; inset: 8px; border-radius: 50%;
+.claim,
+.claimOn {
+  width: 100%; display: flex; flex-direction: column; gap: 1px; align-items: flex-start; text-align: left;
+  padding: 7px 8px; border-radius: 10px; cursor: pointer;
+  border: 1px solid transparent; background: none; font-family: inherit;
 }
 
-.dot::after { background: var(--border-strong); }
-.dotOn::after { background: var(--green-dark); }
+/* The open one is the only one carrying its sentence — that is what keeps four
+   claims and a device inside one screen. */
+.claimOn { border-color: var(--green-soft-border); background: var(--green-tint); }
 
-.tagline { margin: 0; text-align: center; font-size: 12px; font-weight: 700; line-height: 1.4; color: var(--ink-2); }
+.claimCap { font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
 
-.tagline span { display: block; font-weight: 400; color: var(--muted); }
+.claimOn .claimCap { color: var(--green-dark); }
 
-.badge { text-transform: none; }
+.claimTitle { font-size: 13px; font-weight: 800; line-height: 1.25; color: var(--ink); }
+
+.claimBody { margin-top: 3px; font-size: 11px; line-height: 1.4; color: var(--ink-3); }
+
+/* ── The top block ─────────────────────────────────────────────────────── */
+
+.role { margin: 0; text-align: center; font-size: 12px; font-weight: 800; line-height: 1.3; color: var(--green-dark); }
+
+.promise { margin: 0; text-align: center; font-size: 17px; font-weight: 800; line-height: 1.25; color: var(--ink); max-width: 300px; }
+
+.badge { display: inline-flex; align-items: center; gap: 6px; text-transform: none; }
+
+.badgeDot { width: 6px; height: 6px; border-radius: 50%; background: var(--red-disc); }

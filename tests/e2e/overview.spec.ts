@@ -237,6 +237,29 @@ test('F8-UP-01: a refresh that fails leaves the Overview’s advice exactly wher
   await expect(page.getByTestId('last-run')).toContainText('last run')
 })
 
+test('F3-AC-13, F6-AC-02: opening a decided call from the Overview shows that call, reading as decided', async ({ page }) => {
+  // **The trigger is a call that has already been decided.** Opening an
+  // undecided one would pass whether the rule were built or not — and the bug
+  // this replaces only appeared on a decided card, which was looked up among the
+  // undecided ones, missed, and fell back to somebody else's.
+  await overview(page, { [T2]: 'selected' })
+
+  await page.getByTestId(`card-${T2}`).getByRole('button', { name: /→/ }).click()
+
+  // The call asked for, not a neighbour: T2 sells FwdB.
+  await expect(page.getByTestId('decided-panel')).toContainText('SELECTED · LOCKED')
+  await expect(page.getByTestId('out-name')).toHaveText('FwdB')
+
+  // Read-only: no way to decide it again without saying so first.
+  await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Reject' })).toHaveCount(0)
+
+  // And Change reopens it in place rather than costing the decision to look.
+  await page.getByTestId('reopen').click()
+  await expect(page.getByTestId('decided-panel')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Select' })).toBeVisible()
+})
+
 test('F8-AC-35: the footer hint is always present', async ({ page }) => {
   await overview(page)
   await expect(page.getByText('Tap a call for the full evaluation.')).toBeVisible()

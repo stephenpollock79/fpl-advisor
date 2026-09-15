@@ -272,6 +272,28 @@ export function restoredSwaps(
 export const undecided = (calls: WorldCall[], decisions: Record<string, DecisionState>): WorldCall[] =>
   calls.filter((c) => decisions[c.key] === undefined)
 
+/**
+ * **This gameweek's difference, for the Overview's call rows** (ruled
+ * 2026-09-15).
+ *
+ * A transfer's `net` is scored over three gameweeks, weighted 1 / 0.6 / 0.35
+ * (`ENGINE-AC-01`), because that is what a transfer buys. On a one-line row
+ * beside a fixture for *this* week, that figure answers a question the row is
+ * not asking. A substitution and a captaincy call are already scored on this
+ * gameweek alone, so for those the two are the same number.
+ *
+ * **Nothing is computed here that the pipeline has not already produced**
+ * (F3-AC-31): both projections are on the call's own breakdown, exactly as the
+ * feed published them. This is a subtraction of two displayed values, not a
+ * second implementation of the engine's net (ENGINE-AC-04).
+ */
+export function thisWeekNet(call: WorldCall): number {
+  if (call.breakdown.weights.length === 1) return call.net
+  const into = call.breakdown.in.projections[0] ?? 0
+  const out = call.breakdown.out.projections[0] ?? 0
+  return Number((into - out).toFixed(2))
+}
+
 /** The line beneath Category cleared reports the live state (F3-AC-15). */
 export function clearedLine(reopened: number): string {
   if (reopened === 0) return 'tap a decision to change it'

@@ -19,16 +19,6 @@ import { DifficultyBars, FixturePill } from '../Squad/parts'
 import styles from './Assistant.module.css'
 import type { Shown } from './AssistantScreen'
 
-const SHAPE_LABEL: Record<Shown['call']['shape'], string> = {
-  transfer: 'TRANSFER',
-  forced_swap: 'SUBSTITUTION',
-  doubt_swap: 'SUBSTITUTION · DOUBT',
-  upgrade_swap: 'SUBSTITUTION',
-  bench_order: 'BENCH ORDER',
-  captain: 'CAPTAIN',
-  vice: 'VICE CAPTAIN',
-}
-
 /** How far a drag has to travel before it is a decision rather than a wobble. */
 const SWIPE = 70
 
@@ -37,21 +27,21 @@ type Picker = { outs: WorldPlayer[]; ins: WorldPlayer[]; onSwap: (side: 'out' | 
 export function HeadToHead({
   shown,
   gameweekId,
-  index,
-  left,
-  onPrev,
-  onNext,
   onDecide,
   picker,
+  decided,
 }: {
   shown: Shown
   gameweekId: number
-  index: number
-  left: number
-  onPrev: () => void
-  onNext: () => void
   onDecide: (state: 'selected' | 'rejected' | 'pending') => void
   picker?: Picker | undefined
+  /**
+   * **This call has already been decided, and was opened from the Overview to
+   * be read** (F3-AC-13: browsing back to a decided call "happens from the
+   * overview"). Undefined on every card reached by the arrows, which walk
+   * undecided calls only.
+   */
+  decided?: 'selected' | 'rejected'
 }) {
   const { call, out, into, figures } = shown
   const [pickerSide, setPickerSide] = useState<'out' | 'in' | null>(null)
@@ -66,7 +56,15 @@ export function HeadToHead({
    * a decision — the three tiles below, and the swipe. Suppressing only the tiles
    * would leave a swipe that files a decision on a card with no decision in it.
    */
-  const decidable = figures.reading === 'call'
+  /**
+   * **Reading a decision must not cost it.** A decided card opens read-only —
+   * both routes into a decision are closed, the tiles *and* the swipe, and
+   * *Change* is the one control that reopens it. The alternative considered and
+   * rejected on 2026-09-15 was a confirmation asking to move the call back to
+   * undecided before showing it, which makes looking destructive and puts a
+   * dialog on a common tap.
+   */
+  const decidable = figures.reading === 'call' && decided === undefined
   const isForced = figures.reading === 'call' && figures.isForced
   // At most one flag, and FORCED outranks WATCH (F3-AC-17). WATCH reads WATCH with
   // no qualifier; its reason is one tap away (F3-AC-18).
@@ -99,25 +97,12 @@ export function HeadToHead({
   // head-to-head, because there the manager asked for the comparison himself.
   if (!decidable && call.category === 'captaincy') {
     return (
-      <Keep shown={shown} index={index} left={left} onPrev={onPrev} onNext={onNext} />
+      <Keep shown={shown} />
     )
   }
 
   return (
     <div className={styles.h2h}>
-      <div className={styles.stepper}>
-        <span className={styles.stepLabel}>
-          {SHAPE_LABEL[call.shape]} · CALL {index + 1} OF {left}
-        </span>
-        <button className={styles.pager} onClick={onPrev} aria-label="Previous undecided call" type="button">
-          ‹
-        </button>
-        <button className={styles.pager} onClick={onNext} aria-label="Next undecided call" type="button">
-          ›
-        </button>
-        <span className={styles.left}>{left} LEFT</span>
-      </div>
-
       <div
         className={styles.card}
         onPointerDown={onPointerDown}
@@ -265,7 +250,23 @@ export function HeadToHead({
         </div>
       </div>
 
-      {decidable ? (
+      {decided !== undefined ? (
+        /* It says which it is, so the card answers the question that brought
+           the manager here — *why did this not change?* (F6-AC-02). */
+        <div className={styles.decidedPanel} data-testid="decided-panel">
+          <span className={styles.decidedState}>
+            {decided === 'selected' ? 'SELECTED · LOCKED' : 'REJECTED'}
+          </span>
+          <button className={styles.decidedChange} onClick={() => onDecide('pending')} data-testid="reopen" type="button">
+            Change
+          </button>
+        </div>
+      ) : figures.reading !== 'call' ? (
+        <div data-testid="reading-panel" className={styles.readingPanel}>
+          <span className={styles.readingTitle}>No change · nothing to do</span>
+          <span className={styles.readingWhy}>{readingLine(figures.because)}</span>
+        </div>
+      ) : (
         <div className={styles.tiles}>
           <button className={styles.tileReject} onClick={() => onDecide('rejected')} type="button">
             <span aria-hidden="true">←</span>
@@ -279,11 +280,6 @@ export function HeadToHead({
             <span aria-hidden="true">→</span>
             Select
           </button>
-        </div>
-      ) : (
-        <div data-testid="reading-panel" className={styles.readingPanel}>
-          <span className={styles.readingTitle}>No change · nothing to do</span>
-          <span className={styles.readingWhy}>{readingLine(figures.because)}</span>
         </div>
       )}
     </div>
@@ -299,35 +295,14 @@ export function HeadToHead({
  */
 function Keep({
   shown,
-  index,
-  left,
-  onPrev,
-  onNext,
 }: {
   shown: Shown
-  index: number
-  left: number
-  onPrev: () => void
-  onNext: () => void
 }) {
   const { call, out, figures } = shown
   const role = call.shape === 'vice' ? 'vice-captaincy' : 'captaincy'
 
   return (
     <div className={styles.h2h}>
-      <div className={styles.stepper}>
-        <span className={styles.stepLabel}>
-          {SHAPE_LABEL[call.shape]} · CALL {index + 1} OF {left}
-        </span>
-        <button className={styles.pager} onClick={onPrev} aria-label="Previous undecided call" type="button">
-          ‹
-        </button>
-        <button className={styles.pager} onClick={onNext} aria-label="Next undecided call" type="button">
-          ›
-        </button>
-        <span className={styles.left}>{left} LEFT</span>
-      </div>
-
       <div className={`${styles.card} ${styles.keepCard}`} data-testid="keep-card">
         <span className={styles.keepEyebrow}>No change · nothing to do</span>
         <span className={styles.keepName}>{out.surname}</span>

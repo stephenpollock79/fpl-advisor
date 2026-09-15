@@ -21,9 +21,9 @@
 import { useState } from 'react'
 import type { DecisionState, World, WorldCall, WorldPlayer } from '../../api'
 import { type Filter, type Scenario, scenarioFor } from '../../calls/scenario'
-import { availabilityFor, formatCost, formatMoney, formatNet } from '../../calls/view'
+import { availabilityFor, formatCost, formatMoney, formatNet, thisWeekNet } from '../../calls/view'
 import type { Week } from '../../calls/week'
-import { benchInOrder, startersByPosition } from '../../squad/format'
+import { benchInOrder, displaySurname, startersByPosition } from '../../squad/format'
 import { kitFor } from '../../squad/kits'
 import styles from './Overview.module.css'
 
@@ -142,10 +142,17 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
   const visible = new Set(scenario.calls.map((c) => c.key))
   const moves = movesIn(scenario.before, scenario.after)
 
-  /** Title and sub-line, in the design's own shapes. */
+  /**
+   * Title and sub-line, in the design's own shapes.
+   *
+   * **Both names are shortened.** A row is one line and the same height as every
+   * other, so a long pair silently cut the incoming player off the end —
+   * "Junqueira de Jesus → Calvert-Lewin" showed the player being dropped and not
+   * the one arriving, which is the half that matters (found 2026-09-15).
+   */
   function titleOf(call: WorldCall): string {
-    const out = nameOf(call.outPlayerId)
-    const into = nameOf(call.inPlayerId)
+    const out = displaySurname(nameOf(call.outPlayerId))
+    const into = displaySurname(nameOf(call.inPlayerId))
     if (call.shape === 'captain') return `Armband: ${out} → ${into}`
     if (call.shape === 'vice') return `Vice armband: ${out} → ${into}`
     if (call.shape === 'bench_order') return `Bench order: ${into} to 1`
@@ -234,10 +241,12 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
           <span className={styles.widgetTitle}>SQUAD</span>
           <span className={styles.widgetFigures}>
             <span data-testid="scenario-xpts">
-              {/* **No sign.** This is the scenario's projected total net of any
-                  hit (F8-AC-10), not a gain over the current squad — and a plus
-                  in front of an absolute reads as a delta. */}
-              xPTS <strong>{scenario.projected.toFixed(1)}</strong>
+              {/* **The change, not the total.** Two squads side by side are
+                  asking whether the plan is an improvement, and an absolute
+                  total answers a different question (ruled 2026-09-15). Net of
+                  any points hit, so the cost of an extra transfer is inside the
+                  figure being judged (F8-AC-10). */}
+              xPTS <strong>{scenario.delta >= 0 ? '+' : '−'}{Math.abs(scenario.delta).toFixed(1)}</strong>
             </span>
             <span data-testid="scenario-nbal">
               NBAL <strong className={scenario.nbalTenths < 0 ? styles.over : ''}>{formatMoney(scenario.nbalTenths)}</strong>
@@ -260,9 +269,9 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
         </div>
 
         <div className={styles.legend} aria-hidden="true">
-          <span><i className={`${styles.key} ${styles.in}`} /> IN</span>
-          <span><i className={`${styles.key} ${styles.out}`} /> OUT</span>
-          <span><i className={`${styles.key} ${styles.moved}`} /> MOVED</span>
+          <span><i className={`${styles.key} ${styles.keyIn}`} /> IN</span>
+          <span><i className={`${styles.key} ${styles.keyOut}`} /> OUT</span>
+          <span><i className={`${styles.key} ${styles.keyMoved}`} /> MOVED</span>
         </div>
 
         {/* ── Filter chips, inside the widget they change ───────────────── */}
@@ -360,8 +369,12 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
                         handoff does. */}
                     <span className={styles.cardFigures}>
                       <span>
+                        {/* This gameweek's difference, not the three-week net
+                            the conviction is built from — the detail card shows
+                            that one, where the horizon is on screen to explain
+                            it (ruled 2026-09-15). */}
                         <span className={styles.eyebrow}>xPTS</span>
-                        <span className={styles.figureGood}>{formatNet(call.net)}</span>
+                        <span className={styles.figureGood}>{formatNet(thisWeekNet(call))}</span>
                       </span>
                       <span>
                         <span className={styles.eyebrow}>COST</span>
