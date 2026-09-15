@@ -190,6 +190,24 @@ it('F1-AC-01, F1-AC-02: fifteen players, eleven starters, bench in fixed order',
 One test may name several identifiers and several tests may name one. Coverage means *something
 asserts this*.
 
+**And every entry says what causes the criterion's trigger, not only what it asserts** (P16). A
+criterion has two halves — when it applies, and what must then be true. A test that sets up the
+second by hand and never causes the first reports covered while proving nothing about the rule, and
+everyone stops looking. So the test name carries the circumstance as well as the claim: a refresh
+criterion runs a refresh, a card criterion renders a card, a first-open criterion opens for the
+first time.
+
+```ts
+it('F6-AC-02: a selected call still reads selected · locked after a refresh runs', …)
+```
+
+**Where the trigger cannot be reached, the criterion goes in neither list.** It goes to
+`docs/coverage-gaps.md` with what would close it and a live owner, and the spec says so rather than
+naming the identifier in a test that reaches only the other half. `scripts/criteria-coverage.mjs`
+counts an identifier appearing anywhere in a test file — including inside a comment saying it is
+*not* asserted, which is how `F6-AC-20` reads as covered today. An honest gap costs a line in a
+file; a false green costs whatever it was hiding.
+
 **Manual** — anything visual or tactile, and anything graded on model output. Write the checklist:
 what to do, why it matters, plain English (G9). Never fake it with a class-name assertion.
 
