@@ -343,6 +343,8 @@ const PARSE_SYSTEM = [
   '**A player is identified by matching the name on his shirt to the list of players given below,',
   'and reporting that list entry\'s id.** The screenshots show names, never ids. Use the club colours',
   'and the position on the pitch to choose between two players with similar names.',
+  'Report the name exactly as it is printed on the shirt as well as the id, always — it is what is',
+  'checked if the id does not land on a known player.',
   'Report the bench order as 0, 1, 2, 3 for the four substitutes in the order they are listed,',
   'and 0 for anyone who is starting. Report each chip as a pair: its name and whether it remains.',
   'Money is a whole number of tenths of a million: £2.8m is 28.',
@@ -383,12 +385,20 @@ export const PARSE_SCHEMA = {
             type: 'object',
             properties: {
               playerId: { type: 'integer' },
+              /**
+               * **The name as it appears on the shirt**, reported alongside the
+               * id. Reading a name is what the model is good at; copying a
+               * three-digit id fifteen times without a slip is not, and one slip
+               * failed the whole upload under the all-or-nothing rule. Code
+               * resolves the name when the id does not land.
+               */
+              name: { type: 'string' },
               isStarter: { type: 'boolean' },
               benchOrder: { type: 'integer' },
               isCaptain: { type: 'boolean' },
               isVice: { type: 'boolean' },
             },
-            required: ['playerId', 'isStarter', 'benchOrder', 'isCaptain', 'isVice'],
+            required: ['playerId', 'name', 'isStarter', 'benchOrder', 'isCaptain', 'isVice'],
             additionalProperties: false,
           },
         },
