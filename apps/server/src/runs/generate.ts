@@ -26,8 +26,9 @@ import {
   priceWatch,
 } from '@fpl/engine'
 import { type PlanInput, type PlanPlayer, type PlannedCall, isDecidable, planWeek } from '../calls/plan.js'
-import type { ModelCallRecord, ModelPort, ShortPlayer } from '../model/client.js'
+import type { EditorialInput, ModelCallRecord, ModelPort, ShortPlayer } from '../model/client.js'
 import { keepLine } from '../calls/keep-line.js'
+import { finalEditorial } from '../model/editorial.js'
 import { finalReasoning } from '../model/reasoning.js'
 
 /** What the card shows for one player, plus the names the reasoning and the shortlist use. */
@@ -136,7 +137,13 @@ export async function generateWeek(input: {
   model: ModelPort
   /** Keys of rejected calls whose premise has moved, so they return labelled (F6-AC-03). */
   resurfaced?: ReadonlySet<string>
-}): Promise<{ calls: StoredCall[]; modelCalls: ModelCallRecord[] }> {
+  /**
+   * What the Overview leads with, as facts rather than sentences (F8-AC-07,
+   * F8-AC-04). The client owns the wording; the editorial only needs to know a
+   * lead exists so it does not write one of its own.
+   */
+  context?: { exception: 'blank' | 'double' | null; squadSource: 'deadline' | 'screenshots' }
+}): Promise<{ calls: StoredCall[]; modelCalls: ModelCallRecord[]; editorial: string }> {
   const card = (id: number): CardInfo => {
     const found = input.cards.get(id)
     if (!found) throw new Error(`No card data for player ${String(id)}. Refusing to describe a player the world does not hold.`)
@@ -281,7 +288,44 @@ export async function generateWeek(input: {
 
   // A keep reading made no model call, so there is no record to keep for it.
   const written = lines.map((l) => l.record).filter((r): r is ModelCallRecord => r !== null)
-  return { calls, modelCalls: [proposal.record, ...written] }
+
+  /**
+   * **The week in one read** (F8-AC-01, F8-AC-08) — one more call, over the
+   * calls just produced and nothing else.
+   *
+   * A keep reading is not in it: it is the app answering *nothing to do*, and
+   * `F4-AC-03` excludes it from the editorial by name. So a week of nothing but
+   * keeps reaches the editorial as a week of no calls, which is what it is.
+   */
+  const editorialInput: EditorialInput = {
+    calls: calls
+      .filter((c) => !c.isReading)
+      .map((c) => ({
+        title: `${card(c.outPlayerId).name} → ${card(c.inPlayerId).name}`,
+        net: c.net,
+        band: c.band,
+        forced: c.isForced,
+      })),
+    exception: input.context?.exception ?? (input.plan.squad.some((p) => !p.hasFixture) ? 'blank' : null),
+    squadSource: input.context?.squadSource ?? 'deadline',
+  }
+
+  // **A failed editorial never fails the run.** The advice is the product; the
+  // paragraph above it is not, and a run that threw here would destroy a week of
+  // calls over a sentence (F6-UP-01's principle, one level down).
+  let prose = { text: '', record: null as ModelCallRecord | null }
+  try {
+    const result = await input.model.writeEditorial(editorialInput)
+    prose = { text: result.text, record: result.record }
+  } catch (cause) {
+    console.error('[runs] the editorial could not be written; the template stands in', cause)
+  }
+
+  return {
+    calls,
+    modelCalls: [proposal.record, ...written, ...(prose.record ? [prose.record] : [])],
+    editorial: finalEditorial(prose.text, editorialInput).text,
+  }
 }
 
 /**

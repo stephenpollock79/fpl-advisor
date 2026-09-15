@@ -98,8 +98,15 @@ describe('F3-AC-22, ENGINE-AC-05 · the model\'s line is checked, never trusted'
 })
 
 describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened', () => {
-  it('pins Haiku for proposing and Sonnet for reasoning, by exact identifier', () => {
-    expect(PINNED).toEqual({ propose: 'claude-haiku-4-5', reason: 'claude-sonnet-5' })
+  it('pins Haiku for proposing and Sonnet for both writing jobs, by exact identifier', () => {
+    // Exhaustive rather than per-key: a fourth step appearing here is a fourth
+    // model call per run, and the point of pinning is that nobody adds one by
+    // accident. `editorial` joined on 2026-09-15 with the Overview (F8-AC-08).
+    expect(PINNED).toEqual({
+      propose: 'claude-haiku-4-5',
+      reason: 'claude-sonnet-5',
+      editorial: 'claude-sonnet-5',
+    })
   })
 
   it('sends no tools, no project settings, and keeps no transcript on disk', async () => {

@@ -28,6 +28,7 @@ import type { ClubRow, PlayerRow, PlayerStateRow } from '../ingest/players.js'
 import type { ProjectionRow } from '../ingest/projections.js'
 import { effectiveProjection } from '../ingest/projections.js'
 import type { SquadPlayer } from '../squad/snapshot.js'
+import type { News } from './news.js'
 
 /** How many gameweeks of difficulty and projection a player carries (F1-AC-19, F3-AC-24). */
 const HORIZON = 3
@@ -135,6 +136,12 @@ export type World = {
     bankTenths: number
     freeTransfers: number
     chipsRemaining: Record<string, string>
+    /**
+     * Which gameweek's picks this squad was read from (F8-AC-04). The editorial
+     * names it — "as at the GW4 deadline" — and it is not the gameweek being
+     * advised on. Null on rows written before slice 7.
+     */
+    picksFrom?: number | null
   }
   players: WorldPlayer[]
   /** Players outside the squad that a call or a picker names — the cards need their figures. */
@@ -164,6 +171,11 @@ export type World = {
   feedsReachable?: boolean
   /** When the data on screen was read, for the screen to timestamp itself with. */
   dataReadAt?: string | null
+  /**
+   * Squad players whose evidence has moved since the last successful run
+   * (F8-AC-13). Derived on every read rather than stored — see `news.ts`.
+   */
+  news?: News
 }
 
 export type WorldParts = {
@@ -269,7 +281,7 @@ export function assembleWorld(parts: WorldParts): World {
       deadlineTime: parts.gameweek.deadlineTime,
     },
     lastScoredGameweek: parts.lastScored?.id ?? null,
-    snapshot: parts.snapshot,
+    snapshot: { ...parts.snapshot, picksFrom: parts.picksFrom ?? null },
     players,
     candidates,
     // **The figures follow the data** (ruled 2026-09-14). Every stored call is

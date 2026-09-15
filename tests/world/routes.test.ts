@@ -33,6 +33,9 @@ const harness = (overrides: Partial<WorldDeps> = {}) => {
     authenticate: async (cookie) => (cookie ? ({ userId: 'u1', accessToken: 't1' } as never) : null),
     linkedTeamId: async () => 6131656,
     newestFeedReadAt: async () => ago(0),
+    // No successful run in these fixtures, so the token has no baseline and
+    // stays silent — which is what the first open must do (F8-AC-19).
+    newsInputs: async () => ({ before: null, after: [], since: null }),
     now: () => NOW,
     ingest: async () => {
       events.push('ingest')
@@ -93,6 +96,7 @@ describe('F6-RS-02 · the feeds are read on open, which is what gives recomputat
       authenticate: async () => null,
       linkedTeamId: async () => 1,
       newestFeedReadAt: async () => null,
+      newsInputs: async () => ({ before: null, after: [], since: null }),
       now: () => NOW,
       ingest: async () => {
         events.push('ingest')

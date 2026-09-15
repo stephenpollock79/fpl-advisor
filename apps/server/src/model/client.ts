@@ -36,9 +36,19 @@ import { type Band, type EvaluationRow, formatRowValue } from '@fpl/engine'
 import type { TransferProposal } from '../calls/plan.js'
 
 /** Explicit identifiers, never an alias that resolves differently next month. */
-export const PINNED = { propose: 'claude-haiku-4-5', reason: 'claude-sonnet-5' } as const
+export const PINNED = {
+  propose: 'claude-haiku-4-5',
+  reason: 'claude-sonnet-5',
+  /**
+   * The same model as `reason` and a step of its own, deliberately: the run
+   * record is where the week's spend is read off (NFR Cost control), and an
+   * editorial counted as reasoning would hide one call per run inside a number
+   * everyone reads as per-card.
+   */
+  editorial: 'claude-sonnet-5',
+} as const
 
-export type ModelStep = 'propose' | 'reason'
+export type ModelStep = 'propose' | 'reason' | 'editorial'
 export type ModelRoute = 'api' | 'agent-sdk' | 'mock'
 
 export type ModelCallRecord = {
@@ -94,10 +104,40 @@ export type ReasoningInput = {
   kind: 'transfer' | 'substitution' | 'captain' | 'vice'
 }
 
+/**
+ * The editorial's input (F8-AC-01, F8-AC-08).
+ *
+ * **Only what the Overview itself shows.** The same construction rule as the
+ * per-card reasoning, one level up: the editorial is a synthesis across the
+ * week's cards, so it is given each call's own card-level figures and nothing
+ * about the evidence, the news or the opinion context the proposal step drew on.
+ * Widening this to improve the prose turns a citation of visible data into a
+ * hallucination from hidden data.
+ *
+ * **What is deliberately *not* here: the decided count, the tally and the
+ * flagged summary.** All three are nil at the moment a run writes — no decision
+ * has been taken and the run has just consumed the news — and computing them
+ * here as well as in the client would give `F8-AC-06`'s one list two
+ * implementations. The exception and the squad source arrive as facts rather
+ * than as sentences for the same reason: the client owns the wording, and the
+ * model is told only that a lead exists so it does not write one of its own.
+ */
+export type EditorialInput = {
+  calls: { title: string; net: number; band: string | null; forced: boolean }[]
+  /** A lead sentence about this is shown above the paragraph (F8-AC-07). */
+  exception: 'blank' | 'double' | null
+  squadSource: 'deadline' | 'screenshots'
+}
+
 export interface ModelPort {
   readonly backend: ModelRoute
   proposeTransfers(input: ProposalInput): Promise<{ proposals: TransferProposal[]; record: ModelCallRecord }>
   writeReasoning(input: ReasoningInput): Promise<{ text: string; record: ModelCallRecord }>
+  /**
+   * The week in one read. Uses the `reason` step's pinned model and budget —
+   * the same job, written over the week instead of over one card.
+   */
+  writeEditorial(input: EditorialInput): Promise<{ text: string; record: ModelCallRecord }>
 }
 
 type Env = Record<string, string | undefined>
@@ -180,6 +220,9 @@ const CACHE_READ_MULTIPLIER = 0.1
 const pinnedFrom = (env: Env) => ({
   propose: env['ANTHROPIC_MODEL_FILTER']?.trim() || PINNED.propose,
   reason: env['ANTHROPIC_MODEL_REASON']?.trim() || PINNED.reason,
+  // Follows the reasoning override, because the two are the same job at two
+  // scales and pinning them apart by accident is the likelier mistake.
+  editorial: env['ANTHROPIC_MODEL_REASON']?.trim() || PINNED.editorial,
 })
 
 const unrecorded = (step: ModelStep, via: ModelRoute, pinned: string, modelId: string, ok: boolean): ModelCallRecord => ({
@@ -205,6 +248,38 @@ const reasoningPrompt = (input: ReasoningInput): string =>
         }`,
     ),
   ].join('\n')
+
+/**
+ * **Exempt from the two-sentence Voice rule, and bound by the rest of it**
+ * (F8-AC-08). It is the week in one read, so it gets a paragraph; it still takes
+ * a position and does not hedge.
+ */
+const EDITORIAL_SYSTEM = [
+  "You are the assistant opening one Fantasy Premier League manager's week.",
+  'Synthesise what the week asks of him across the calls listed. Take a position; do not hedge.',
+  'Plain English, no jargon, no bullet points, no headings, at most five sentences.',
+  'Use only the figures given. Never call the strength figure a chance, a likelihood or a confidence.',
+  'A lead sentence and a line naming where the squad came from are shown above your paragraph.',
+  'Do not write either of those yourself and do not repeat them.',
+].join(' ')
+
+export function editorialPrompt(input: EditorialInput): string {
+  const lines = [
+    input.calls.length === 0
+      ? 'The week produced no calls at all. Say why that is a decision rather than an empty screen.'
+      : `${String(input.calls.length)} calls this week:`,
+    ...input.calls.map(
+      (c) =>
+        `${c.title} \u00b7 net ${c.net >= 0 ? '+' : '-'}${Math.abs(c.net).toFixed(2)}` +
+        `${c.forced ? ' \u00b7 forced' : c.band ? ` \u00b7 ${c.band}` : ''}`,
+    ),
+  ]
+  if (input.exception) lines.push(`A ${input.exception} gameweek is already led with above.`)
+  if (input.squadSource === 'screenshots') {
+    lines.push('The squad was corrected from screenshots, not read at the deadline.')
+  }
+  return lines.join('\n')
+}
 
 /** Whatever came back, reduced to at most three well-formed pairs. The plan checks the rest. */
 const parseProposals = (raw: unknown): TransferProposal[] =>
@@ -298,6 +373,10 @@ export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env
 
     async writeReasoning(input) {
       const { text, record } = await call('reason', REASON_SYSTEM, reasoningPrompt(input))
+      return { text: text ?? '', record }
+    },
+    async writeEditorial(input) {
+      const { text, record } = await call('editorial', EDITORIAL_SYSTEM, editorialPrompt(input))
       return { text: text ?? '', record }
     },
   }
@@ -410,6 +489,10 @@ export function liveModel(opts: { query?: QueryFn; env?: Env }): ModelPort {
       const { result, record } = await call('reason', reasoningPrompt(input), REASON_SYSTEM)
       return { text: result?.result ?? '', record }
     },
+    async writeEditorial(input) {
+      const { result, record } = await call('editorial', editorialPrompt(input), EDITORIAL_SYSTEM)
+      return { text: result?.result ?? '', record }
+    },
   }
 }
 
@@ -422,6 +505,9 @@ export function mockModel(): ModelPort {
     },
     async writeReasoning() {
       return { text: '', record: unrecorded('reason', 'mock', 'mock', 'mock', true) }
+    },
+    async writeEditorial() {
+      return { text: '', record: unrecorded('editorial', 'mock', 'mock', 'mock', true) }
     },
   }
 }

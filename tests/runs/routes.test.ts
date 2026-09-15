@@ -166,7 +166,8 @@ describe('POST /api/runs', () => {
     // The proposal, plus one reasoning call per call the manager can act on — a
     // keep reading writes its own line and asks the model nothing (F4-AC-01).
     const decidable = (run?.calls ?? []).filter((c) => (c as { isReading: boolean }).isReading !== true)
-    expect(run?.modelCalls.length).toBe(decidable.length + 1)
+    // One proposal, one line per decidable call, and one editorial (F8-AC-08).
+    expect(run?.modelCalls.length).toBe(decidable.length + 2)
   })
 
   it('a run that fails is marked failed, and stores no calls — the previous advice stands', async () => {
@@ -176,6 +177,9 @@ describe('POST /api/runs', () => {
         throw new Error('model unreachable and the fallback broke too')
       },
       async writeReasoning() {
+        throw new Error('unreachable')
+      },
+      async writeEditorial() {
         throw new Error('unreachable')
       },
     }

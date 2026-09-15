@@ -174,11 +174,14 @@ export type World = {
   lastScoredGameweek: number | null
   snapshot: {
     id: string
+    /** `fpl_deadline` or, from slice 9, `screenshots`. What the editorial names (F8-AC-04). */
     source: string
     capturedAt: string
     bankTenths: number
     freeTransfers: number
     chipsRemaining: Record<string, string>
+    /** The gameweek whose picks this holds — not the one being advised on. */
+    picksFrom: number | null
   }
   players: WorldPlayer[]
   /** Players outside the squad a call or a picker names. */
@@ -206,6 +209,15 @@ export type World = {
   feedsReachable?: boolean
   /** When the data on screen was read. What the amber strip timestamps. */
   dataReadAt?: string | null
+  /**
+   * Squad players whose evidence has moved since the last successful run
+   * (F8-AC-13). Derived on every read, so the token clears when a run moves the
+   * baseline rather than when something remembers to clear a flag (F8-AC-17).
+   */
+  news?: {
+    flagged: { playerId: number; fields: ('status' | 'news' | 'chance' | 'price')[]; nowExcluded: boolean }[]
+    since: string | null
+  }
   attribution: { name: string; href: string }
 }
 

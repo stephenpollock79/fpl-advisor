@@ -106,6 +106,9 @@ const scriptedModel = (proposals: { outPlayerId: number; inPlayerId: number }[],
     async writeReasoning(input) {
       return { text: line.replace('{in}', input.inName), record: record('reason') }
     },
+    async writeEditorial() {
+      return { text: 'A quiet week with one thing worth doing.', record: record('editorial') }
+    },
   }
 }
 

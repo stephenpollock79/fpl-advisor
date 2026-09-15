@@ -21,7 +21,9 @@
 
 import { Hono } from 'hono'
 import type { AuthenticatedUser } from '../auth/session.js'
+import type { EvidenceRow } from '../refresh/evidence.js'
 import { type World, assembleWorld } from './assemble.js'
+import { squadNews } from './news.js'
 import type { WorldParts } from './assemble.js'
 
 /** Long enough to absorb a screen's worth of reads, short enough to feel live. */
@@ -42,6 +44,16 @@ export type WorldDeps = {
   loadParts: (user: AuthenticatedUser) => Promise<WorldParts | null>
   /** Retire a snapshot the gameweek has moved past, so the next read captures again. */
   supersedeSnapshot: (user: AuthenticatedUser, snapshotId: string) => Promise<void>
+  /**
+   * The two reads the news token is the difference between (F8-AC-13): what the
+   * last successful run saw, and what this world was assembled from. `before` is
+   * null when there has been no run, which is the first open.
+   */
+  newsInputs: (user: AuthenticatedUser) => Promise<{
+    before: EvidenceRow[] | null
+    after: EvidenceRow[]
+    since: string | null
+  }>
 }
 
 export function worldRoutes(deps: WorldDeps) {
@@ -114,12 +126,19 @@ export function worldRoutes(deps: WorldDeps) {
       throw new Error('The world is still empty after ingesting it. Refusing to answer with nothing.')
     }
 
+    // **Derived here, on every read, rather than stored** (F8-AC-17). The token
+    // clears because a run moves the baseline, not because something writes a
+    // flag and something else remembers to clear it.
+    const inputs = await deps.newsInputs(user)
+    const news = squadNews({ ...inputs, squad: parts.squad.map((p) => p.playerId) })
+
     return c.json({
       ...(assembleWorld(parts) satisfies World),
       feedsReachable,
       // What the screen timestamps itself with. Null only before the first read
       // ever, which cannot reach here.
       dataReadAt: await deps.newestFeedReadAt(),
+      news,
     })
   })
 
