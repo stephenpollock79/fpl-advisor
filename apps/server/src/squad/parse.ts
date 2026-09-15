@@ -235,14 +235,40 @@ export function parseSquad(
   const byName = new Map<string, number | null>()
   /** Every id behind a name more than one player answers to. */
   const sharedBy = new Map<string, Set<number>>()
+  /** Every known name in its comparable form, for the prefix fallback below. */
+  const normalisedKnown: [string, number][] = []
   for (const p of known ?? []) {
     const key = normalise(p.name)
     byName.set(key, byName.has(key) ? null : p.id)
     const ids = sharedBy.get(key) ?? new Set<number>()
     ids.add(p.id)
     sharedBy.set(key, ids)
+    normalisedKnown.push([key, p.id])
   }
   const knownIds = new Set((known ?? []).map((p) => p.id))
+
+  /**
+   * **FPL truncates a long shirt name on the card, and the card is all the
+   * picture has** (found live 2026-09-15). "Calvert-Le…" is what is printed, so
+   * "Calvert-Le…" is what an honest read reports — and it matches no player,
+   * because no player is called that. The whole upload failed on it.
+   *
+   * Correcting it is code's job and not the model's: we ask for the name
+   * character for character precisely so that a reader never expands a
+   * half-name into a player it half-recognises. So the expansion happens here,
+   * against the real list, and **only where exactly one player's name begins
+   * that way** — two candidates is a coin toss and resolves to neither.
+   *
+   * This runs only after an exact match has already failed, so a name that is
+   * genuinely someone's full name can never be re-read as the start of a longer
+   * one. Short fragments are refused outright: four characters is the floor.
+   */
+  const MIN_PREFIX = 4
+  const byPrefix = (key: string): number | null => {
+    if (key.length < MIN_PREFIX) return null
+    const hits = new Set(normalisedKnown.filter(([name]) => name.startsWith(key)).map(([, id]) => id))
+    return hits.size === 1 ? ((hits.values().next().value as number) ?? null) : null
+  }
 
   const resolve = (entry: { playerId?: unknown; name?: unknown }): number | null => {
     const id = entry.playerId
@@ -253,7 +279,9 @@ export function parseSquad(
     if (knownIds.size === 0) return validId
 
     const key = typeof entry.name === 'string' ? normalise(entry.name) : ''
-    if (!byName.has(key)) return null
+    // No player answers to it whole. It may be the start of one — a card the
+    // app ran out of room on.
+    if (!byName.has(key)) return byPrefix(key)
 
     const byThatName = byName.get(key)
     // One player with that name: the name settles it, whatever the id said.
