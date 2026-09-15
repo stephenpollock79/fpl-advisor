@@ -58,7 +58,13 @@ export type ParseResult = { ok: true; squad: ParsedSquad } | { ok: false; failur
 export type RawParse = {
   team?: {
     players?: { playerId?: unknown; isStarter?: unknown; benchOrder?: unknown; isCaptain?: unknown; isVice?: unknown }[]
-    chipsRemaining?: Record<string, unknown>
+    /**
+     * **An array of pairs, not a map.** Structured outputs reject an open
+     * object — `additionalProperties` must be the boolean `false` — and
+     * declaring the chips as one had every upload refused with HTTP 400 before
+     * a picture was looked at (2026-09-15).
+     */
+    chips?: { chip?: unknown; state?: unknown }[]
   }
   transfers?: { bankTenths?: unknown; freeTransfers?: unknown }
 }
@@ -96,7 +102,8 @@ export function parseSquad(raw: RawParse): ParseResult {
   // **A squad with no chip row is a failed Team read, not an empty chip row.**
   // Every FPL team has one, so its absence means the picture was not the Team
   // screen — and an empty row would silently tell the manager he has none left.
-  if (raw.team?.chipsRemaining === undefined) {
+  const chips = raw.team?.chips
+  if (!Array.isArray(chips) || chips.length === 0) {
     return { ok: false, failure: { screen: 'team', because: 'the chips row was not found on the Team screenshot' } }
   }
 
@@ -149,7 +156,9 @@ export function parseSquad(raw: RawParse): ParseResult {
     squad: {
       players: squad,
       chipsRemaining: Object.fromEntries(
-        Object.entries(raw.team.chipsRemaining).map(([chip, state]) => [chip, String(state)]),
+        chips
+          .filter((c) => typeof c.chip === 'string' && c.chip.length > 0)
+          .map((c) => [String(c.chip), String(c.state ?? 'unknown')]),
       ),
       bankTenths: bank,
       freeTransfers: free,

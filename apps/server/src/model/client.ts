@@ -343,6 +343,8 @@ const PARSE_SYSTEM = [
   '**A player is identified by matching the name on his shirt to the list of players given below,',
   'and reporting that list entry\'s id.** The screenshots show names, never ids. Use the club colours',
   'and the position on the pitch to choose between two players with similar names.',
+  'Report the bench order as 0, 1, 2, 3 for the four substitutes in the order they are listed,',
+  'and 0 for anyone who is starting. Report each chip as a pair: its name and whether it remains.',
   'Money is a whole number of tenths of a million: £2.8m is 28.',
   'Report only what you can actually read. Never guess a player, a number or an armband,',
   'and never fill a gap to make the list complete. Answer with the JSON object only.',
@@ -352,7 +354,23 @@ const PARSE_SYSTEM = [
 const playerList = (players: ScreenshotInput['players']): string =>
   players.map((p) => `${String(p.id)} ${p.name} (${p.club}, ${p.position})`).join('\n')
 
-/** What is asked for. Every field is checked in code before any of it is used. */
+/**
+ * What is asked for. Every field is checked in code before any of it is used.
+ *
+ * **Two shapes structured outputs reject, both of which this had** (found live
+ * 2026-09-15, after three uploads failed):
+ *
+ * - **`additionalProperties` holding a schema.** An open map — "any key, string
+ *   values" — is not accepted; it must be the boolean `false`. The chips were
+ *   declared that way, so **every** upload was refused with HTTP 400 before a
+ *   picture was ever looked at. They are an array of pairs now.
+ * - **A type union**, `['integer', 'null']`. `benchOrder` is a plain integer,
+ *   and a starter's is ignored.
+ *
+ * `PROPOSAL_SCHEMA` above carries the same warning in prose and this did not
+ * follow it, which is why `tests/model/model.test.ts` now asserts the rule on
+ * both schemas rather than leaving it to a comment.
+ */
 export const PARSE_SCHEMA = {
   type: 'object',
   properties: {
@@ -366,7 +384,7 @@ export const PARSE_SCHEMA = {
             properties: {
               playerId: { type: 'integer' },
               isStarter: { type: 'boolean' },
-              benchOrder: { type: ['integer', 'null'] },
+              benchOrder: { type: 'integer' },
               isCaptain: { type: 'boolean' },
               isVice: { type: 'boolean' },
             },
@@ -374,9 +392,17 @@ export const PARSE_SCHEMA = {
             additionalProperties: false,
           },
         },
-        chipsRemaining: { type: 'object', additionalProperties: { type: 'string' } },
+        chips: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: { chip: { type: 'string' }, state: { type: 'string' } },
+            required: ['chip', 'state'],
+            additionalProperties: false,
+          },
+        },
       },
-      required: ['players', 'chipsRemaining'],
+      required: ['players', 'chips'],
       additionalProperties: false,
     },
     transfers: {
