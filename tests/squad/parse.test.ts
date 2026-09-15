@@ -115,6 +115,23 @@ describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
     expect(result.failure.because).toBe('only 4 of 15 players legible on the Team screenshot')
   })
 
+  it('F2-UP-01: fifteen shirts read but one unmatched says so, rather than blaming the picture', () => {
+    // **Two faults wore one message.** Fifteen read with one unmatched is our
+    // list being short, and retaking the photo cannot fix it; fewer than
+    // fifteen read is the picture. Telling them apart is the difference
+    // between a useful instruction and a wasted evening (2026-09-15).
+    const players = fifteen()
+    const last = players[14] as Record<string, unknown> | undefined
+    if (last) last.playerId = 'not-a-player'
+
+    const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }))
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.because).toMatch(/could not be matched to a known player/)
+    expect(result.failure.because).toMatch(/our end, not your picture/)
+  })
+
   it('F2-UP-01: a missing bank applies nothing, and the failure names the Transfers screenshot', () => {
     const result = parseSquad(raw({ transfers: { freeTransfers: 1 } }))
 
