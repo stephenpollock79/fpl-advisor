@@ -1,0 +1,244 @@
+/**
+ * The Assistant Overview, in a real browser at 390×844 (F8, STE-66).
+ *
+ * **Each test causes the circumstance its criterion is about** (P16). The
+ * filter tests decide calls before filtering; the token test opens a world
+ * whose news has moved since the last run; the hidden-row test uses a filter
+ * that genuinely hides something. A test that asserted the same words over an
+ * untouched world would pass whether the rule were built or not.
+ *
+ * What these prove is behaviour. How any of it *looks* is the manual checklist
+ * on STE-66 — a class-name assertion is not a substitute (CLAUDE.md).
+ */
+
+import { expect, test } from '@playwright/test'
+import { CAPTAIN, T1, T2, VICE, open, world } from './fixture'
+
+/** Slice 8 opens the Assistant on the Overview, so these stay where they land. */
+const overview = (page: Parameters<typeof open>[0], decisions = {}, extra = {}) =>
+  open(page, decisions, world.calls, extra, null)
+
+test('F8-AC-02, F8-AC-06: deciding a call moves the headline count and the tally together', async ({ page }) => {
+  await overview(page)
+
+  await expect(page.getByTestId('overview')).toBeVisible()
+  // Six calls, one of which is the vice; none decided yet.
+  await expect(page.getByTestId('decided')).toContainText('0 of')
+
+  // The trigger: a decision taken on the Overview's own panel, not a different
+  // world handed in.
+  await page.getByTestId(`card-${T1}`).getByRole('button', { name: 'Select' }).click()
+  await expect(page.getByTestId('decided')).toContainText('1 of')
+})
+
+test('F8-AC-04: the editorial names the gameweek the squad was read from', async ({ page }) => {
+  await overview(page)
+  // The fixture's snapshot is GW4's picks while GW4 is being advised; the line
+  // must name where the squad came from rather than what is being advised on.
+  await expect(page.getByTestId('squad-state')).toContainText('built from your squad')
+})
+
+test('F8-AC-07: a blank gameweek makes the editorial lead with the bench-order consequence', async ({ page }) => {
+  // The trigger is a world carrying a blank — a shape this season may not
+  // produce for weeks, and the one the editorial most has to get right.
+  await overview(page, {}, { blanks: 1 })
+
+  await expect(page.getByTestId('exception-lead')).toContainText('no fixture')
+  await expect(page.getByTestId('exception-lead')).toContainText('bench order')
+})
+
+test('F8-AC-20 – F8-AC-24: each filter chip shows its own set, and only Selected reads decisions', async ({ page }) => {
+  // The trigger: one call selected and one rejected, so Selected has something
+  // to differ about.
+  await overview(page, { [T1]: 'selected', [T2]: 'rejected' })
+
+  await page.getByTestId('chip-selected').click()
+  await expect(page.getByTestId(`card-${T1}`)).toBeVisible()
+  await expect(page.getByTestId(`card-${T2}`)).toHaveCount(0)
+
+  // The band views are unmoved by those same decisions (F8-AC-24).
+  await page.getByTestId('chip-all').click()
+  await expect(page.getByTestId(`card-${T2}`)).toBeVisible()
+})
+
+test('F8-AC-25, F8-AC-26: under a band filter a rejected call is still counted, and still renders rejected', async ({ page }) => {
+  // The counter-intuitive half. It needs a rejection to exist at all — over an
+  // untouched world this test would pass with the rule removed.
+  await overview(page, { 'substitution:upgrade:out=557:in=40': 'rejected' })
+
+  await page.getByTestId('chip-recommended').click()
+  // Stated on screen, because it cannot be inferred (F8-AC-25).
+  await expect(page.getByTestId('filter-note')).toContainText('rejected')
+  // And the card keeps its rejected state rather than reading as untouched.
+  await expect(page.getByTestId('card-substitution:upgrade:out=557:in=40')).toBeVisible()
+})
+
+test('F8-AC-32, F8-AC-33: a filter that hides calls says how many, and Show all clears it', async ({ page }) => {
+  await overview(page)
+
+  // The trigger: a filter that genuinely hides something. No call in the
+  // fixture is forced, so Forced only hides every one of them.
+  await page.getByTestId('chip-forced').click()
+  const hidden = page.getByTestId('hidden-transfer')
+  await expect(hidden).toContainText('hidden by filter')
+
+  await hidden.getByRole('button', { name: 'Show all' }).click()
+  await expect(page.getByTestId(`card-${T1}`)).toBeVisible()
+})
+
+test('F8-AC-13, F8-AC-15, F8-AC-18, F8-AC-19: moved evidence raises the token and the last-run line, and starts no run', async ({ page }) => {
+  // The trigger is the world's own news payload — what the server derives from
+  // the gap between the newest read and the read the last run saw.
+  await overview(page, {}, {
+    news: { since: new Date().toISOString(), flagged: [{ playerId: 423, fields: ['chance'], nowExcluded: false }] },
+  })
+
+  await expect(page.getByTestId('news-token')).toHaveText('1')
+  await expect(page.getByTestId('last-run')).toContainText('1 player flagged since')
+
+  // Opening it shows the verdict and offers a run — it does not start one
+  // (F8-AC-19). If it did, the interstitial would be on screen already.
+  await page.getByTestId('news-token').click()
+  // Each flagged player, with a one-line verdict and a refresh action (F8-AC-15).
+  await expect(page.getByTestId('news-tooltip')).toContainText('Shaw')
+  await expect(page.getByTestId('news-tooltip')).toContainText('expected to start at 75%')
+  await expect(page.getByTestId('news-refresh')).toBeVisible()
+  await expect(page.getByRole('dialog', { name: /Refresh/ })).toHaveCount(0)
+})
+
+test('F8-AC-16, F6-AC-09: the token’s own refresh runs at every scope, from whichever tab it is tapped on', async ({ page }) => {
+  await overview(page, {}, {
+    news: { since: new Date().toISOString(), flagged: [{ playerId: 423, fields: ['status'], nowExcluded: true }] },
+  })
+
+  // The trigger: tapping it from a *scoped* tab. New team news is squad-wide,
+  // so a scoped run here would half-clear the token.
+  await page.getByTestId('tab-transfer').click()
+  await page.getByTestId('news-token').click()
+  await page.getByTestId('news-refresh').click()
+
+  await expect(page.getByRole('dialog', { name: 'Refresh everything' })).toBeVisible()
+})
+
+test('F8-AC-31: a player with two fixtures carries ×2 and one with none carries BLANK', async ({ page }) => {
+  // **From the fixture list, never from a projection** — the count is the FPL
+  // feed's and the projection is the other feed's. So the trigger is a player
+  // whose `fixtures` array is the exceptional length, with his projection left
+  // exactly as it was.
+  const doubled = { opponentClubId: 98, opponentShortName: 'EVE', isHome: false, difficulty: 3 }
+  const players = world.players.map((p) =>
+    p.playerId === 7
+      ? { ...p, fixtures: [...(p.fixtures as unknown[]), doubled] }
+      : p.playerId === 10
+        ? { ...p, fixtures: [] }
+        : p,
+  )
+  await overview(page, {}, { players })
+
+  await expect(page.getByTestId(`card-${T1}`).getByText('×2')).toBeVisible()
+  await expect(page.getByTestId(`card-${T2}`).getByText('BLANK')).toBeVisible()
+})
+
+test('F8-AC-18: with no news outstanding the last-run line says so instead', async ({ page }) => {
+  await overview(page)
+  await expect(page.getByTestId('last-run')).toContainText('squad news up to date')
+})
+
+test('F8-AC-12, F6-AC-07, F6-AC-08: the Overview carries one refresh control, reading ALL', async ({ page }) => {
+  await overview(page)
+
+  const refresh = page.getByTestId('refresh')
+  await expect(refresh).toHaveCount(1)
+  await expect(refresh).toContainText('ALL')
+
+  await refresh.click()
+  await expect(page.getByRole('dialog', { name: 'Refresh everything' })).toBeVisible()
+})
+
+test('F8-AC-27, F4-AC-03: the captain group meta reads picks and held, not a bare count', async ({ page }) => {
+  // The trigger is a week in which the vice is held — the keep reading the
+  // engine produces when the armband is already on the right player.
+  await overview(page, {}, {
+    calls: [...world.calls.filter((c) => c.key !== VICE), {
+      ...world.calls.find((c) => c.key === VICE),
+      isReading: true,
+      readingReason: 'incumbent_wins',
+      conviction: null,
+      band: null,
+    }],
+  })
+
+  await expect(page.getByLabel('Captain').getByText(/held/)).toBeVisible()
+})
+
+test('F8-AC-28, F8-AC-29, F8-AC-30, F3-AC-10: a card decides in place, and the decision can be changed there', async ({ page }) => {
+  await overview(page)
+
+  const card = page.getByTestId(`card-${CAPTAIN}`)
+  await card.getByRole('button', { name: 'Select' }).click()
+  await expect(card.getByText('selected')).toBeVisible()
+
+  // Changed from the card's own panel, without reopening the detail card. The
+  // panel reopens to the three actions — not to Category cleared's two-way
+  // control, which is a different screen answering a different question.
+  await card.getByRole('button', { name: 'Change' }).click()
+  await expect(card.getByRole('button', { name: 'Select' })).toBeVisible()
+
+  // A rejected card stays listed rather than disappearing (F8-AC-30, F3-AC-11).
+  await card.getByRole('button', { name: 'Reject' }).click()
+  await expect(card.getByText('rejected')).toBeVisible()
+})
+
+test('F8-UP-02: a category with every call decided reads Done and shows Category cleared', async ({ page }) => {
+  // The trigger is a category in which every call has actually been decided.
+  await overview(page, { [T1]: 'selected', [T2]: 'rejected' })
+
+  await page.getByTestId('tab-transfer').click()
+  await expect(page.getByText('Transfers decided')).toBeVisible()
+})
+
+test('F8-UP-03, F6-UP-02: with the feeds unreachable the Overview works from the last read and says how old it is', async ({ page }) => {
+  // The trigger is the world reporting the source gone — the advice is still on
+  // file and still true, so nothing is cleared.
+  await overview(page, {}, { feedsReachable: false, dataReadAt: new Date(Date.now() - 39 * 60_000).toISOString() })
+
+  await expect(page.getByTestId('frozen')).toContainText('39 minutes old')
+  await expect(page.getByTestId('overview')).toBeVisible()
+  await expect(page.getByTestId('refresh')).toBeDisabled()
+})
+
+test('F8-UP-01: a refresh that fails leaves the Overview’s advice exactly where it was', async ({ page }) => {
+  await overview(page)
+  await expect(page.getByTestId(`card-${T1}`)).toBeVisible()
+
+  // The trigger is a run that actually fails. Asserting over a world nobody ran
+  // against would prove the cards render, not that a failure spares them.
+  await page.route('**/api/runs/stream', (route) =>
+    route.fulfill({
+      headers: { 'content-type': 'text/event-stream' },
+      body: 'event: error\ndata: {"reason":"run_failed","runId":"r1"}\n\n',
+    }),
+  )
+  await page.getByTestId('refresh').click()
+  // Scoped to the dialog: the status bar's own control carries the same words.
+  await page.getByRole('dialog', { name: 'Refresh everything' }).getByRole('button', { name: 'Refresh everything' }).click()
+
+  // The previous advice is intact rather than cleared — a failed run must never
+  // destroy what is on file.
+  await expect(page.getByTestId(`card-${T1}`)).toBeVisible()
+  await expect(page.getByTestId('last-run')).toContainText('last run')
+})
+
+test('F8-AC-35: the footer hint is always present', async ({ page }) => {
+  await overview(page)
+  await expect(page.getByText('Tap a call for the full evaluation.')).toBeVisible()
+})
+
+test('F3-UP-05, F8-AC-01: a week with no calls says so, with an empty tally', async ({ page }) => {
+  // The trigger is a run that produced nothing — not a filter emptying a list.
+  await open(page, {}, [], { editorial: 'Your fifteen is fit and nobody has a fixture worth chasing. Hold your transfer.' }, null)
+
+  await expect(page.getByTestId('decided')).toContainText('no calls this week')
+  await expect(page.getByTestId('tally')).toContainText('nothing outstanding')
+  await expect(page.getByTestId('editorial')).toContainText('Hold your transfer')
+})

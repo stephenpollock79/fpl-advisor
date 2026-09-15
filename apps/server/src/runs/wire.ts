@@ -152,7 +152,7 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
       return (data as { id: string }).id
     },
 
-    async finishRun(user: AuthenticatedUser, runId, gameweek, calls, modelCalls) {
+    async finishRun(user: AuthenticatedUser, runId, gameweek, calls, modelCalls, editorial) {
       const db = userClient(user.accessToken)
 
       if (calls.length > 0) {
@@ -193,6 +193,7 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
         .update({
           status: 'succeeded',
           finished_at: new Date().toISOString(),
+          editorial,
           model_calls: modelCalls,
           input_tokens: modelCalls.reduce((sum, m) => sum + m.inputTokens, 0),
           output_tokens: modelCalls.reduce((sum, m) => sum + m.outputTokens, 0),

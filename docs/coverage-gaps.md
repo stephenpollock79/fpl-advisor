@@ -60,13 +60,16 @@ asserting the bodies match would pass while the criterion is false — the same
 shape as asserting a policy exists rather than that isolation holds. Recorded in
 full on STE-68, which owns the fix.
 
-**F7-AC-15 — only the first half exists.** The criterion is "onboarding is one
-screen and one run: the team link on first log in, **then the first advice run**,
-which behaves exactly like the start of a new gameweek." Slice 2 builds the link
-screen and gates it on `needsTeamLink`, so the one-screen half holds and there is
-no second onboarding state. The run does not exist — accepting the team lands on a
-placeholder, and the Thinking state arrives with F6 and F8. **F7-AC-15 must not be
-ticked off against slice 2**, and no test names it.
+**F7-AC-15 — closed 2026-09-15 by slice 8 (STE-66).** Confirming the team now
+goes straight into the first advice run, which is the Thinking state every other
+route into the world passes through. `tests/e2e/landing.spec.ts` exercises the
+confirmation itself rather than the run button, so the criterion is covered by
+its own trigger.
+
+**Worth keeping the reason it was written.** The entry existed because a test
+docblock reading `F7-AC-15 – F7-AC-26` would have counted it covered off a
+range in a comment — the script reads whole files, not titles. That nearly
+happened again on the day it was fixed.
 
 **F7-AC-14 — the confirm step is enforced in the client, not the server.**
 `tests/team-link/routes.test.ts` proves that `resolve` stores nothing and that
@@ -215,25 +218,25 @@ list before it is used (`apps/server/src/model/reasoning.ts`). **What a scan can
 see is how the screen reads to a person** — that half is item 7 of slice 5's manual
 checklist, and enters `docs/manual-coverage.md` only once run.
 
-**F3-AC-06, F3-AC-17, F3-AC-29 — named by tests, and only half built.** Each is
-counted covered because a test names it, and each test proves one half:
+**F3-AC-06, F3-AC-17, F3-AC-29, F3-UP-05 — three of the four closed 2026-09-15
+by slice 8 (STE-66).** Each was counted covered off a test proving one half.
 
-- `F3-AC-06` — the bench-order call leads the Sub category in a blank week
-  (`tests/calls/plan.test.ts`). The editorial stating the consequence is F8's.
-  *Home: STE-66, slice 8.*
-- `F3-AC-17` — *Forced* is built and tested. *Watch*'s **price** trigger is built
-  (2026-09-11), from FPL's own forecast in `bootstrap-static`: set on a transfer when
-  either player is at FPL's strongest likelihood of a change tonight and not locked.
-  The **press-conference** trigger has no data source. *Home: STE-117.*
-- `F3-AC-29` — the shortlist count and the status bar's NBal update
-  (`tests/client/calls.test.ts`). The selected filter's scenario and the priority
-  tally live on the Overview. *Home: STE-66, slice 8.*
-- `F3-UP-05` — each Assistant tab states it is clear when it holds no call
-  (`tests/e2e/assistant.spec.ts`, added 2026-09-11 on slice 5's review). The
-  editorial's "why", the call count reading none, the empty tally and identical
-  Before and After are the Overview's. *Home: STE-66, slice 8.*
+- `F3-AC-06` — **closed.** `tests/client/week.test.ts` gives the world a blank
+  and asserts the editorial leads with the bench-order consequence, and
+  `tests/e2e/overview.spec.ts` does the same in a browser.
+- `F3-AC-29` — **closed.** The selected filter's scenario and the priority tally
+  are in `tests/client/scenario.test.ts` and `tests/client/week.test.ts`, each
+  exercised by deciding a call rather than by handing in a count.
+- `F3-UP-05` — **closed.** A world whose run produced no calls now reaches the
+  editorial's "why", a call count reading none, an empty tally and identical
+  Before and After.
+- `F3-AC-17` — **still open.** *Forced* is built and tested. *Watch*'s **price**
+  trigger is built (2026-09-11), from FPL's own forecast in `bootstrap-static`:
+  set on a transfer when either player is at FPL's strongest likelihood of a
+  change tonight and not locked. The **press-conference** trigger has no data
+  source. *Home: STE-117.*
 
-None of the three may be read as met from the coverage figure.
+`F3-AC-17` may not be read as met from the coverage figure.
 
 
 **F4-AC-02 — the tiles are tested, the swipe is not.** The criterion is that a

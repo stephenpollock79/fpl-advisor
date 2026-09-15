@@ -38,8 +38,22 @@ import { DiffSheet, RefreshInterstitial, Thinking } from './Refresh'
 import styles from './Assistant.module.css'
 import { CategoryCleared, type ClearedRow } from './CategoryCleared'
 import { HeadToHead } from './HeadToHead'
+import { AccountSheet, type Account } from '../Account/AccountSheet'
+import { NewsToken } from './NewsToken'
+import { Overview } from './Overview'
+import { weekOf } from '../../calls/week'
 
 type Category = WorldCall['category']
+
+/**
+ * **The Overview is a fourth view here, not a separate screen** (F8's happy
+ * path). It is first and it is the default, because it is the entry screen for
+ * the week — the decision tabs are what it leads into.
+ *
+ * Rendered from a list rather than hard-coded, so F5's Chips tab appends itself
+ * if it is ever built and the cut leaves no hole (ruled on STE-59).
+ */
+type Tab = 'overview' | Category
 
 const TABS: { category: Category; label: string; noun: string; clear: string }[] = [
   {
@@ -85,17 +99,36 @@ const SHAPE_TITLE: Record<WorldCall['shape'], string> = {
   vice: 'Vice',
 }
 
+/** A wall clock, for the last-run line (F8-AC-18). */
+const clockOf = (iso: string): string => {
+  const at = new Date(iso)
+  return `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
+}
+
 export function AssistantScreen({
   world,
   onSquad,
   onReload,
+  account,
+  startRun = false,
 }: {
   world: World
   onSquad: () => void
   onReload: () => void
+  account: Account
+  /**
+   * Onboarding has just finished, so the first advice run starts without
+   * another tap (F7-AC-15). **Not an exception to F6-AC-15** — nothing is
+   * refreshing on its own; this is the manager's own confirmation, one screen
+   * earlier, and it is the only thing that sets this flag.
+   */
+  startRun?: boolean
 }) {
+  // **This screen's own sheet** (F7-AC-23): cancelling returns here untouched
+  // because nothing ever left.
+  const [accountOpen, setAccountOpen] = useState(false)
   const players = useMemo(() => playerIndex(world), [world])
-  const [tab, setTab] = useState<Category>('transfer')
+  const [tab, setTab] = useState<Tab>('overview')
   const [decisions, setDecisions] = useState<Decisions>(() => initialDecisions(world.decisions))
   const [swaps, setSwaps] = useState<Record<string, { outId: number; inId: number }>>(() =>
     restoredSwaps(world.calls, world.decisions),
@@ -119,6 +152,10 @@ export function AssistantScreen({
   const [scale, setScale] = useState<{ players: number; squad: number } | null>(null)
   const [showDiff, setShowDiff] = useState(false)
   const abort = useRef<AbortController | null>(null)
+
+  // Onboarding's run, started once. The ref is what stops a re-render from
+  // starting a second one, which would spend twice for one confirmation.
+  const onboarded = useRef(false)
 
   const fresh = watchFreshness(world)
   // F4-UP-02: turn the captain change down and the vice call's premise is gone
@@ -158,16 +195,22 @@ export function AssistantScreen({
    */
   const outstandingIn = (category: Category) => pendingIn(category).filter((s) => s.figures.reading === 'call')
 
-  const here = inCategory(tab)
-  const pending = pendingIn(tab)
-  const outstanding = outstandingIn(tab)
+  // On the Overview these are the whole week rather than one category: the
+  // refresh is all-scope there (F8-AC-12) and the interstitial has to state what
+  // that covers.
+  const onOverview = tab === 'overview'
+  const here = onOverview ? shown : inCategory(tab)
+  const pending = onOverview ? [] : pendingIn(tab)
+  const outstanding = onOverview
+    ? shown.filter((s) => decisions.decisions[s.key] === undefined && s.figures.reading === 'call')
+    : outstandingIn(tab)
   const reopenedHere = here.filter((s) => decisions.reopened[s.key] !== undefined).length
 
   // Category cleared takes over when nothing is left pending, and stays while
   // rows are reopened and restored on it — until the manager asks to review them.
   useEffect(() => {
-    if (here.length > 0 && pending.length === 0) setHoldCleared(true)
-  }, [here.length, pending.length])
+    if (!onOverview && here.length > 0 && pending.length === 0) setHoldCleared(true)
+  }, [onOverview, here.length, pending.length])
   // Unchanged, and it already does the right thing for a keep reading: a reading
   // is never decided, so a tab holding one never empties `pending`, never sets
   // `holdCleared`, and never has the cleared summary take the card's place. The
@@ -324,26 +367,39 @@ export function AssistantScreen({
 
   const noRunYet = world.calls.length === 0 && world.lastRunAt === null
 
+  useEffect(() => {
+    if (!startRun || onboarded.current || !noRunYet) return
+    onboarded.current = true
+    void onRefresh()
+  }, [startRun, noRunYet])
+
+  /**
+   * **One derivation of the week, for the editorial, the token and the tab
+   * meta.** Three readings of one pair of lists, which is what makes F8-AC-06
+   * true by construction rather than by care.
+   */
+  const week = useMemo(() => weekOf(world, decisions.decisions), [world, decisions.decisions])
+
+  /** What a tap would rewrite, named on the control itself (F6-AC-07). */
+  const refreshScope = onOverview
+    ? 'everything'
+    : (TABS.find((x) => x.category === tab)?.noun ?? 'everything').toLowerCase()
+
   return (
     <main className={styles.screen}>
       <header className={styles.brandRow}>
-        <img className={styles.avatar} src={avatar} alt="" />
-        <span className={styles.wordmark}>The Gaffer</span>
-        {/* **Symbol only, and left of the toggle.** The label used to be the
-            tab's name, so it changed width between tabs and took the header's
-            height with it. The scope it would rewrite is named in the
-            confirmation, which is the screen that actually needs to say so
-            (F6-AC-07, F6-AC-10) — and an accessible name carries it here. */}
+        {/* The avatar is the route into the account sheet, on every screen
+            carrying a header (F7-AC-21). */}
         <button
-          className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
-          onClick={() => setAsking(true)}
-          disabled={running || noRunYet || world.feedsReachable === false}
-          aria-label={`Refresh ${(TABS.find((x) => x.category === tab)?.noun ?? 'everything').toLowerCase()}`}
-          data-testid="refresh"
+          className={styles.avatarButton}
+          onClick={() => setAccountOpen(true)}
+          aria-label="Account"
+          data-testid="account"
           type="button"
         >
-          ↻
+          <img className={styles.avatar} src={avatar} alt="" />
         </button>
+        <span className={styles.wordmark}>The Gaffer</span>
         <div className={styles.sections} role="tablist">
           <button className={styles.sectionOff} role="tab" aria-selected="false" onClick={onSquad} type="button">
             Squad
@@ -355,6 +411,22 @@ export function AssistantScreen({
       </header>
 
       <nav className={styles.tabs} role="tablist">
+        {/* First and default: this is the entry screen for the week, and the
+            decision tabs are what it leads into (F8 happy path). */}
+        <button
+          role="tab"
+          aria-selected={tab === 'overview'}
+          className={tab === 'overview' ? styles.tabOn : styles.tab}
+          onClick={() => {
+            setTab('overview')
+            setNotice(null)
+          }}
+          data-testid="tab-overview"
+          type="button"
+        >
+          <span>Overview</span>
+          <span className={styles.tabMeta}>{noRunYet ? '—' : week.live.length === 0 ? 'Clear' : String(week.live.length)}</span>
+        </button>
         {TABS.map((t) => {
           // *Clear* covers a tab with nothing in it and a tab holding only keep
           // readings — in both, the honest answer is that there is nothing to do.
@@ -369,6 +441,7 @@ export function AssistantScreen({
               role="tab"
               aria-selected={tab === t.category}
               className={tab === t.category ? styles.tabOn : styles.tab}
+              data-testid={`tab-${t.category}`}
               onClick={() => {
                 setTab(t.category)
                 setCursor(0)
@@ -409,7 +482,45 @@ export function AssistantScreen({
             )}
           </span>
         </span>
+
+        {/* **One control, in the status bar, naming its own scope** (F6-AC-07,
+            F8-AC-12). On the Overview that scope is ALL — and ALL is the one
+            label that matches what a run actually does today, which is why no
+            per-category control is added here (F6-AC-08). */}
+        <span className={styles.statusRefresh}>
+          <NewsToken
+            flagged={week.flagged}
+            since={world.news?.since ?? null}
+            disabled={running || world.feedsReachable === false}
+            onRefreshAll={() => {
+              // Always every scope: new team news is squad-wide, and a scoped
+              // run must never half-clear the token (F8-AC-16, F6-AC-09).
+              setTab('overview')
+              setAsking(true)
+            }}
+          />
+          <button
+            className={running ? `${styles.refresh} ${styles.refreshOff}` : styles.refresh}
+            onClick={() => setAsking(true)}
+            disabled={running || noRunYet || world.feedsReachable === false}
+            aria-label={`Refresh ${refreshScope}`}
+            data-testid="refresh"
+            type="button"
+          >
+            ↻ {onOverview ? 'ALL' : (TABS.find((x) => x.category === tab)?.label ?? '')}
+          </button>
+        </span>
       </section>
+
+      {/* The last-run line says outright when squad news is outstanding
+          (F8-AC-18), so the token is never the only place it is stated. */}
+      <p className={styles.lastRun} data-testid="last-run">
+        {world.lastRunAt === null
+          ? 'no run yet this gameweek'
+          : week.flagged.length > 0
+            ? `last run ${clockOf(world.lastRunAt)} · ${String(week.flagged.length)} player${week.flagged.length === 1 ? '' : 's'} flagged since`
+            : `last run ${clockOf(world.lastRunAt)} · squad news up to date`}
+      </p>
 
 
       {error ? (
@@ -481,6 +592,27 @@ export function AssistantScreen({
               {running ? 'Reading the feeds and working out the week…' : "Get this week's calls"}
             </button>
           </div>
+        ) : onOverview ? (
+          <Overview
+            world={world}
+            week={week}
+            decisions={decisions.decisions}
+            nameOf={(id) => players.get(id)?.surname ?? 'A player'}
+            onOpen={(call) => {
+              setTab(call.category)
+              setCursor(Math.max(0, pendingIn(call.category).findIndex((s) => s.key === call.key)))
+              setHoldCleared(false)
+              setNotice(null)
+            }}
+            onDecide={(call, state) => {
+              if (state === 'pending') {
+                void record(call.key, 'pending', (d) => reopen(d, call.key))
+                return
+              }
+              void record(call.key, state, (d) => decide(d, call.key, state))
+            }}
+            onShowAll={() => setNotice(null)}
+          />
         ) : here.length === 0 ? (
           /* **"Nothing worth changing" is a designed answer, not an absence**
              (CLAUDE.md, *Do not*), so it is the Gaffer saying it rather than a
@@ -527,7 +659,7 @@ export function AssistantScreen({
             than being a bare "are you sure?" (F6-AC-10). */}
         {asking ? (
           <RefreshInterstitial
-            scope={(TABS.find((x) => x.category === tab)?.noun ?? 'everything').toLowerCase()}
+            scope={refreshScope}
             lastRunAt={world.lastRunAt}
             selected={here.filter((s) => decisions.decisions[s.key] === 'selected').length}
             rejected={here.filter((s) => decisions.decisions[s.key] === 'rejected').length}
@@ -548,6 +680,16 @@ export function AssistantScreen({
           />
         ) : null}
       </section>
+
+      {accountOpen ? (
+        <AccountSheet
+          teamName={account.teamName}
+          managerName={account.managerName}
+          gameweekId={world.gameweek.id}
+          onCancel={() => setAccountOpen(false)}
+          onLoggedOut={account.onLoggedOut}
+        />
+      ) : null}
     </main>
   )
 }

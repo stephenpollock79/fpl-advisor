@@ -84,9 +84,15 @@ describe('F6-RS-10, F6-UP-04 · what the model is never asked, and what is delib
     // reluctance would compound and a missed update would be indistinguishable
     // from a genuine no-change. The interface is the guarantee — there is no
     // method to ask.
+    // **Exhaustive on purpose.** A substring check would let a
+    // `judgeMateriality` through; the whole guarantee is that the interface
+    // offers no way to ask. `writeEditorial` joined the list on 2026-09-15 with
+    // the Overview (F8-AC-08) — it is the explain job written over the week
+    // instead of over one card, and it decides nothing.
     const methods = Object.keys(port).filter((k) => typeof (port as unknown as Record<string, unknown>)[k] === 'function')
     expect(methods.sort()).toEqual([
       'proposeTransfers',
+      'writeEditorial',
       'writeReasoning',
     ])
   })

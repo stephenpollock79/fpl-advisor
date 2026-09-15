@@ -58,6 +58,14 @@ export async function fetchMe(signal?: AbortSignal): Promise<Me | null> {
   return (await response.json()) as Me
 }
 
+/**
+ * Ends the session (F7-AC-24, F7-AC-25). The server revokes the row and clears
+ * the cookie; there is no client-side session to forget.
+ */
+export async function logout(): Promise<void> {
+  await post('/api/auth/logout', {})
+}
+
 /** Looks the identifier up and hands back the team. Stores nothing (F7-AC-14). */
 export async function resolveTeam(fplTeamId: number): Promise<LinkedTeam> {
   const { team } = await post<{ team: LinkedTeam }>('/api/team-link/resolve', { fplTeamId })
@@ -174,11 +182,14 @@ export type World = {
   lastScoredGameweek: number | null
   snapshot: {
     id: string
+    /** `fpl_deadline` or, from slice 9, `screenshots`. What the editorial names (F8-AC-04). */
     source: string
     capturedAt: string
     bankTenths: number
     freeTransfers: number
     chipsRemaining: Record<string, string>
+    /** The gameweek whose picks this holds — not the one being advised on. */
+    picksFrom: number | null
   }
   players: WorldPlayer[]
   /** Players outside the squad a call or a picker names. */
@@ -188,6 +199,8 @@ export type World = {
   /** This gameweek's decisions by call key. Pending is no entry (F3-AC-01). */
   decisions: Record<string, DecisionState>
   lastRunAt: string | null
+  /** The week in one read, as the last successful run wrote it (F8-AC-08). */
+  editorial: string | null
   /** When the FPL read behind the players' figures was taken. */
   priceForecastReadAt: string | null
   blanks: number
@@ -206,6 +219,15 @@ export type World = {
   feedsReachable?: boolean
   /** When the data on screen was read. What the amber strip timestamps. */
   dataReadAt?: string | null
+  /**
+   * Squad players whose evidence has moved since the last successful run
+   * (F8-AC-13). Derived on every read, so the token clears when a run moves the
+   * baseline rather than when something remembers to clear a flag (F8-AC-17).
+   */
+  news?: {
+    flagged: { playerId: number; fields: ('status' | 'news' | 'chance' | 'price')[]; nowExcluded: boolean }[]
+    since: string | null
+  }
   attribution: { name: string; href: string }
 }
 

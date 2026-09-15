@@ -28,6 +28,7 @@ import type { ClubRow, PlayerRow, PlayerStateRow } from '../ingest/players.js'
 import type { ProjectionRow } from '../ingest/projections.js'
 import { effectiveProjection } from '../ingest/projections.js'
 import type { SquadPlayer } from '../squad/snapshot.js'
+import type { News } from './news.js'
 
 /** How many gameweeks of difficulty and projection a player carries (F1-AC-19, F3-AC-24). */
 const HORIZON = 3
@@ -135,6 +136,12 @@ export type World = {
     bankTenths: number
     freeTransfers: number
     chipsRemaining: Record<string, string>
+    /**
+     * Which gameweek's picks this squad was read from (F8-AC-04). The editorial
+     * names it — "as at the GW4 deadline" — and it is not the gameweek being
+     * advised on. Null on rows written before slice 7.
+     */
+    picksFrom?: number | null
   }
   players: WorldPlayer[]
   /** Players outside the squad that a call or a picker names — the cards need their figures. */
@@ -145,6 +152,12 @@ export type World = {
   decisions: Record<string, DecisionState>
   /** When the latest succeeded run finished — never a failed one (F6-AC-14). */
   lastRunAt: string | null
+  /**
+   * The week in one read, as the latest succeeded run wrote it (F8-AC-08). Null
+   * before the first run and on runs written before 2026-09-15; the card falls
+   * back to its template rather than rendering a hole (F8-AC-01).
+   */
+  editorial: string | null
   /** When the FPL read the players' figures come from was taken — WATCH's "tonight" is only as fresh as this. */
   priceForecastReadAt: string | null
   blanks: number
@@ -164,6 +177,11 @@ export type World = {
   feedsReachable?: boolean
   /** When the data on screen was read, for the screen to timestamp itself with. */
   dataReadAt?: string | null
+  /**
+   * Squad players whose evidence has moved since the last successful run
+   * (F8-AC-13). Derived on every read rather than stored — see `news.ts`.
+   */
+  news?: News
 }
 
 export type WorldParts = {
@@ -181,6 +199,7 @@ export type WorldParts = {
   /** Ids of non-squad players to carry as candidates. */
   candidateIds?: number[]
   lastRunAt?: string | null
+  editorial?: string | null
   priceForecastReadAt?: string | null
   /** Which gameweek's picks the snapshot holds. Null on rows written before slice 7. */
   picksFrom?: number | null
@@ -269,7 +288,7 @@ export function assembleWorld(parts: WorldParts): World {
       deadlineTime: parts.gameweek.deadlineTime,
     },
     lastScoredGameweek: parts.lastScored?.id ?? null,
-    snapshot: parts.snapshot,
+    snapshot: { ...parts.snapshot, picksFrom: parts.picksFrom ?? null },
     players,
     candidates,
     // **The figures follow the data** (ruled 2026-09-14). Every stored call is
@@ -282,6 +301,7 @@ export function assembleWorld(parts: WorldParts): World {
     ]),
     decisions: Object.fromEntries((parts.decisions ?? []).map((d) => [d.callKey, d.state])),
     lastRunAt: parts.lastRunAt ?? null,
+    editorial: parts.editorial ?? null,
     priceForecastReadAt: parts.priceForecastReadAt ?? null,
     // **Run here, where the gameweek and the projections are both in hand.**
     // The check existed from the day this slice landed and nothing called it,

@@ -13,6 +13,7 @@
 import { useState } from 'react'
 import type { World } from '../../api'
 import avatar from '../../assets/gaffer-avatar.png'
+import { AccountSheet, type Account } from '../Account/AccountSheet'
 import { benchInOrder, formationOf, startersByPosition, totalProjected } from '../../squad/format'
 import { PlayerSlot } from './parts'
 import { StatTable } from './StatTable'
@@ -33,12 +34,22 @@ const CHIPS: [string, string][] = [
 /** Bench slot labels: the substitute keeper, then outfield one, two, three. */
 const BENCH_SLOTS = ['GK', '1', '2', '3']
 
-export function SquadScreen({ world, onAssistant }: { world: World; onAssistant: () => void }) {
+export function SquadScreen({
+  world,
+  onAssistant,
+  account,
+}: {
+  world: World
+  onAssistant: () => void
+  account: Account
+}) {
   const [mode, setMode] = useState<'pitch' | 'stat'>('pitch')
+  // **This screen's own sheet** (F7-AC-23): cancelling returns here untouched.
+  const [accountOpen, setAccountOpen] = useState(false)
 
   return (
     <main className={styles.screen}>
-      <Header world={world} onAssistant={onAssistant} />
+      <Header world={world} onAssistant={onAssistant} onAccount={() => setAccountOpen(true)} />
 
       <div className={styles.modes} role="tablist">
         {(['pitch', 'stat'] as const).map((m) => (
@@ -58,6 +69,16 @@ export function SquadScreen({ world, onAssistant }: { world: World; onAssistant:
       {mode === 'pitch' ? <Pitch world={world} /> : <StatTable players={world.players} />}
 
       <Attribution world={world} />
+
+      {accountOpen ? (
+        <AccountSheet
+          teamName={account.teamName}
+          managerName={account.managerName}
+          gameweekId={world.gameweek.id}
+          onCancel={() => setAccountOpen(false)}
+          onLoggedOut={account.onLoggedOut}
+        />
+      ) : null}
     </main>
   )
 }
@@ -72,13 +93,25 @@ export function SquadScreen({ world, onAssistant }: { world: World; onAssistant:
  * because it is the app's primary navigation and its absence misreads the screen,
  * and it is disabled because a control that looks live and is not is worse.
  */
-function Header({ world, onAssistant }: { world: World; onAssistant: () => void }) {
+function Header({
+  world,
+  onAssistant,
+  onAccount,
+}: {
+  world: World
+  onAssistant: () => void
+  onAccount: () => void
+}) {
   const { snapshot, gameweek } = world
 
   return (
     <header className={styles.header}>
       <div className={styles.brandRow}>
-        <img className={styles.avatar} src={avatar} alt="" />
+        {/* The route into the account sheet, on every screen with a header
+            (F7-AC-21). */}
+        <button className={styles.avatarButton} onClick={onAccount} aria-label="Account" data-testid="account" type="button">
+          <img className={styles.avatar} src={avatar} alt="" />
+        </button>
         <span className={styles.wordmark}>The Gaffer</span>
         <div className={styles.sections} role="tablist">
           <span className={styles.sectionOn} role="tab" aria-selected="true">

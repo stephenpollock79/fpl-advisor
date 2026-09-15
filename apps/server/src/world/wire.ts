@@ -7,6 +7,7 @@
  */
 
 import type { AuthenticatedUser } from '../auth/session.js'
+import type { EvidenceRow } from '../refresh/evidence.js'
 import { lastCompletedDeadline } from '../ingest/gameweeks.js'
 import { ingestWorld } from '../ingest/run.js'
 import { captureSquad } from '../squad/store.js'
@@ -86,6 +87,56 @@ export function worldDeps(
     },
 
     captureSquad,
+
+    /**
+     * **The manager's runs are read with the manager's token; the feed reads are
+     * reference data and read with the service key.** Same split as everywhere
+     * else in this file, and the reason it is worth restating: `player_state` is
+     * league-wide and belongs to nobody, while which read a run saw is the
+     * manager's own history.
+     */
+    async newsInputs(user: AuthenticatedUser) {
+      const db = userClient(user.accessToken)
+      const reference = referenceClient()
+
+      const { data: runs } = await db
+        .from('run')
+        .select('feed_read_id, finished_at')
+        .eq('status', 'succeeded')
+        .order('finished_at', { ascending: false })
+        .limit(1)
+      const lastRun = (runs as { feed_read_id: string | null; finished_at: string | null }[] | null)?.[0] ?? null
+
+      const { data: newest } = await reference
+        .from('feed_read')
+        .select('id')
+        .eq('source', 'fpl_bootstrap')
+        .order('fetched_at', { ascending: false })
+        .limit(1)
+      const newestId = ((newest as { id: string }[] | null)?.[0]?.id) ?? null
+
+      const rows = async (readId: string | null): Promise<EvidenceRow[] | null> => {
+        if (!readId) return null
+        const { data } = await reference
+          .from('player_state')
+          .select('player_id, status, news, news_added, chance_of_playing_next_round, now_cost_tenths')
+          .eq('feed_read_id', readId)
+        return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+          playerId: r['player_id'] as number,
+          status: r['status'] as EvidenceRow['status'],
+          news: (r['news'] as string | null) ?? null,
+          newsAdded: (r['news_added'] as string | null) ?? null,
+          chanceOfPlayingNextRound: (r['chance_of_playing_next_round'] as number | null) ?? null,
+          nowCostTenths: r['now_cost_tenths'] as number,
+        }))
+      }
+
+      return {
+        before: await rows(lastRun?.feed_read_id ?? null),
+        after: (await rows(newestId)) ?? [],
+        since: lastRun?.finished_at ?? null,
+      }
+    },
 
     /**
      * Retire a snapshot rather than delete it. The row is evidence of what the
