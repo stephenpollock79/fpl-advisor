@@ -119,11 +119,46 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       )
     }
 
-    const { raw, record, because } = await deps.model().readSquadScreenshots({ team, transfers, players })
-    if (deps.recordParse) await deps.recordParse(user, record)
+    /**
+     * **Read twice where the first read does not add up, because the answer can
+     * be checked.**
+     *
+     * The read is not deterministic: the same two pictures gave fifteen players
+     * on one attempt and fourteen on the next (2026-09-15). Against an
+     * all-or-nothing rule that makes every upload a coin flip, and the manager
+     * pays for the miss by taking the photographs again for no reason.
+     *
+     * **This is not the retry the reasoning call refuses.** There, a second
+     * attempt at a sentence can only be judged, so a retry is a second charge
+     * for the same opinion. Here the answer is checkable — fifteen players,
+     * eleven starting, a legal shape — so a retry either satisfies the check or
+     * does not, and one extra call on the cheapest model is worth not sending
+     * someone back to a camera roll holding a perfectly good picture.
+     *
+     * **Twice, never more.** A picture that genuinely cannot be read fails on
+     * the second attempt as surely as the tenth, and a loop would turn a bad
+     * upload into an open-ended bill.
+     */
+    const ATTEMPTS = 2
+    let raw: unknown = null
+    let record = null as Awaited<ReturnType<ModelPort['readSquadScreenshots']>>['record'] | null
+    let because: string | undefined
+    let result: ReturnType<typeof parseSquad> | null = null
+
+    for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
+      const read = await deps.model().readSquadScreenshots({ team, transfers, players })
+      raw = read.raw
+      record = read.record
+      because = read.because
+      if (deps.recordParse) await deps.recordParse(user, read.record)
+
+      if (raw === null || raw === undefined) continue
+      result = parseSquad(raw as Parameters<typeof parseSquad>[0], players)
+      if (result.ok) break
+    }
 
     if (raw === null || raw === undefined) {
-      console.error(`[screenshots] the read came back empty — ok=${String(record.ok)} via=${record.via} model=${record.modelId} because=${because ?? 'unknown'}`)
+      console.error(`[screenshots] the read came back empty — ok=${String(record?.ok)} via=${String(record?.via)} model=${String(record?.modelId)} because=${because ?? 'unknown'}`)
       return c.json(
         {
           error: 'upload_failed',
@@ -139,17 +174,14 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       )
     }
 
-    // **The same list the read chose from**, so the composition check and the
-    // name fallback both cost nothing: the positions catch a wrong match, and
-    // the names catch an id the read copied wrongly.
-    const result = parseSquad(raw as Parameters<typeof parseSquad>[0], players)
-    if (!result.ok) {
+    if (result === null || !result.ok) {
       // **Nothing is applied and the existing squad is untouched** (F2-UP-01).
+      const failure = result?.ok === false ? result.failure : null
       return c.json(
         {
           error: 'upload_failed',
-          screen: result.failure.screen,
-          because: result.failure.because,
+          screen: failure?.screen ?? 'team',
+          because: failure?.because ?? 'the Team screenshot could not be read',
           causes: COMMON_CAUSES,
         } satisfies UploadFailed,
         422,

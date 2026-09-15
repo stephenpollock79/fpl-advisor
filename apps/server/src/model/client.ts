@@ -337,9 +337,11 @@ const EDITORIAL_SYSTEM = [
  */
 const PARSE_SYSTEM = [
   'You read two screenshots from the Fantasy Premier League app and report exactly what is on them.',
-  'The first is the Team screen: fifteen players, which eleven start, the bench order, the captain,',
-  'the vice-captain, and which chips remain. The second is the Transfers screen: the bank and the',
-  'number of free transfers.',
+  'The first is the Team screen. **It always shows exactly fifteen players: eleven in the starting',
+  'eleven on the pitch and four substitutes below it. Report all fifteen, every time** — fourteen is',
+  'always a miscount, not a smaller squad. Also report which eleven start, the bench order, the',
+  'captain, the vice-captain, and which chips remain.',
+  'The second is the Transfers screen: the bank and the number of free transfers.',
   '**Report the name exactly as it is printed on the shirt, character for character.** That name is',
   'what identifies the player, and it is checked against a list afterwards — so do not correct it,',
   'expand it, or substitute a similar name you recognise. If a shirt reads "Van Hecke", report',
