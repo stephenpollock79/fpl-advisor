@@ -79,10 +79,9 @@
 
 /* Head to head */
 .h2h { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
-.stepper { display: flex; align-items: center; gap: 6px; }
-.stepLabel { flex: 1; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; color: var(--muted); }
-.pager { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border-light); background: rgb(35 33 29 / 5%); color: var(--ink-3); font-size: 14px; cursor: pointer; }
-.left { font-family: var(--font-mono); font-size: 9px; color: var(--muted); }
+.stepper { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.pager { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border-light); background: rgb(35 33 29 / 5%); color: var(--ink-3); font-size: 13px; line-height: 1; cursor: pointer; }
+.left { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; color: var(--muted); }
 
 .card {
   flex: 1;
@@ -580,8 +579,12 @@
 /* The control sits here rather than in the header from 2026-09-15 (F8-AC-12,
    F6-AC-07): one control, in the status bar, naming the scope it would rewrite.
    In the header it could only be a symbol, and a symbol cannot name a scope. */
+/* One row: the last-run line, and the card stepper where a decision tab has
+   one. Both are chrome, and chrome the card was paying for in height. */
+.statusLine { display: flex; align-items: center; gap: 8px; min-height: 24px; padding: 0 2px; }
+
 .lastRun {
-  margin: 0; padding: 4px 12px 6px;
+  margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em; color: var(--muted);
 }
 

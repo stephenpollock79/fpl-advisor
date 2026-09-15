@@ -19,16 +19,6 @@ import { DifficultyBars, FixturePill } from '../Squad/parts'
 import styles from './Assistant.module.css'
 import type { Shown } from './AssistantScreen'
 
-const SHAPE_LABEL: Record<Shown['call']['shape'], string> = {
-  transfer: 'TRANSFER',
-  forced_swap: 'SUBSTITUTION',
-  doubt_swap: 'SUBSTITUTION · DOUBT',
-  upgrade_swap: 'SUBSTITUTION',
-  bench_order: 'BENCH ORDER',
-  captain: 'CAPTAIN',
-  vice: 'VICE CAPTAIN',
-}
-
 /** How far a drag has to travel before it is a decision rather than a wobble. */
 const SWIPE = 70
 
@@ -37,19 +27,11 @@ type Picker = { outs: WorldPlayer[]; ins: WorldPlayer[]; onSwap: (side: 'out' | 
 export function HeadToHead({
   shown,
   gameweekId,
-  index,
-  left,
-  onPrev,
-  onNext,
   onDecide,
   picker,
 }: {
   shown: Shown
   gameweekId: number
-  index: number
-  left: number
-  onPrev: () => void
-  onNext: () => void
   onDecide: (state: 'selected' | 'rejected' | 'pending') => void
   picker?: Picker | undefined
 }) {
@@ -99,25 +81,12 @@ export function HeadToHead({
   // head-to-head, because there the manager asked for the comparison himself.
   if (!decidable && call.category === 'captaincy') {
     return (
-      <Keep shown={shown} index={index} left={left} onPrev={onPrev} onNext={onNext} />
+      <Keep shown={shown} />
     )
   }
 
   return (
     <div className={styles.h2h}>
-      <div className={styles.stepper}>
-        <span className={styles.stepLabel}>
-          {SHAPE_LABEL[call.shape]} · CALL {index + 1} OF {left}
-        </span>
-        <button className={styles.pager} onClick={onPrev} aria-label="Previous undecided call" type="button">
-          ‹
-        </button>
-        <button className={styles.pager} onClick={onNext} aria-label="Next undecided call" type="button">
-          ›
-        </button>
-        <span className={styles.left}>{left} LEFT</span>
-      </div>
-
       <div
         className={styles.card}
         onPointerDown={onPointerDown}
@@ -299,35 +268,14 @@ export function HeadToHead({
  */
 function Keep({
   shown,
-  index,
-  left,
-  onPrev,
-  onNext,
 }: {
   shown: Shown
-  index: number
-  left: number
-  onPrev: () => void
-  onNext: () => void
 }) {
   const { call, out, figures } = shown
   const role = call.shape === 'vice' ? 'vice-captaincy' : 'captaincy'
 
   return (
     <div className={styles.h2h}>
-      <div className={styles.stepper}>
-        <span className={styles.stepLabel}>
-          {SHAPE_LABEL[call.shape]} · CALL {index + 1} OF {left}
-        </span>
-        <button className={styles.pager} onClick={onPrev} aria-label="Previous undecided call" type="button">
-          ‹
-        </button>
-        <button className={styles.pager} onClick={onNext} aria-label="Next undecided call" type="button">
-          ›
-        </button>
-        <span className={styles.left}>{left} LEFT</span>
-      </div>
-
       <div className={`${styles.card} ${styles.keepCard}`} data-testid="keep-card">
         <span className={styles.keepEyebrow}>No change · nothing to do</span>
         <span className={styles.keepName}>{out.surname}</span>

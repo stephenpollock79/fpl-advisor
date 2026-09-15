@@ -509,15 +509,43 @@ export function AssistantScreen({
         </span>
       </section>
 
-      {/* The last-run line says outright when squad news is outstanding
+      {/* **The last-run line and the card stepper share a row.**
+          The stepper used to sit above the card with a "TRANSFER · CALL 1 OF 3"
+          label beside it — a second line of chrome stating what the tab strip
+          and the card's own header already say, and the card paid for it in
+          height. The line still says outright when squad news is outstanding
           (F8-AC-18), so the token is never the only place it is stated. */}
-      <p className={styles.lastRun} data-testid="last-run">
-        {world.lastRunAt === null
-          ? 'no run yet this gameweek'
-          : week.flagged.length > 0
-            ? `last run ${clockOf(world.lastRunAt)} · ${String(week.flagged.length)} player${week.flagged.length === 1 ? '' : 's'} flagged since`
-            : `last run ${clockOf(world.lastRunAt)} · squad news up to date`}
-      </p>
+      <div className={styles.statusLine}>
+        <p className={styles.lastRun} data-testid="last-run">
+          {world.lastRunAt === null
+            ? 'no run yet this gameweek'
+            : week.flagged.length > 0
+              ? `last run ${clockOf(world.lastRunAt)} · ${String(week.flagged.length)} player${week.flagged.length === 1 ? '' : 's'} flagged since`
+              : `last run ${clockOf(world.lastRunAt)} · squad news up to date`}
+        </p>
+
+        {!onOverview && current && pending.length > 0 ? (
+          <span className={styles.stepper}>
+            <button
+              className={styles.pager}
+              onClick={() => setCursor((c) => (c + pending.length - 1) % pending.length)}
+              aria-label="Previous undecided call"
+              type="button"
+            >
+              ‹
+            </button>
+            <button
+              className={styles.pager}
+              onClick={() => setCursor((c) => (c + 1) % pending.length)}
+              aria-label="Next undecided call"
+              type="button"
+            >
+              ›
+            </button>
+            <span className={styles.left}>{pending.length} LEFT</span>
+          </span>
+        ) : null}
+      </div>
 
 
       {error ? (
@@ -643,10 +671,6 @@ export function AssistantScreen({
             key={current.key}
             shown={current}
             gameweekId={world.gameweek.id}
-            index={cursor % pending.length}
-            left={pending.length}
-            onPrev={() => setCursor((c) => (c + pending.length - 1) % pending.length)}
-            onNext={() => setCursor((c) => (c + 1) % pending.length)}
             onDecide={onDecide}
             picker={picker}
           />
