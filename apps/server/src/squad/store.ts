@@ -9,6 +9,7 @@
 
 import type { AuthenticatedUser } from '../auth/session.js'
 import { referenceClient, userClient } from '../supabase.js'
+import type { ParsedSquad } from './parse.js'
 import { latestReadId } from '../world/reads.js'
 import {
   type PriceNow,
@@ -175,4 +176,73 @@ async function getJson<T = Record<string, unknown>>(path: string): Promise<T> {
   const response = await fetch(`${FPL_API}${path}`, { headers: { Accept: 'application/json' } })
   if (!response.ok) throw new Error(`FPL ${path} responded ${response.status}`)
   return (await response.json()) as T
+}
+
+/**
+ * A squad read off the manager's own screen (F2-AC-04).
+ *
+ * **It replaces wholesale.** The two screenshots are the source of truth for
+ * that week, not a diff onto the last-deadline squad — so the previous snapshot
+ * is superseded rather than merged into, and rather than deleted, because a
+ * disclosure line must never point at a squad that no longer exists.
+ *
+ * **`picks_from` stays null, and that is deliberate.** This squad did not come
+ * from any gameweek's picks; it came off a screen. The world's staleness rule
+ * reads `source` instead, so an uploaded squad is never aged out — it stands
+ * until another upload replaces it or the gameweek turns (ruled 2026-09-15).
+ * Writing a gameweek here to make it *look* current would be recording
+ * something untrue, which is a field a later reader trusts.
+ *
+ * **No purchase prices.** A screenshot does not show what was paid. They are
+ * backfilled before the next run from `entry/{id}/transfers/`, exactly as they
+ * are for a squad captured any other way (STE-87).
+ */
+export async function storeCorrectedSquad(
+  user: AuthenticatedUser,
+  gameweek: number,
+  squad: ParsedSquad,
+): Promise<string> {
+  const db = userClient(user.accessToken)
+
+  await db
+    .from('squad_snapshot')
+    .update({ superseded_at: new Date().toISOString() })
+    .eq('gameweek', gameweek)
+    .is('superseded_at', null)
+
+  const { data, error } = await db
+    .from('squad_snapshot')
+    .insert({
+      user_id: user.userId,
+      gameweek,
+      // Singular, as the check constraint has it since slice 3.
+      source: 'screenshot',
+      picks_from: null,
+      bank_tenths: squad.bankTenths,
+      // **Read, not reconstructed.** The Transfers screen states it, which is
+      // what closes architecture §8.4 and STE-110.
+      free_transfers: squad.freeTransfers,
+      chips_remaining: squad.chipsRemaining,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(`could not store the corrected squad: ${error.message}`)
+  const snapshotId = (data as { id: string }).id
+
+  const { error: playersError } = await db.from('squad_player').insert(
+    squad.players.map((p) => ({
+      snapshot_id: snapshotId,
+      user_id: user.userId,
+      player_id: p.playerId,
+      is_starter: p.isStarter,
+      bench_order: p.benchOrder,
+      is_captain: p.isCaptain,
+      is_vice: p.isVice,
+      purchase_price_tenths: null,
+    })),
+  )
+  if (playersError) throw new Error(`could not store the corrected fifteen: ${playersError.message}`)
+
+  return snapshotId
 }

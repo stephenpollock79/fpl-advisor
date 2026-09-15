@@ -58,6 +58,54 @@ export async function fetchMe(signal?: AbortSignal): Promise<Me | null> {
   return (await response.json()) as Me
 }
 
+/** Which picture fell short, and why, in the failure screen's own words (F2-UP-01). */
+export type UploadFailure = {
+  screen: 'team' | 'transfers'
+  because: string
+  causes: string[]
+}
+
+/**
+ * The two screenshots (F2). **All-or-nothing across both** — either a whole
+ * squad is written or nothing is, and a failure names which picture and why.
+ *
+ * Still `api.ts` and nowhere else: an upload is a write, and the moment a
+ * component opens its own request the single data path stops being single
+ * (ADR 0005).
+ */
+export async function uploadScreenshots(
+  team: string,
+  transfers: string,
+): Promise<{ ok: true; snapshotId: string; locksBroken: number } | { ok: false; failure: UploadFailure }> {
+  const response = await fetch('/api/squad/screenshots', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ team, transfers }),
+  })
+  const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>
+
+  if (response.ok) {
+    return {
+      ok: true,
+      snapshotId: String(payload['snapshotId'] ?? ''),
+      locksBroken: Number(payload['locksBroken'] ?? 0),
+    }
+  }
+
+  if (payload['error'] === 'upload_failed') {
+    return {
+      ok: false,
+      failure: {
+        screen: payload['screen'] === 'transfers' ? 'transfers' : 'team',
+        because: String(payload['because'] ?? 'the screenshots could not be read'),
+        causes: (payload['causes'] as string[] | undefined) ?? [],
+      },
+    }
+  }
+
+  throw new ApiError(String(payload['error'] ?? `http_${response.status}`))
+}
+
 /**
  * Ends the session (F7-AC-24, F7-AC-25). The server revokes the row and clears
  * the cookie; there is no client-side session to forget.

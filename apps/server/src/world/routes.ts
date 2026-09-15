@@ -107,8 +107,20 @@ export function worldRoutes(deps: WorldDeps) {
      * column existed cannot say where it came from, and guessing in the generous
      * direction is how the stale one survives.
      */
+    /**
+     * **The staleness rule is about squads read from FPL, and about no others**
+     * (ruled 2026-09-15). A squad the manager uploaded did not come from any
+     * gameweek's picks, so there is no gameweek for it to have moved past — it
+     * stands until another upload replaces it or the gameweek turns, and the
+     * turn needs no rule here because the snapshot above is selected by the
+     * gameweek it is *for*.
+     *
+     * Reading `picks_from` for an uploaded squad would retire it on the very
+     * next open and re-read from FPL, silently undoing the upload (F2-AC-04).
+     */
     const completed = await deps.lastCompletedGameweek()
-    if (parts && (parts.picksFrom ?? -1) < completed) {
+    const fromFpl = parts?.snapshot.source !== 'screenshot'
+    if (parts && fromFpl && (parts.picksFrom ?? -1) < completed) {
       await deps.supersedeSnapshot(user, parts.snapshot.id)
       parts = null
     }

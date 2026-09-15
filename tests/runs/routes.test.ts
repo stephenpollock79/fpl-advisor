@@ -182,6 +182,9 @@ describe('POST /api/runs', () => {
       async writeEditorial() {
         throw new Error('unreachable')
       },
+      async readSquadScreenshots() {
+        throw new Error('unreachable')
+      },
     }
     const h = harness({ model: () => broken })
     const response = await h.post()

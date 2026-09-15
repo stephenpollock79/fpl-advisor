@@ -314,7 +314,7 @@ export async function composeEditorial(input: {
   /** The whole week as it will be stored — carried calls included. */
   calls: readonly StoredCall[]
   nameOf: (playerId: number) => string
-  context: { exception: 'blank' | 'double' | null; squadSource: 'deadline' | 'screenshots' }
+  context: { exception: 'blank' | 'double' | null; squadSource: 'deadline' | 'screenshot' }
 }): Promise<{ text: string; record: ModelCallRecord | null }> {
   const editorialInput: EditorialInput = {
     calls: input.calls

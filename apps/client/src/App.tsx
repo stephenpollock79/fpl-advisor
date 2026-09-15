@@ -87,6 +87,9 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
   const reload = useReloadWorld()
   // Straight to the Assistant after the team link: that is where the run is.
   const [view, setView] = useState<"squad" | "assistant">(justLinked ? "assistant" : "squad")
+  // A squad correction returns through the Thinking state (F2-AC-05), which is
+  // the same route onboarding's first run takes.
+  const [corrected, setCorrected] = useState(false)
 
   // A first open fetches both feeds before answering, so this can take a few
   // seconds. The Thinking state that narrates it properly is F6 and F8.
@@ -109,11 +112,22 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
         onSquad={() => setView("squad")}
         onReload={reload}
         account={account}
-        startRun={justLinked}
+        startRun={justLinked || corrected}
       />
     )
   }
-  return <SquadScreen world={state.world} onAssistant={() => setView("assistant")} account={account} />
+  return (
+    <SquadScreen
+      world={state.world}
+      onAssistant={() => setView("assistant")}
+      onCorrected={() => {
+        setCorrected(true)
+        reload()
+        setView("assistant")
+      }}
+      account={account}
+    />
+  )
 }
 
 function Note({ children }: { children: React.ReactNode }) {

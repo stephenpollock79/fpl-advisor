@@ -15,6 +15,8 @@ import { worldDeps } from './world/wire.js'
 import { decisionRoutes } from './decisions/routes.js'
 import { decisionDeps } from './decisions/wire.js'
 import { runRoutes } from './runs/routes.js'
+import { screenshotRoutes } from './squad/screenshots.js'
+import { screenshotDeps } from './squad/wire.js'
 import { runDeps } from './runs/wire.js'
 import { declaredVariables, loadEnv } from './env.js'
 import { configureSupabase } from './supabase.js'
@@ -75,6 +77,7 @@ app.route('/', teamLinkRoutes({ fetchEntry, authenticate: authenticateRequest, s
 app.route('/', worldRoutes(worldDeps(authenticateRequest)))
 app.route('/', decisionRoutes(decisionDeps(authenticateRequest)))
 app.route('/', runRoutes(runDeps(authenticateRequest)))
+app.route('/', screenshotRoutes(screenshotDeps(authenticateRequest)))
 
 // Every other /api path is a JSON 404. Without this the SPA fallback below
 // would answer a mistyped fetch with index.html, and the caller would fail on

@@ -61,6 +61,8 @@ import { type CardInfo, type StoredCall, composeEditorial, generateWeek } from '
 export type WeekInputs = {
   gameweek: number
   snapshotId: string
+  /** Where this week's squad came from, for the editorial (F8-AC-04). */
+  squadSource: 'deadline' | 'screenshot'
   plan: PlanInput
   cards: Map<number, CardInfo>
 }
@@ -357,7 +359,13 @@ export function runRoutes(deps: RunDeps) {
           model,
           calls: withCarried,
           nameOf: (id) => named.get(id) ?? 'A player',
-          context: { exception: blankWeek ? 'blank' : null, squadSource: 'deadline' },
+          context: {
+            exception: blankWeek ? 'blank' : null,
+            // **Read from the snapshot, not assumed.** Slice 8 hardcoded this
+            // because there was only one source; F2 makes the second real, and
+            // slice 8's own review named the hardcoding as the gap.
+            squadSource: week.squadSource,
+          },
         })
         if (editorial.record) modelCalls.push(editorial.record)
 

@@ -529,7 +529,7 @@ criteria files are derived and this repo must not edit them.
 
 ---
 
-### 8.4 Free transfers remaining are derived, not read — **STE-110, before the MVP cut, 15 September**
+### 8.4 Free transfers remaining are derived, not read — **closed 2026-09-15 (STE-110), built in slice 9**
 
 F1-AC-07 puts the free-transfer count in the header. The Balance beside it is read straight
 from `entry_history.bank`, already in tenths. **The transfer balance is in no public endpoint.**
@@ -543,12 +543,14 @@ So slice 3 reconstructs it: one earned per gameweek after the first, minus those
 over, floored at zero, capped at five, with wildcard and free-hit gameweeks exempt because they
 grant unlimited transfers. The arithmetic is unit-tested and correct for the rules as they stand.
 
-**The quiet failure is the cap.** It was two until 2024/25 and is five now. A rule change makes
-the header confidently wrong with nothing on screen to say so — and every test still passes,
-because the tests assert the reconstruction rather than the truth. The fix that removes the
-guesswork is reading the count from the F2 screenshot, which displays it and which the app
-already parses (slice 9). Until then the derivation stands and must not be mistaken for a feed
-value.
+**The quiet failure was the cap.** It was two until 2024/25 and is five now. A rule change would
+make the header confidently wrong with nothing on screen to say so — and every test would still
+pass, because the tests assert the reconstruction rather than the truth.
+
+**Closed by reading it instead.** Slice 9's Transfers screenshot states the figure, and a parsed
+figure always wins. **The derivation is not deleted**: a squad captured from FPL has no screenshot
+behind it and still needs one, so both live on — and the rule is that a figure from a source that
+states it beats a figure worked out from rules, never the other way round.
 
 ---
 

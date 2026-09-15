@@ -88,7 +88,7 @@ const build = () => {
 
 /** A stand-in model: proposes what it is told to and writes a fixed line. */
 const scriptedModel = (proposals: { outPlayerId: number; inPlayerId: number }[], line: string): ModelPort => {
-  const record = (step: 'propose' | 'reason' | 'editorial') => ({
+  const record = (step: 'propose' | 'reason' | 'editorial' | 'parse') => ({
     step,
     via: 'mock' as const,
     pinned: step === 'propose' ? 'claude-haiku-4-5' : 'claude-sonnet-5',
@@ -108,6 +108,9 @@ const scriptedModel = (proposals: { outPlayerId: number; inPlayerId: number }[],
     },
     async writeEditorial() {
       return { text: 'A quiet week with one thing worth doing.', record: record('editorial') }
+    },
+    async readSquadScreenshots() {
+      return { raw: null, record: record('parse') }
     },
   }
 }

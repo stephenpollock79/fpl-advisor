@@ -14,6 +14,7 @@ import { useState } from 'react'
 import type { World } from '../../api'
 import avatar from '../../assets/gaffer-avatar.png'
 import { AccountSheet, type Account } from '../Account/AccountSheet'
+import { UploadSheet } from './UploadSheet'
 import { benchInOrder, formationOf, startersByPosition, totalProjected } from '../../squad/format'
 import { PlayerSlot } from './parts'
 import { StatTable } from './StatTable'
@@ -37,19 +38,28 @@ const BENCH_SLOTS = ['GK', '1', '2', '3']
 export function SquadScreen({
   world,
   onAssistant,
+  onCorrected,
   account,
 }: {
   world: World
   onAssistant: () => void
+  /** A correction landed: go to the Assistant and run, as F2-AC-05 requires. */
+  onCorrected: () => void
   account: Account
 }) {
   const [mode, setMode] = useState<'pitch' | 'stat'>('pitch')
   // **This screen's own sheet** (F7-AC-23): cancelling returns here untouched.
   const [accountOpen, setAccountOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   return (
     <main className={styles.screen}>
-      <Header world={world} onAssistant={onAssistant} onAccount={() => setAccountOpen(true)} />
+      <Header
+        world={world}
+        onAssistant={onAssistant}
+        onAccount={() => setAccountOpen(true)}
+        onUpdate={() => setUploadOpen(true)}
+      />
 
       <div className={styles.modes} role="tablist">
         {(['pitch', 'stat'] as const).map((m) => (
@@ -69,6 +79,20 @@ export function SquadScreen({
       {mode === 'pitch' ? <Pitch world={world} /> : <StatTable players={world.players} />}
 
       <Attribution world={world} />
+
+      {uploadOpen ? (
+        <UploadSheet
+          onCancel={() => setUploadOpen(false)}
+          onCorrected={() => {
+            setUploadOpen(false)
+            // **Through F6's regeneration, never a path of its own**
+            // (F2-AC-05, F2-AC-06): the Assistant's Thinking state is the one
+            // route every re-read of the world passes through, and the run it
+            // starts is the same streamed one a refresh starts.
+            onCorrected()
+          }}
+        />
+      ) : null}
 
       {accountOpen ? (
         <AccountSheet
@@ -97,10 +121,12 @@ function Header({
   world,
   onAssistant,
   onAccount,
+  onUpdate,
 }: {
   world: World
   onAssistant: () => void
   onAccount: () => void
+  onUpdate: () => void
 }) {
   const { snapshot, gameweek } = world
 
@@ -158,8 +184,9 @@ function Header({
         })}
         <button
           className={styles.update}
+          onClick={onUpdate}
+          data-testid="update"
           type="button"
-          title="Correct the squad from screenshots — arrives with slice 9"
         >
           <span className={styles.updateArrow} aria-hidden="true">
             ↑

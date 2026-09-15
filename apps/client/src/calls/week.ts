@@ -136,7 +136,10 @@ function verdictFor(player: WorldPlayer, movedPrice: boolean): { verdict: string
  * disagree with the squad it is describing.
  */
 function squadStateLineOf(snapshot: World['snapshot']): string {
-  if (snapshot.source === 'screenshots') {
+  // **Singular, as `squad_snapshot`'s check constraint has it.** This read
+  // `screenshots` from 2026-09-15 until the same evening, so the branch could
+  // never fire and the editorial went on naming the deadline after an upload.
+  if (snapshot.source === 'screenshot') {
     const at = new Date(snapshot.capturedAt)
     const time = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`
     return `built from the squad screenshots you uploaded at ${time}`
