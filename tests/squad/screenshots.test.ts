@@ -118,6 +118,40 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
     expect(sawPlayers).toBe(2)
   })
 
+  it('F2-UP-01: a read that never answers says so, rather than blaming the picture', async () => {
+    // **The trigger is the model returning nothing at all** — a throw, a
+    // refusal, or a reply that is not JSON. It reached the manager as "only 0
+    // of 15 players legible" and sent him back to a camera roll holding a good
+    // picture, twice, on 2026-09-15. A failure he cannot act on must say so.
+    const { post, stored } = harness({
+      model: () =>
+        ({
+          async readSquadScreenshots() {
+            return { raw: null, record: { ok: false, via: 'api', modelId: 'none' } as never }
+          },
+        }) as never,
+    })
+
+    const response = await post({ team: IMAGE, transfers: IMAGE })
+    const body = (await response.json()) as { because: string }
+
+    expect(response.status).toBe(502)
+    expect(body.because).toMatch(/our fault and not your picture/)
+    expect(body.because).not.toMatch(/legible/)
+    expect(stored).toEqual([])
+  })
+
+  it('F2-UP-01: an empty player list is our fault too, and never reported as an unreadable picture', async () => {
+    const { post, stored } = harness({ trackedPlayers: async () => [] })
+
+    const response = await post({ team: IMAGE, transfers: IMAGE })
+    const body = (await response.json()) as { because: string }
+
+    expect(response.status).toBe(503)
+    expect(body.because).toMatch(/our fault and not your picture/)
+    expect(stored).toEqual([])
+  })
+
   it('F2-UP-01: one picture is not enough, because no FPL screen carries everything', async () => {
     const { post, stored } = harness()
     expect((await post({ team: IMAGE })).status).toBe(400)
