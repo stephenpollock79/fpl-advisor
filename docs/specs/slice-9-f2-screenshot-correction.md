@@ -12,22 +12,22 @@ own and are closed or homed already.
 ## Seams
 
 **The parse is pure, and it is the slice's seam.** Two images in, a squad out, under
-`apps/server/src/squad/parse.ts`: no network, no database, no clock. Every failure case
-`F2-UP-01` names — four of fifteen legible, a missing free-transfer figure, the wrong screen
-entirely — is fabricated, because none can be produced on demand from a real phone.
+`apps/server/src/squad/parse.ts`: no network, no database, no clock. Every failure `F2-UP-01`
+names — four of fifteen legible, a missing free-transfer figure, the wrong screen — is fabricated,
+because none can be produced on demand from a real phone.
 
 **The correction runs through F6's regeneration, never a path of its own** (`F2-AC-06`). It writes
 a snapshot, then starts the existing streamed run with `trigger = 'screenshot_correction'`, which
 `run`'s check constraint already allows. Selected calls survive and rejected ones stay suppressed
 because the locks code is the same code.
 
-**No images are stored.** They reach the model and are discarded. Keeping them would need a bucket,
-a retention rule and a policy, and a migration to undo; wanting them later is a decision, not a
+**No images are stored.** They reach the model and are discarded. Keeping them needs a bucket, a
+retention rule and a policy, and a migration to undo; wanting them later is a decision, not a
 default.
 
-**The model call is Haiku**, because ADR 0009 routes extraction there and reading a picture is
+**The model call is Haiku** — ADR 0009 routes extraction there, and reading a picture is
 extraction. Its own pinned step, `parse`, so an upload's cost shows on the run record rather than
-hiding inside the proposal count — the same reason the editorial got one.
+inside the proposal count.
 
 **No migration in this slice.** `decision.broken_by_snapshot_id` already exists for `F2-AC-07`,
 unread and unwritten since slice 5, and free transfers replace a derived integer in the column that
@@ -43,6 +43,7 @@ not a prerequisite.
 
 - `apps/server/src/squad/parse.ts` — the two-image parse, and what a partial read does.
 - `apps/server/src/squad/store.ts` — a snapshot whose source is a screenshot.
+- `apps/server/src/world/routes.ts` — the staleness guard reads `source`, not just the gameweek.
 - `apps/server/src/squad/routes.ts`, `wire.ts` — `POST /api/squad/screenshots`.
 - `apps/server/src/model/client.ts` — `readSquadScreenshots`, pinned to Haiku.
 - `apps/server/src/refresh/locks.ts` — a contradicted lock broken and reported.
@@ -57,23 +58,30 @@ not a prerequisite.
 **`POST /api/squad/screenshots`** takes both images as base64 data URLs in one request — `team` and
 `transfers` — and returns `{ snapshotId }`, after which the client starts a run exactly as the
 refresh control does. **Each image is capped at 4 MB and downscaled client-side to 1600px on its
-long edge before upload**; a phone screenshot is about 2 MB and two untouched ones would put 5.5 MB
-of base64 in a single request body.
+long edge**; two untouched phone screenshots would put about 5.5 MB of base64 in one request.
 
 **All-or-nothing, and this is the whole list** (`F2-UP-01`): from the Team screenshot, fifteen
 players, who starts, the bench order, the captain, the vice and the chip row; from the Transfers
-screenshot, the bank and the free transfers. **Anything short of all of that applies nothing**, and
-the failure screen names which screenshot fell short and what was missing from it.
+screenshot, the bank and the free transfers. **Anything short applies nothing**, and the failure
+names which screenshot fell short and what was missing.
 
 **`source` is the string `screenshot`, singular.** That is what `squad_snapshot`'s check constraint
 allows, and **slice 8's client compares against `screenshots`** — so F8-AC-04's screenshot line
 cannot fire today. Correcting that spelling is this slice's, and its test takes the value from the
 migration rather than typing it again.
 
-**`picks_from` is set to the gameweek being advised, not left null.** `GET /api/world` retires a
-snapshot whose `picks_from` is older than the last completed deadline, and reads null as stale — so
-a corrected squad with a null there would be thrown away and re-read from FPL on the very next open,
-silently undoing the upload.
+**An uploaded squad is never aged out. The staleness rule applies to squads read from FPL and to no
+others** (ruled 2026-09-15). `GET /api/world` currently retires any snapshot whose `picks_from` is
+older than the last completed deadline, reading null as stale — which would throw a correction away
+on the very next open and re-read from FPL, silently undoing the upload. **The guard now reads
+`source`**: `fpl_deadline` ages as before; `screenshot` does not, and keeps `picks_from` null,
+because an uploaded squad did not come from any gameweek's picks and a field that says it did is a
+lie a later reader will trust.
+
+**So an upload stands until replaced or the week turns** (`F2-UP-02`): a second upload supersedes
+it, and a new gameweek finds no snapshot for itself — the world selects on the `gameweek` column —
+and captures fresh. **The cost is that a wrong upload is sticky**, and that a transfer made in the
+FPL app afterwards is invisible until the next upload. `F2-UP-02` rules both acceptable.
 
 **Free transfers come from the Transfers screenshot and replace the derivation** in
 `freeTransfersRemaining()` (architecture §8.4, STE-110). Where a squad has no screenshot behind it
@@ -111,6 +119,8 @@ it('F2-AC-06: a correction runs the same regeneration, so a selected call surviv
 it('F2-AC-07, F6-RS-07: a screenshot that contradicts a selected call breaks that lock and reports it', …)
 it('F6-RS-06: a correction is new evidence, so it regenerates rather than reusing', …)
 it('F8-AC-04: a snapshot written by a correction reads as screenshots, with the value taken from the migration', …)
+it('F2-AC-04: opening the app mid-gameweek after an upload keeps the uploaded squad, where a deadline-read one of the same age is retired', …)
+it('F2-AC-04, F6-UP-03: the next gameweek finds no uploaded squad for itself and reads fresh from FPL', …)
 it('F1-AC-07: a parsed free-transfer figure wins over the reconstruction, and the reconstruction stands without one', …)
 it('F2-AC-05: a successful read returns through the Thinking state rather than back to the squad', …)
 ```
