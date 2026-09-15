@@ -164,6 +164,23 @@ describe('F2-UP-01 · a wrong match is caught by the shape of the squad', () => 
     expect(result.squad.players.filter((p) => p.playerId === 3)).toHaveLength(1)
   })
 
+  it('F2-UP-01: a shirt read as "Gross" matches the player FPL calls "Groß"', () => {
+    // **Every other accent survives the strip; ß does not.** Kinský decomposes
+    // to kinsky and João to joao, but ß is removed outright — leaving Groß as
+    // "gro" while a reader writing "Gross" gives "gross". He is one of the
+    // fifteen this was built for, so the case is real rather than theoretical.
+    const players = fifteen()
+    const german = players[6] as Record<string, unknown> | undefined
+    if (german) german['name'] = 'Gross'
+
+    const withGross = legal.map((p) => (p.id === 7 ? { ...p, name: 'Groß' } : p))
+    const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }), withGross)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.squad.players.map((p) => p.playerId)).toContain(7)
+  })
+
   it('F2-UP-01: where two players share a name, the id is what settles it', () => {
     // The one case a name genuinely cannot decide — and the only case the id is
     // still trusted for. Player 7 and player 900 both read as "Silva"; the read

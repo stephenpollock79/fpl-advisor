@@ -106,6 +106,15 @@ const isTenths = (v: unknown): v is number => typeof v === 'number' && Number.is
  */
 const normalise = (name: string): string =>
   name
+    /**
+     * **ß first, because it does not decompose.** Every other accent in FPL's
+     * data breaks into a letter plus a mark and survives the strip below —
+     * Kinský becomes kinsky, João becomes joao. `ß` does not: it would be
+     * removed outright, leaving Groß as "gro" while a reader transcribing
+     * "Gross" gives "gross", and the two would never meet. It is one of the
+     * fifteen in the squad this was built for.
+     */
+    .replace(/ß/g, 'ss')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     // Letters and digits: punctuation and spacing differ between a data field
