@@ -161,6 +161,11 @@ The actual contracts: route request and response shapes, types, component props,
 and their migration. Interaction detail that a criterion implies but does not spell out lives here,
 citing the criterion.
 
+**Every behaviour here names its value** (P17): the threshold, the window, the field it reads,
+which list it counts, which of two figures it shows. Read each sentence back and ask whether two
+competent people would build the same thing from it — where they would not, the missing word is a
+value. Where one genuinely cannot be fixed yet, say so and name who decides it in the build.
+
 ## Criteria in scope
 
 Identifiers only, grouped, **never restated**. The identifier resolves to `docs/criteria/`; copying
