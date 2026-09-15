@@ -39,6 +39,9 @@ const TRACKED = [
   ...[9, 10, 11].map((id) => ({ id, name: `Fwd${String(id)}`, club: 'NEW', position: 'FWD' })),
 ]
 
+/** The same fifteen, belonging to somebody else. */
+const STRANGERS = TRACKED.map((p) => ({ ...p, id: p.id + 500, name: `${p.name}X` }))
+
 const harness = (overrides: Partial<Parameters<typeof screenshotRoutes>[0]> = {}) => {
   const stored: { gameweek: number; squad: ParsedSquad }[] = []
   const app = screenshotRoutes({
@@ -64,9 +67,21 @@ const harness = (overrides: Partial<Parameters<typeof screenshotRoutes>[0]> = {}
   return { post, stored }
 }
 
-/** What a clean model read looks like, built from the squad it should produce. */
-const fromSquad = (s: ParsedSquad) => ({
-  team: { players: s.players, chips: Object.entries(s.chipsRemaining).map(([chip, state]) => ({ chip, state })) },
+/**
+ * What a clean model read looks like, built from the squad it should produce.
+ *
+ * **Each player carries the name as well as the id**, because the name is what
+ * identifies him — the id only breaks a tie between two who share one. A
+ * fixture of bare ids was testing the design that shipped wrong players.
+ */
+const fromSquad = (s: ParsedSquad, tracked = TRACKED) => ({
+  team: {
+    players: s.players.map((p) => ({
+      ...p,
+      name: tracked.find((t) => t.id === p.playerId)?.name ?? `Player${String(p.playerId)}`,
+    })),
+    chips: Object.entries(s.chipsRemaining).map(([chip, state]) => ({ chip, state })),
+  },
   transfers: { bankTenths: s.bankTenths, freeTransfers: s.freeTransfers },
 })
 
@@ -355,8 +370,8 @@ describe('F2-UP-02, F2-UP-03 · the two the criteria deliberately do not build',
     // the criterion says not to pretend otherwise.
     const strangers: ParsedSquad = { ...squad(), players: squad().players.map((p) => ({ ...p, playerId: p.playerId + 500 })) }
     const { post, stored } = harness({
-      model: () => ({ async readSquadScreenshots() { return { raw: fromSquad(strangers), record: null as never } } }) as never,
-      trackedPlayers: async () => TRACKED.map((p) => ({ ...p, id: p.id + 500 })),
+      model: () => ({ async readSquadScreenshots() { return { raw: fromSquad(strangers, STRANGERS), record: null as never } } }) as never,
+      trackedPlayers: async () => STRANGERS,
     })
 
     expect((await post({ team: IMAGE, transfers: IMAGE })).status).toBe(200)
