@@ -93,10 +93,49 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
     }
 
     const players = await deps.trackedPlayers()
+
+    /**
+     * **"No players legible" and "the read never came back" are different
+     * failures, and they were reported as the same one** (found live
+     * 2026-09-15). A model call that throws, is refused, or answers with
+     * something that is not JSON reached `parseSquad` as an empty object and
+     * came out as "only 0 of 15 players legible on the Team screenshot" —
+     * which sent the manager back to a camera roll holding a perfectly good
+     * picture, twice.
+     *
+     * A failure the manager cannot act on has to say so, or it is worse than
+     * no message at all.
+     */
+    if (players.length === 0) {
+      console.error('[screenshots] no players are on file to match a screenshot against')
+      return c.json(
+        {
+          error: 'upload_failed',
+          screen: 'team',
+          because: 'the app has no player list to match your squad against, which is our fault and not your picture',
+          causes: [],
+        } satisfies UploadFailed,
+        503,
+      )
+    }
+
     const { raw, record } = await deps.model().readSquadScreenshots({ team, transfers, players })
     if (deps.recordParse) await deps.recordParse(user, record)
 
-    const result = parseSquad((raw ?? {}) as Parameters<typeof parseSquad>[0])
+    if (raw === null || raw === undefined) {
+      console.error(`[screenshots] the read came back empty — ok=${String(record.ok)} via=${record.via} model=${record.modelId}`)
+      return c.json(
+        {
+          error: 'upload_failed',
+          screen: 'team',
+          because: 'the reader did not answer, which is our fault and not your picture',
+          causes: [],
+        } satisfies UploadFailed,
+        502,
+      )
+    }
+
+    const result = parseSquad(raw as Parameters<typeof parseSquad>[0])
     if (!result.ok) {
       // **Nothing is applied and the existing squad is untouched** (F2-UP-01).
       return c.json(
