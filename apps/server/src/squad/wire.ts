@@ -31,6 +31,33 @@ export function screenshotDeps(authenticate: ScreenshotDeps['authenticate']): Sc
       return next
     },
 
+    /**
+     * Reference data, so the service key — these are the same rows every screen
+     * already reads, and they belong to nobody.
+     */
+    async trackedPlayers() {
+      const reference = referenceClient()
+      // **Two reads and a join in code, rather than an embedded select.** An
+      // embedded join that does not resolve comes back as null rather than an
+      // error, which would quietly strip the club from every line and leave the
+      // model choosing between two players of the same name on nothing.
+      const [{ data: players }, { data: clubs }] = await Promise.all([
+        reference.from('player').select('id, surname, position, club_id'),
+        reference.from('club').select('id, short_name'),
+      ])
+
+      const clubName = new Map(
+        ((clubs ?? []) as { id: number; short_name: string }[]).map((c) => [c.id, c.short_name]),
+      )
+
+      return ((players ?? []) as Record<string, unknown>[]).map((p) => ({
+        id: p['id'] as number,
+        name: p['surname'] as string,
+        club: clubName.get(p['club_id'] as number) ?? '',
+        position: p['position'] as string,
+      }))
+    },
+
     storeCorrectedSquad,
 
     /**

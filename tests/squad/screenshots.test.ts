@@ -37,6 +37,7 @@ const harness = (overrides: Partial<Parameters<typeof screenshotRoutes>[0]> = {}
     authenticate: async (cookie) => (cookie ? ({ userId: 'u1', accessToken: 't1' } as never) : null),
     model: () => ({ async readSquadScreenshots() { return { raw: fromSquad(squad()), record: null as never } } }) as never,
     advisedGameweek: async () => 5,
+    trackedPlayers: async () => [{ id: 1, name: 'Haaland', club: 'MCI', position: 'FWD' }],
     storeCorrectedSquad: async (_u, gameweek, parsed) => {
       stored.push({ gameweek, squad: parsed })
       return 'snap-new'
@@ -92,6 +93,31 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
     expect(body.causes).toHaveLength(3)
   })
 
+  it('F2-AC-04: the model is given the players to choose from, because a screenshot shows names and never ids', async () => {
+    // **The defect this replaces.** The first build asked for the FPL player id
+    // outright. A Team screenshot does not contain one, so every player was
+    // correctly omitted and every upload came back "0 of 15 players legible"
+    // (found live 2026-09-15). The guard is that the read is never asked to
+    // recall an id — it is given a list and picks from it.
+    let sawPlayers = 0
+    const { post } = harness({
+      model: () =>
+        ({
+          async readSquadScreenshots(input: { players: unknown[] }) {
+            sawPlayers = input.players.length
+            return { raw: fromSquad(squad()), record: null as never }
+          },
+        }) as never,
+      trackedPlayers: async () => [
+        { id: 1, name: 'Haaland', club: 'MCI', position: 'FWD' },
+        { id: 2, name: 'Salah', club: 'LIV', position: 'MID' },
+      ],
+    })
+
+    await post({ team: IMAGE, transfers: IMAGE })
+    expect(sawPlayers).toBe(2)
+  })
+
   it('F2-UP-01: one picture is not enough, because no FPL screen carries everything', async () => {
     const { post, stored } = harness()
     expect((await post({ team: IMAGE })).status).toBe(400)
@@ -122,6 +148,7 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
       authenticate: async () => null,
       model: () => ({ async readSquadScreenshots() { throw new Error('never') } }) as never,
       advisedGameweek: async () => 5,
+      trackedPlayers: async () => [],
       storeCorrectedSquad: async () => 'x',
       breakContradictedLocks: async () => 0,
     })

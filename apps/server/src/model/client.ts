@@ -157,6 +157,17 @@ export interface ModelPort {
 export type ScreenshotInput = {
   team: string
   transfers: string
+  /**
+   * **Every player FPL tracks, by name, for the model to choose from.**
+   *
+   * A Team screenshot shows a shirt name and never an id, so asking for an id
+   * asks for something the picture cannot contain — which is exactly what the
+   * first build did, and every upload came back "0 of 15 players legible"
+   * (found live 2026-09-15). Naming a list and asking it to choose is how the
+   * proposal step already works, and it makes the match exact rather than a
+   * recollection.
+   */
+  players: { id: number; name: string; club: string; position: string }[]
 }
 
 type Env = Record<string, string | undefined>
@@ -326,11 +337,18 @@ const PARSE_SYSTEM = [
   'You read two screenshots from the Fantasy Premier League app and report exactly what is on them.',
   'The first is the Team screen: fifteen players, which eleven start, the bench order, the captain,',
   'the vice-captain, and which chips remain. The second is the Transfers screen: the bank and the',
-  'number of free transfers. Report the FPL player id where the picture shows one, otherwise omit',
-  'the player. Money is a whole number of tenths of a million: £2.8m is 28.',
+  'number of free transfers.',
+  '**A player is identified by matching the name on his shirt to the list of players given below,',
+  'and reporting that list entry\'s id.** The screenshots show names, never ids. Use the club colours',
+  'and the position on the pitch to choose between two players with similar names.',
+  'Money is a whole number of tenths of a million: £2.8m is 28.',
   'Report only what you can actually read. Never guess a player, a number or an armband,',
   'and never fill a gap to make the list complete. Answer with the JSON object only.',
 ].join(' ')
+
+/** The candidate list, one line each. Named fields — never a feed response passed through. */
+const playerList = (players: ScreenshotInput['players']): string =>
+  players.map((p) => `${String(p.id)} ${p.name} (${p.club}, ${p.position})`).join('\n')
 
 /** What is asked for. Every field is checked in code before any of it is used. */
 export const PARSE_SCHEMA = {
@@ -497,6 +515,7 @@ export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env
             {
               role: 'user',
               content: [
+                { type: 'text' as const, text: `Players to choose from:\n${playerList(input.players)}` },
                 { type: 'text' as const, text: 'The Team screen:' },
                 imageBlock(input.team),
                 { type: 'text' as const, text: 'The Transfers screen:' },
