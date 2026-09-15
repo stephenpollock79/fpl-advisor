@@ -32,6 +32,12 @@ export type ScreenshotDeps = {
   model: () => ModelPort
   /** The gameweek being advised on — `is_next`, never `is_current`. */
   advisedGameweek: () => Promise<number>
+  /**
+   * Every player FPL tracks, for the model to choose from. **A screenshot shows
+   * a name and never an id**, so the match is made against a named list rather
+   * than asked for outright.
+   */
+  trackedPlayers: () => Promise<{ id: number; name: string; club: string; position: string }[]>
   /** Writes the snapshot and supersedes the one it replaces. Returns its id. */
   storeCorrectedSquad: (
     user: AuthenticatedUser,
@@ -86,7 +92,8 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       }
     }
 
-    const { raw, record } = await deps.model().readSquadScreenshots({ team, transfers })
+    const players = await deps.trackedPlayers()
+    const { raw, record } = await deps.model().readSquadScreenshots({ team, transfers, players })
     if (deps.recordParse) await deps.recordParse(user, record)
 
     const result = parseSquad((raw ?? {}) as Parameters<typeof parseSquad>[0])
