@@ -32,7 +32,7 @@ const fifteen = () => [
 ]
 
 const raw = (extra: Partial<RawParse> = {}): RawParse => ({
-  team: { players: fifteen(), chipsRemaining: { wildcard: 'available', bboost: 'spent' } },
+  team: { players: fifteen(), chips: [{ chip: 'wildcard', state: 'available' }, { chip: 'bboost', state: 'spent' }] },
   transfers: { bankTenths: 28, freeTransfers: 2 },
   ...extra,
 })
@@ -66,7 +66,7 @@ describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
   it('F2-UP-01: four of fifteen legible applies nothing, and the failure names the Team screenshot', () => {
     // The trigger is a genuinely partial Team read — the case the criterion
     // quotes word for word.
-    const result = parseSquad(raw({ team: { players: fifteen().slice(0, 4), chipsRemaining: {} } }))
+    const result = parseSquad(raw({ team: { players: fifteen().slice(0, 4), chips: [{ chip: 'wildcard', state: 'available' }] } }))
 
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -97,7 +97,7 @@ describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
   it('F2-UP-01: a Team screenshot with no chip row fails, rather than reading as no chips left', () => {
     // Every FPL team has a chip row, so its absence means the wrong picture —
     // and an empty row would quietly tell the manager he has none remaining.
-    const result = parseSquad(raw({ team: { players: fifteen() } }))
+    const result = parseSquad(raw({ team: { players: fifteen(), chips: [] } }))
 
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -108,7 +108,7 @@ describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
     const players = fifteen()
     const twelfth = players[11]
     if (twelfth) twelfth.isStarter = true
-    const result = parseSquad(raw({ team: { players, chipsRemaining: {} } }))
+    const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }))
 
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -120,7 +120,7 @@ describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
     const last = players[14] as { benchOrder: number | null } | undefined
     // Two bench players claiming slot 1: an order that was not actually read.
     if (last) last.benchOrder = 1
-    const result = parseSquad(raw({ team: { players, chipsRemaining: {} } }))
+    const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }))
 
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -131,7 +131,7 @@ describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
     const players = fifteen()
     const second = players[1]
     if (second) second.isCaptain = true
-    const result = parseSquad(raw({ team: { players, chipsRemaining: {} } }))
+    const result = parseSquad(raw({ team: { players, chips: [{ chip: 'wildcard', state: 'available' }] } }))
 
     expect(result.ok).toBe(false)
     if (result.ok) return
