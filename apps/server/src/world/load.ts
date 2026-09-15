@@ -76,6 +76,18 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     mine.from('decision').select('call_key, state').eq('gameweek', gameweek.id),
   ])
 
+  /**
+   * **A snapshot with no players is not a squad, and is treated as none.**
+   *
+   * Otherwise it loads as an empty pitch that nothing can clear: the world
+   * only captures when it finds no snapshot at all, and an uploaded one is
+   * never aged out. That is exactly what happened on 2026-09-15 — a failed
+   * correction left a row with no fifteen behind it, and the Squad screen was
+   * blank with no way back. Returning null here re-captures from FPL, which is
+   * the correct answer to "I have a squad row and no squad".
+   */
+  if ((squadRows ?? []).length === 0) return null
+
   const squad = (squadRows ?? []).map((r: Row) => ({
     playerId: r['player_id'] as number,
     isStarter: r['is_starter'] as boolean,
