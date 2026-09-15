@@ -139,13 +139,10 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       )
     }
 
-    // The positions come from the same list the read chose from, so the
-    // composition check costs nothing and catches a wrong match before it
-    // reaches a screen.
-    const result = parseSquad(
-      raw as Parameters<typeof parseSquad>[0],
-      new Map(players.map((p) => [p.id, p.position])),
-    )
+    // **The same list the read chose from**, so the composition check and the
+    // name fallback both cost nothing: the positions catch a wrong match, and
+    // the names catch an id the read copied wrongly.
+    const result = parseSquad(raw as Parameters<typeof parseSquad>[0], players)
     if (!result.ok) {
       // **Nothing is applied and the existing squad is untouched** (F2-UP-01).
       return c.json(

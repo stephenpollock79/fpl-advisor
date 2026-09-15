@@ -68,7 +68,15 @@ const SQUAD_SHAPE = { GKP: 2, DEF: 5, MID: 5, FWD: 3 } as const
 /** What the model is asked to return, before any of it is trusted. */
 export type RawParse = {
   team?: {
-    players?: { playerId?: unknown; isStarter?: unknown; benchOrder?: unknown; isCaptain?: unknown; isVice?: unknown }[]
+    players?: {
+      playerId?: unknown
+      /** The name as printed on the shirt, checked when the id does not land. */
+      name?: unknown
+      isStarter?: unknown
+      benchOrder?: unknown
+      isCaptain?: unknown
+      isVice?: unknown
+    }[]
     /**
      * **An array of pairs, not a map.** Structured outputs reject an open
      * object — `additionalProperties` must be the boolean `false` — and
@@ -89,16 +97,65 @@ const isPlayerId = (v: unknown): v is number => typeof v === 'number' && Number.
  */
 const isTenths = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0
 
+/**
+ * **Names as they are written down, and as they are read off a shirt, are not
+ * the same string.** Accents, punctuation and case all differ between FPL's own
+ * data and what a reader transcribes, so the comparison is made on a form that
+ * strips all three. It is only ever used to *resolve* a name to an id, never to
+ * display one.
+ */
+const normalise = (name: string): string =>
+  name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    // Letters and digits: punctuation and spacing differ between a data field
+    // and a transcription, the characters themselves do not.
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase()
+
 export function parseSquad(
   raw: RawParse,
-  /** Position by player id, for the composition check. Omit to skip it. */
-  positions?: ReadonlyMap<number, string>,
+  /**
+   * Every player the read could choose from. Its positions are the composition
+   * check; its names are the fallback when an id does not land. Omit to skip
+   * both.
+   */
+  known?: readonly { id: number; name: string; position: string }[],
 ): ParseResult {
+  const positions = known ? new Map(known.map((p) => [p.id, p.position])) : undefined
+
+  /**
+   * **Reading the name is the model's job; resolving it is code's.** The read
+   * returns an id *and* the name it saw, and a three-digit id copied fifteen
+   * times is where a slip happens — one of which failed a whole upload under
+   * the all-or-nothing rule (2026-09-15). Where the id does not land on a known
+   * player, the name decides.
+   */
+  /**
+   * **A name two players share resolves to neither.** Picking the last one
+   * would be a coin toss dressed as a match, and the all-or-nothing rule exists
+   * precisely so a doubtful read fails loudly rather than quietly.
+   */
+  const byName = new Map<string, number | null>()
+  for (const p of known ?? []) {
+    const key = normalise(p.name)
+    byName.set(key, byName.has(key) ? null : p.id)
+  }
+  const knownIds = new Set((known ?? []).map((p) => p.id))
+
+  const resolve = (entry: { playerId?: unknown; name?: unknown }): number | null => {
+    const id = entry.playerId
+    if (typeof id === 'number' && Number.isInteger(id) && (knownIds.size === 0 || knownIds.has(id))) return id
+    const matched = typeof entry.name === 'string' ? byName.get(normalise(entry.name)) : undefined
+    return matched ?? null
+  }
   const players = raw.team?.players ?? []
 
-  const legible = players.filter(
+  const resolved = players.map((p) => ({ ...p, resolvedId: resolve(p) }))
+
+  const legible = resolved.filter(
     (p) =>
-      isPlayerId(p.playerId) &&
+      isPlayerId(p.resolvedId) &&
       typeof p.isStarter === 'boolean' &&
       typeof p.isCaptain === 'boolean' &&
       typeof p.isVice === 'boolean',
@@ -113,9 +170,17 @@ export function parseSquad(
      * than fifteen reported is the picture.
      */
     const reported = players.length
+    // **Name the players it could not place.** "One of fifteen" sends the
+    // manager back to his camera roll; "could not place Ajayi" is something
+    // anyone can act on, and tells us at once whether it is a reading problem
+    // or a gap in our own list.
+    const unplaced = resolved
+      .filter((p) => !isPlayerId(p.resolvedId))
+      .map((p) => (typeof p.name === 'string' && p.name.length > 0 ? p.name : 'an unnamed player'))
+
     const because =
       reported === SQUAD_SIZE
-        ? `all ${String(SQUAD_SIZE)} players were read, but ${String(SQUAD_SIZE - legible.length)} could not be matched to a known player — that is our end, not your picture`
+        ? `all ${String(SQUAD_SIZE)} players were read, but ${unplaced.join(', ')} could not be matched to a known player — that is our end, not your picture`
         : `only ${String(legible.length)} of ${String(SQUAD_SIZE)} players legible on the Team screenshot`
     return { ok: false, failure: { screen: 'team', because } }
   }
@@ -129,7 +194,7 @@ export function parseSquad(
   }
 
   const squad: SquadPlayer[] = legible.map((p) => ({
-    playerId: p.playerId as number,
+    playerId: p.resolvedId as number,
     isStarter: p.isStarter as boolean,
     benchOrder: (p.isStarter === true ? null : (p.benchOrder as 0 | 1 | 2 | 3)),
     isCaptain: p.isCaptain as boolean,
@@ -166,7 +231,10 @@ export function parseSquad(
    * list the read chose from.
    */
   if (positions) {
+    const nameOf = new Map((known ?? []).map((p) => [p.id, p.name]))
     const counts: Record<string, number> = { GKP: 0, DEF: 0, MID: 0, FWD: 0 }
+    const placed: Record<string, string[]> = { GKP: [], DEF: [], MID: [], FWD: [] }
+
     for (const p of squad) {
       const position = positions.get(p.playerId)
       if (position === undefined) {
@@ -176,10 +244,21 @@ export function parseSquad(
         }
       }
       counts[position] = (counts[position] ?? 0) + 1
+      placed[position]?.push(nameOf.get(p.playerId) ?? String(p.playerId))
     }
 
     const wrong = Object.entries(SQUAD_SHAPE).filter(([position, wanted]) => counts[position] !== wanted)
     if (wrong.length > 0) {
+      /**
+       * **Name who it put where.** A count alone — "4 DEF where a squad has 5"
+       * — says something is wrong and nothing about what, which is the fault
+       * every message in this path has had tonight. Listing the matched names
+       * against each position shows the culprit at a glance: the defender
+       * sitting in the midfield line is the one that was misread.
+       */
+      const summary = (['GKP', 'DEF', 'MID', 'FWD'] as const)
+        .map((position) => `${position}: ${placed[position]?.join(', ') || 'none'}`)
+        .join(' · ')
       const [position, wanted] = wrong[0] as [string, number]
       return {
         ok: false,
@@ -187,7 +266,7 @@ export function parseSquad(
           screen: 'team',
           because:
             `the Team screenshot read as ${String(counts[position] ?? 0)} ${position} where a squad has ${String(wanted)}, ` +
-            'so at least one player was matched to the wrong name',
+            `so at least one player was matched to the wrong name — ${summary}`,
         },
       }
     }
