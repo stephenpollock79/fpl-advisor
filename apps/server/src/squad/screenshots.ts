@@ -139,7 +139,13 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
       )
     }
 
-    const result = parseSquad(raw as Parameters<typeof parseSquad>[0])
+    // The positions come from the same list the read chose from, so the
+    // composition check costs nothing and catches a wrong match before it
+    // reaches a screen.
+    const result = parseSquad(
+      raw as Parameters<typeof parseSquad>[0],
+      new Map(players.map((p) => [p.id, p.position])),
+    )
     if (!result.ok) {
       // **Nothing is applied and the existing squad is untouched** (F2-UP-01).
       return c.json(

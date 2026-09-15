@@ -19,7 +19,7 @@ type P = Parameters<typeof formationOf>[0][number]
 
 const player = (over: Partial<P> & Pick<P, 'position'>): P => ({
   playerId: 1,
-  surname: 'Smith',
+  name: 'Smith',
   isStarter: true,
   benchOrder: null,
   projectedPoints: 0,

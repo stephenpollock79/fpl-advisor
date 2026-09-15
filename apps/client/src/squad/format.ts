@@ -14,7 +14,8 @@ export type Position = 'GKP' | 'DEF' | 'MID' | 'FWD'
 
 export type FormattablePlayer = {
   playerId: number
-  surname: string
+  /** The shirt name — what every screen shows (2026-09-15). */
+  name: string
   position: Position
   isStarter: boolean
   benchOrder: 0 | 1 | 2 | 3 | null

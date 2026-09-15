@@ -30,8 +30,8 @@ const fixtures = [
 ]
 
 const players = [
-  { id: 101, clubId: 1, position: 'GKP' as const, firstName: 'A', surname: 'Blanker', shirtNumber: 1 },
-  { id: 102, clubId: 2, position: 'MID' as const, firstName: 'B', surname: 'Doubler', shirtNumber: 7 },
+  { id: 101, clubId: 1, position: 'GKP' as const, firstName: 'A', surname: 'Blanker', shirtName: 'Blanker', shirtNumber: 1 },
+  { id: 102, clubId: 2, position: 'MID' as const, firstName: 'B', surname: 'Doubler', shirtName: 'Doubler', shirtNumber: 7 },
 ]
 
 const squad = [
@@ -143,5 +143,36 @@ describe('the header, and what the world does not carry', () => {
     // stored total is a second answer that can drift from the first.
     expect(world()).not.toHaveProperty('squadPoints')
     expect(world()).not.toHaveProperty('benchPoints')
+  })
+})
+
+describe('F1-AC-10 · the name on screen is the name FPL prints', () => {
+  it('F1-AC-10: a player whose shirt name differs from his second name shows the shirt name', () => {
+    // **The trigger is the mismatch**, which is the only case that matters —
+    // for most players the two are identical and any test would pass. João
+    // Pedro's second name is "Junqueira de Jesus", which overflowed a call card
+    // on 2026-09-15 and matched the wrong player in a screenshot the same
+    // evening. A test using a player where they agree proves nothing.
+    const shown = assembleWorld({
+      gameweek, lastScored: null, snapshot, clubs, fixtures, projections, states,
+      players: [
+        { id: 101, clubId: 2, position: 'FWD', firstName: 'João', surname: 'Junqueira de Jesus', shirtName: 'João Pedro', shirtNumber: 9 },
+      ],
+      squad: [{ playerId: 101, isStarter: true, benchOrder: null, isCaptain: false, isVice: false }],
+    })
+
+    expect(shown.players[0]?.name).toBe('João Pedro')
+  })
+
+  it('F1-AC-10: a row read before the shirt name existed falls back to the second name', () => {
+    const shown = assembleWorld({
+      gameweek, lastScored: null, snapshot, clubs, fixtures, projections, states,
+      players: [
+        { id: 101, clubId: 2, position: 'FWD', firstName: 'Erling', surname: 'Haaland', shirtName: '', shirtNumber: 9 },
+      ],
+      squad: [{ playerId: 101, isStarter: true, benchOrder: null, isCaptain: false, isVice: false }],
+    })
+
+    expect(shown.players[0]?.name).toBe('Haaland')
   })
 })

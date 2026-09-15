@@ -394,7 +394,7 @@ export function AssistantScreen({
       : undefined
 
   const clearedRows: ClearedRow[] = here.flatMap((s): ClearedRow[] => {
-    const title = `${SHAPE_TITLE[s.call.shape]}: ${s.out.surname} → ${s.into.surname}`
+    const title = `${SHAPE_TITLE[s.call.shape]}: ${s.out.name} → ${s.into.name}`
     const decided = decisions.decisions[s.key]
     if (decided !== undefined) return [{ key: s.key, title, state: decided }]
     if (decisions.reopened[s.key] !== undefined) return [{ key: s.key, title, state: 'reopened' as const }]
@@ -675,7 +675,7 @@ export function AssistantScreen({
             world={world}
             week={week}
             decisions={decisions.decisions}
-            nameOf={(id) => players.get(id)?.surname ?? 'A player'}
+            nameOf={(id) => players.get(id)?.name ?? 'A player'}
             onOpen={(call) => {
               setTab(call.category)
               setOpenedKey(call.key)
@@ -749,7 +749,7 @@ export function AssistantScreen({
             for itself from an empty list. */}
         {showDiff ? (
           <DiffSheet
-            rows={diffRows(world.calls, (id) => players.get(id)?.surname ?? 'A player')}
+            rows={diffRows(world.calls, (id) => players.get(id)?.name ?? 'A player')}
             untouched={world.calls.length - diffRows(world.calls, () => '').length}
             onClose={() => setShowDiff(false)}
           />

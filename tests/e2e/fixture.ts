@@ -17,9 +17,9 @@ export type Player = Record<string, unknown>
 
 const CLUBS = ['ARS', 'AVL', 'BOU', 'BRE', 'BHA', 'CHE', 'CRY', 'EVE', 'FUL', 'LIV', 'MCI', 'MUN', 'NEW', 'NFO', 'TOT', 'WHU', 'WOL', 'LEE', 'BUR', 'SUN']
 
-export const player = (id: number, surname: string, position: string, projection: number, extra: Player = {}): Player => ({
+export const player = (id: number, name: string, position: string, projection: number, extra: Player = {}): Player => ({
   playerId: id,
-  surname,
+  name,
   shirtNumber: id % 30,
   clubId: id,
   // Real codes: `kitFor` keys off them, and the Landing shots are taken from

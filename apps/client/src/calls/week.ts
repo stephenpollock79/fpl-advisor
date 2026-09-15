@@ -90,7 +90,7 @@ function tallyOf(live: WorldCall[]): Tally {
 function verdictFor(player: WorldPlayer, movedPrice: boolean): { verdict: string; short: string } {
   const gate = availabilityFor(player)
   // The full surname, never the slot-truncated form: this is prose, not a pitch slot.
-  const name = player.surname
+  const name = player.name
   const percent = player.chanceOfPlayingNextRound
 
   if (!gate.eligible) {
@@ -181,7 +181,7 @@ export function weekOf(world: World, decisions: Record<string, DecisionState>): 
     const player = byId.get(f.playerId)
     if (!player) return []
     const { verdict, short } = verdictFor(player, f.fields.length === 1 && f.fields[0] === 'price')
-    return [{ playerId: f.playerId, surname: player.surname, verdict, short }]
+    return [{ playerId: f.playerId, surname: player.name, verdict, short }]
   })
 
   return {

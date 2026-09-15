@@ -135,7 +135,8 @@ export type WorldFixture = {
 
 export type WorldPlayer = {
   playerId: number
-  surname: string
+  /** What FPL prints on the shirt — what every screen shows. */
+  name: string
   shirtNumber: number | null
   clubId: number
   clubShortName: string

@@ -60,7 +60,7 @@ export const rowsFor = (out: WorldPlayer, into: WorldPlayer): EvaluationRow[] =>
 
 /** A player's price signal for WATCH, with FPL's lock read against the clock here. */
 const priceSignalFor = (p: WorldPlayer) => ({
-  name: p.surname,
+  name: p.name,
   likelihoodTonight: p.priceLikelihoodTonight ?? null,
   locked: p.priceLockedUntil != null && Date.parse(p.priceLockedUntil) > Date.now(),
 })
@@ -185,7 +185,7 @@ export function recomputeTransfer(call: WorldCall, out: WorldPlayer, into: World
   })
 
   const rows = rowsFor(out, into)
-  const reasoning = templateReasoning(rows, out.surname, into.surname)
+  const reasoning = templateReasoning(rows, out.name, into.name)
   // The swapped pair is its own transfer, so WATCH is read for it afresh.
   const watchReason = watchCurrent ? priceWatch(priceSignalFor(out), priceSignalFor(into)) : null
   // Every value here is the engine's output or a published figure it was given.
@@ -337,7 +337,7 @@ export function clearVerdict(
     .filter((c) => c.category === 'transfer')
     .map((c) => players.get(c.outPlayerId))
     .filter((p): p is WorldPlayer => p !== undefined)
-    .map((p) => p.surname)
+    .map((p) => p.name)
 
   if (spokenFor.length === 0) return fallback
 
