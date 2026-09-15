@@ -94,6 +94,11 @@ export type RawParse = {
       opponent?: unknown
       /** Whether that fixture is at home — the (H) or (A) beside the opponent. */
       isHome?: unknown
+      /**
+       * **The single character inside the round badge on the shirt, if any.**
+       * Not who the captain is — the letter. Code decides what it means.
+       */
+      badge?: unknown
       isStarter?: unknown
       benchOrder?: unknown
       isCaptain?: unknown
@@ -377,7 +382,28 @@ export function parseSquad(
     // is one of them.
     return validId !== null && sharedBy.get(key)?.has(validId) === true ? validId : null
   }
-  const players = raw.team?.players ?? []
+  const reported = raw.team?.players ?? []
+
+  /**
+   * **Ask what letter is in the badge; decide who the captain is here.**
+   *
+   * Asked outright for the captain and the vice-captain, the read gave the
+   * vice-captaincy to a shirt carrying a star for bonus points — twice, on
+   * 2026-09-15, either side of a prompt that spelled out what an armband looks
+   * like. Four other shirts on that screenshot carried a badge of some kind,
+   * and they all sit in the same corner.
+   *
+   * Transcribing one character is what a reader does well. Deciding what the
+   * character means is bookkeeping, and bookkeeping is code's — the same move
+   * already made for the bench order and for resolving a name.
+   *
+   * **So a badge that is not a C or a V makes nobody anything**, and the counts
+   * below then refuse the upload rather than quietly crowning a star.
+   */
+  const players = reported.map((p) => {
+    const badge = typeof p.badge === 'string' ? p.badge.trim().toUpperCase() : null
+    return badge === null ? p : { ...p, isCaptain: badge === 'C', isVice: badge === 'V' }
+  })
 
   const fromTeam = players.map((p) => ({ ...p, resolvedId: resolve(p) }))
 
@@ -421,7 +447,7 @@ export function parseSquad(
      * gave the reader — and no amount of retaking the photo fixes it. Fewer
      * than fifteen reported is the picture.
      */
-    const reported = players.length
+    const reportedCount = players.length
     // **Name the players it could not place.** "One of fifteen" sends the
     // manager back to his camera roll; "could not place Ajayi" is something
     // anyone can act on, and tells us at once whether it is a reading problem
@@ -437,7 +463,7 @@ export function parseSquad(
       (raw.transfers?.players ?? []).length > 0 ? ', and the Transfers screenshot did not make up the difference' : ''
 
     const because =
-      reported === SQUAD_SIZE
+      reportedCount === SQUAD_SIZE
         ? `all ${String(SQUAD_SIZE)} players were read, but ${unplaced.join(', ')} could not be matched to a known player — that is our end, not your picture`
         : `only ${String(legible.length)} of ${String(SQUAD_SIZE)} players legible on the Team screenshot${secondHelped}`
     return { ok: false, failure: { screen: 'team', because } }

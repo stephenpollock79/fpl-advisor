@@ -367,11 +367,11 @@ const PARSE_SYSTEM = [
   'name alone and leave the id as 0. A wrong id is worse than none.',
   'For each substitute report benchOrder as his place on the bench, reading left to right: 1 for the',
   'first, then 2, 3, 4. For anyone in the starting eleven report 0.',
-  '**The armbands are two small round badges, one holding the single letter C and one holding the',
-  'single letter V, and nothing else on a shirt is an armband.** Other badges sit in the same corner',
-  '— a star for bonus points, a dot, a numeral — and none of them marks a captain. Read the letter,',
-  'not the badge. There is exactly one C and exactly one V on the screen; if you cannot find both,',
-  'report neither rather than choosing the nearest badge to one.',
+  '**Many shirts carry a small round badge in the same corner. Report the single character inside',
+  'it, and nothing more.** "C" where it holds a C, "V" where it holds a V, and for any other badge —',
+  'a star for bonus points, a dot, a numeral — report that character. A shirt with no badge is an',
+  'empty string. **Do not work out who the captain is; that is decided from the letter afterwards.**',
+  'Report what is drawn in the badge, even where it is not a letter at all.',
   'Report each chip as a pair: its name and whether it remains.',
   '**The budget is printed with a pound sign in front of it — "£0.2m". The pound sign is not a',
   'digit.** Never read it as a 2, or as any other number. Read the digits only, and report the figure',
@@ -434,12 +434,17 @@ export const PARSE_SCHEMA = {
                */
               opponent: { type: 'string' },
               isHome: { type: 'boolean' },
+              /**
+               * **The character in the badge, not a verdict about it.** Asked
+               * outright who the vice-captain was, the read twice chose a shirt
+               * carrying a star for bonus points (2026-09-15). Transcribing one
+               * character is a reading job; deciding what it means is code's.
+               */
+              badge: { type: 'string' },
               isStarter: { type: 'boolean' },
               benchOrder: { type: 'integer' },
-              isCaptain: { type: 'boolean' },
-              isVice: { type: 'boolean' },
             },
-            required: ['playerId', 'name', 'opponent', 'isHome', 'isStarter', 'benchOrder', 'isCaptain', 'isVice'],
+            required: ['playerId', 'name', 'opponent', 'isHome', 'badge', 'isStarter', 'benchOrder'],
             additionalProperties: false,
           },
         },
