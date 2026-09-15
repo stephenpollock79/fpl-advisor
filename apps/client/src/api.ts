@@ -58,6 +58,14 @@ export async function fetchMe(signal?: AbortSignal): Promise<Me | null> {
   return (await response.json()) as Me
 }
 
+/**
+ * Ends the session (F7-AC-24, F7-AC-25). The server revokes the row and clears
+ * the cookie; there is no client-side session to forget.
+ */
+export async function logout(): Promise<void> {
+  await post('/api/auth/logout', {})
+}
+
 /** Looks the identifier up and hands back the team. Stores nothing (F7-AC-14). */
 export async function resolveTeam(fplTeamId: number): Promise<LinkedTeam> {
   const { team } = await post<{ team: LinkedTeam }>('/api/team-link/resolve', { fplTeamId })
@@ -191,6 +199,8 @@ export type World = {
   /** This gameweek's decisions by call key. Pending is no entry (F3-AC-01). */
   decisions: Record<string, DecisionState>
   lastRunAt: string | null
+  /** The week in one read, as the last successful run wrote it (F8-AC-08). */
+  editorial: string | null
   /** When the FPL read behind the players' figures was taken. */
   priceForecastReadAt: string | null
   blanks: number

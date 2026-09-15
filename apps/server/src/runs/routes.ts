@@ -99,6 +99,8 @@ export type RunDeps = {
     gameweek: number,
     calls: StoredCall[],
     modelCalls: ModelCallRecord[],
+    /** The week in one read, written by this run (F8-AC-08). */
+    editorial: string,
   ) => Promise<void>
   failRun: (user: AuthenticatedUser, runId: string, modelCalls: ModelCallRecord[]) => Promise<void>
   /** Close a streamed run that did not finish. Cancelled is not failed (F6-AC-20). */
@@ -319,7 +321,7 @@ export function runRoutes(deps: RunDeps) {
         const { keys, returning } = suppressed(refresh.calls, refresh.decisions, moved)
 
         await send('step', { id: 'score', label: RUN_STEPS[3].label, scale })
-        const { calls, modelCalls } = await generateWeek({
+        const { calls, modelCalls, editorial } = await generateWeek({
           resurfaced: returning,
           plan: {
             ...week.plan,
@@ -340,7 +342,7 @@ export function runRoutes(deps: RunDeps) {
         const withCarried = [...calls, ...carriedForward(refresh, calls.length)]
 
         await send('step', { id: 'explain', label: RUN_STEPS[4].label, scale, calls: withCarried.length })
-        await deps.finishRun(user, runId, week.gameweek, withCarried, modelCalls)
+        await deps.finishRun(user, runId, week.gameweek, withCarried, modelCalls, editorial)
         await send('done', { runId, calls: withCarried, reused: false })
       } catch (cause) {
         // A closed request is a cancellation, not a failure, and the two must

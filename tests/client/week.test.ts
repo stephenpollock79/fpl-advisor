@@ -86,6 +86,7 @@ const world = (extra: Partial<World> = {}): World => ({
   calls: [],
   decisions: {},
   lastRunAt: '2026-09-15T19:41:00Z',
+  editorial: 'One forced change and a captaincy worth switching.',
   priceForecastReadAt: null,
   blanks: 0,
   doubles: 0,

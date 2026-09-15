@@ -269,3 +269,7 @@
 
 .attribution { font-size: 10px; color: var(--muted); text-align: center; }
 .attribution a { color: var(--green-dark); }
+
+/* The avatar became the account sheet's route on 2026-09-15 (F7-AC-21), so it
+   is a button — with no chrome of its own, because it is still the portrait. */
+.avatarButton { flex: none; padding: 0; border: 0; background: none; line-height: 0; cursor: pointer; }

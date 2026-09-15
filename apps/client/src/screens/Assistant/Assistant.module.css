@@ -49,6 +49,8 @@
 
 .status {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 5px 10px;
@@ -402,24 +404,26 @@
 
 .stepTime { font-family: var(--font-mono); font-size: 11px; }
 
-/* The refresh control names its own scope on itself (F6-AC-07), so what a tap
-   will rewrite is never something the manager has to infer from where it sits. */
-/* **A symbol, and a fixed square.** The label used to be the tab's name, so it
-   changed width between tabs and took the header's height with it. What a tap
-   would rewrite is named in the confirmation and in the accessible name, which
-   is where it does the work. */
+/* **The control names its own scope on itself** (F6-AC-07, F8-AC-12).
+   It sat in the header as a bare symbol until 2026-09-15, because a header that
+   changed width between tabs changed height with it. In the status bar it has
+   the room to say ALL — which on the Overview is both the scope and the truth
+   about what a run does. */
 .refresh {
-  margin: 0 8px 0 0;
   flex: none;
-  width: 30px;
+  min-width: 30px;
   height: 30px;
+  padding: 0 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   border-radius: 9px;
   border: 1px solid var(--border-strong);
   background: var(--card);
-  font-size: 15px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
   line-height: 1;
   color: var(--ink-2);
   cursor: pointer;
@@ -572,3 +576,20 @@
 
 .stopBody { display: flex; flex-direction: column; gap: 8px; padding: 14px 13px; background: var(--red-card); font-size: 13px; line-height: 1.5; color: var(--ink-2); }
 .stopMeta { color: var(--muted); }
+
+
+/* ── The status bar's refresh, token and last-run line (slice 8) ─────────── */
+
+/* The control sits here rather than in the header from 2026-09-15 (F8-AC-12,
+   F6-AC-07): one control, in the status bar, naming the scope it would rewrite.
+   In the header it could only be a symbol, and a symbol cannot name a scope. */
+.statusRefresh { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+
+.lastRun {
+  margin: 0; padding: 4px 12px 6px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em; color: var(--muted);
+}
+
+/* The avatar became the account sheet's route on 2026-09-15 (F7-AC-21), so it
+   is a button — with no chrome of its own, because it is still the portrait. */
+.avatarButton { flex: none; padding: 0; border: 0; background: none; line-height: 0; cursor: pointer; }

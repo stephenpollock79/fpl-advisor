@@ -90,6 +90,7 @@ const world = (extra: Partial<World> = {}): World => ({
   calls: [],
   decisions: {},
   lastRunAt: null,
+  editorial: null,
   priceForecastReadAt: null,
   blanks: 0,
   doubles: 0,

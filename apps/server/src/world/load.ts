@@ -68,7 +68,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     // advice (F6-AC-14, NFR Reliability).
     mine
       .from('run')
-      .select('id, finished_at')
+      .select('id, finished_at, editorial')
       .eq('gameweek', gameweek.id)
       .eq('status', 'succeeded')
       .order('finished_at', { ascending: false })
@@ -214,6 +214,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
     })),
     candidateIds,
     lastRunAt: (run?.['finished_at'] as string | undefined) ?? null,
+    editorial: (run?.['editorial'] as string | null | undefined) ?? null,
     priceForecastReadAt: read?.fetchedAt ?? null,
   }
 }

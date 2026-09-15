@@ -152,6 +152,12 @@ export type World = {
   decisions: Record<string, DecisionState>
   /** When the latest succeeded run finished — never a failed one (F6-AC-14). */
   lastRunAt: string | null
+  /**
+   * The week in one read, as the latest succeeded run wrote it (F8-AC-08). Null
+   * before the first run and on runs written before 2026-09-15; the card falls
+   * back to its template rather than rendering a hole (F8-AC-01).
+   */
+  editorial: string | null
   /** When the FPL read the players' figures come from was taken — WATCH's "tonight" is only as fresh as this. */
   priceForecastReadAt: string | null
   blanks: number
@@ -193,6 +199,7 @@ export type WorldParts = {
   /** Ids of non-squad players to carry as candidates. */
   candidateIds?: number[]
   lastRunAt?: string | null
+  editorial?: string | null
   priceForecastReadAt?: string | null
   /** Which gameweek's picks the snapshot holds. Null on rows written before slice 7. */
   picksFrom?: number | null
@@ -294,6 +301,7 @@ export function assembleWorld(parts: WorldParts): World {
     ]),
     decisions: Object.fromEntries((parts.decisions ?? []).map((d) => [d.callKey, d.state])),
     lastRunAt: parts.lastRunAt ?? null,
+    editorial: parts.editorial ?? null,
     priceForecastReadAt: parts.priceForecastReadAt ?? null,
     // **Run here, where the gameweek and the projections are both in hand.**
     // The check existed from the day this slice landed and nothing called it,

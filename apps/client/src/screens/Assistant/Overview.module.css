@@ -1,0 +1,195 @@
+/* The Overview's own styles. Sizes and colours from the handoff; behaviour is
+   never decided here (docs/design/README.md — authoritative for HOW, not WHAT). */
+
+.column { display: flex; flex-direction: column; gap: 10px; padding: 0 10px 20px; overflow-y: auto; }
+
+/* ── Editorial ─────────────────────────────────────────────────────────── */
+
+.editorial { border: 1px solid var(--border-strong); border-radius: var(--radius-card); overflow: hidden; background: var(--card); }
+
+.editorialHead {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 10px; background: var(--green-dark); color: #fff;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+}
+
+.editorialCount { opacity: 0.9; letter-spacing: 0.02em; }
+
+.editorialBody { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+.lead { margin: 0; font-size: 14px; font-weight: 800; line-height: 1.35; color: var(--ink); }
+
+.prose { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+
+/* Five lines, with MORE / LESS (F8-AC-08). The clamp is the card's; the text
+   itself is capped server-side. */
+.proseClamped {
+  margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink-2);
+  display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.more {
+  align-self: flex-start; padding: 0; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--green-dark);
+}
+
+.tally { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.forcedPill,
+.bandPill {
+  padding: 3px 7px; border: 1px solid var(--border-light); border-radius: 999px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em;
+}
+
+/* Forced is red and first, and it is a property of the call rather than a
+   strength — so it never takes a band's colour (F8-AC-03). */
+.forcedPill { background: var(--red-card); border-color: var(--red-card-border); color: var(--red-text); }
+
+.certain { background: var(--green-dark); color: #fff; border-color: var(--green-dark); }
+.strong { background: var(--green-tint); color: var(--green-dark); border-color: var(--green-tint-border); }
+.lean { background: #fbf1dc; color: #7a5410; border-color: #ecd6a6; }
+.thin { background: var(--warm-1); color: var(--ink-3); border-color: var(--border-light); }
+
+.tallyEmpty { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+.squadState,
+.flagged { margin: 0; font-family: var(--font-mono); font-size: 10px; line-height: 1.4; color: var(--muted); }
+
+.flagged { color: var(--red-text); }
+
+/* ── Squad widget ──────────────────────────────────────────────────────── */
+
+.widget { border: 1px solid var(--border-strong); border-radius: var(--radius-card); background: var(--card); padding: 10px; }
+
+.pitches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.mini { display: flex; flex-direction: column; gap: 4px; }
+
+.miniLabel { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; color: var(--muted); }
+
+.miniPitch {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 3px;
+  min-height: 108px; padding: 5px 3px; border-radius: 8px;
+  background: linear-gradient(var(--green-tint), rgb(16 152 90 / 4%));
+  border: 1px solid var(--green-soft-border);
+}
+
+.miniRow { display: flex; justify-content: center; gap: 2px; }
+
+.miniSlot,
+.miniBenchSlot {
+  flex: 0 1 auto; min-width: 0; max-width: 38px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 8px; line-height: 1.3; text-align: center; color: var(--ink-2);
+}
+
+.miniBench { display: flex; gap: 3px; justify-content: center; }
+
+.miniBenchSlot { color: var(--muted); }
+
+.totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
+
+.totals > span { display: flex; flex-direction: column; gap: 2px; }
+
+.eyebrow { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; color: var(--muted); }
+
+.figure { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink); }
+
+.negative { color: var(--red-text); }
+
+.breaches {
+  margin-top: 8px; padding: 7px 8px; border: 1px solid var(--red-card-border); border-radius: 8px;
+  background: var(--red-card);
+}
+
+.breaches p { margin: 0; font-family: var(--font-mono); font-size: 10px; line-height: 1.5; color: var(--red-text); }
+
+/* ── Filter chips ──────────────────────────────────────────────────────── */
+
+.chips { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; }
+
+.chip,
+.chipOn {
+  flex: 0 0 auto; min-height: 30px; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--card); color: var(--ink-3);
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+
+.chipOn { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.chipMark { margin-left: 4px; color: var(--red-disc); font-weight: 800; }
+
+.chipOn .chipMark { color: #ff9aa6; }
+
+.filterNote { margin: 0; font-family: var(--font-mono); font-size: 10px; line-height: 1.4; color: var(--muted); }
+
+/* ── Call cards ────────────────────────────────────────────────────────── */
+
+.group { display: flex; flex-direction: column; gap: 6px; }
+
+.groupHead {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--muted);
+  padding-top: 4px;
+}
+
+.groupMeta { letter-spacing: 0.02em; }
+
+.card {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-card); background: var(--card); overflow: hidden;
+}
+
+/* A rejected card stays visible and dimmed, so an accidental reject is two taps
+   from correction (F3-AC-11, F8-AC-26). */
+.rejected { opacity: 0.55; }
+
+.cardContent {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; align-items: flex-start;
+  padding: 9px 10px; border: 0; background: none; cursor: pointer; text-align: left;
+}
+
+.cardTitle { font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+.cardMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+
+.cardNet { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--green-dark); }
+
+.cardBand,
+.forcedFlag,
+.watchFlag,
+.blankChip,
+.doubleChip {
+  padding: 2px 6px; border-radius: 999px; border: 1px solid var(--border-light);
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.02em;
+}
+
+.forcedFlag { background: var(--red-card); border-color: var(--red-card-border); color: var(--red-text); }
+.watchFlag { background: #fbf1dc; border-color: #ecd6a6; color: #7a5410; }
+.doubleChip { background: var(--green-tint); border-color: var(--green-tint-border); color: var(--green-dark); }
+.blankChip { background: var(--warm-2); border-style: dashed; border-color: var(--border-strong); color: var(--ink-3); }
+
+/* The seam (F8-AC-28): the decision panel is visibly its own surface, so a
+   decision button never reads as part of a tappable card. */
+.cardDecision {
+  flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 3px;
+  padding: 6px; border-left: 1px solid var(--border-strong); background: var(--warm-1);
+}
+
+.action,
+.change {
+  min-width: 62px; min-height: 26px; padding: 3px 8px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: var(--card); color: var(--ink-2);
+  font-size: 10px; font-weight: 700;
+}
+
+.pill {
+  text-align: center; padding: 3px 8px; border-radius: 999px;
+  background: var(--green-tint); border: 1px solid var(--green-tint-border); color: var(--green-dark);
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.02em;
+}
+
+.hidden { margin: 0; padding: 6px 8px; border: 1px dashed var(--border-strong); border-radius: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+.showAll { padding: 0; border: 0; background: none; cursor: pointer; font-family: var(--font-mono); font-size: 10px; color: var(--green-dark); text-decoration: underline; }
+
+.hint { margin: 6px 0 0; text-align: center; font-size: 11px; color: var(--muted); }
