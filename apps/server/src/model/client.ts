@@ -361,7 +361,9 @@ const PARSE_SYSTEM = [
   'For each substitute report benchOrder as his place on the bench, reading left to right: 1 for the',
   'first, then 2, 3, 4. For anyone in the starting eleven report 0.',
   'Report each chip as a pair: its name and whether it remains.',
-  'Money is a whole number of tenths of a million: £2.8m is 28.',
+  '**The budget is printed with a pound sign in front of it — "£0.2m". The pound sign is not a',
+  'digit.** Never read it as a 2, or as any other number. Read the digits only, and report the figure',
+  'as a whole number of tenths of a million: £0.2m is 2, £2.8m is 28, £12.5m is 125.',
   'Report only what you can actually read. Never guess a player, a number or an armband,',
   'and never fill a gap to make the list complete. Answer with the JSON object only.',
 ].join(' ')
