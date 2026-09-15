@@ -54,6 +54,17 @@ export type ParseFailure = {
 
 export type ParseResult = { ok: true; squad: ParsedSquad } | { ok: false; failure: ParseFailure }
 
+/**
+ * **What every legal FPL squad holds**, and the check that catches a wrong
+ * match before it reaches a screen.
+ *
+ * A misread name produces a *plausible* squad rather than an obviously broken
+ * one: on 2026-09-15 a forward was matched to a midfielder, landed in midfield,
+ * and the formation quietly read 3-5-2 for a 3-4-3 side. Nothing looked wrong.
+ * A squad that is not 2/5/5/3 cannot be the manager's, whatever the names say.
+ */
+const SQUAD_SHAPE = { GKP: 2, DEF: 5, MID: 5, FWD: 3 } as const
+
 /** What the model is asked to return, before any of it is trusted. */
 export type RawParse = {
   team?: {
@@ -78,7 +89,11 @@ const isPlayerId = (v: unknown): v is number => typeof v === 'number' && Number.
  */
 const isTenths = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0
 
-export function parseSquad(raw: RawParse): ParseResult {
+export function parseSquad(
+  raw: RawParse,
+  /** Position by player id, for the composition check. Omit to skip it. */
+  positions?: ReadonlyMap<number, string>,
+): ParseResult {
   const players = raw.team?.players ?? []
 
   const legible = players.filter(
@@ -136,6 +151,40 @@ export function parseSquad(raw: RawParse): ParseResult {
   }
   if (squad.filter((p) => p.isVice).length !== 1) {
     return { ok: false, failure: { screen: 'team', because: 'the vice-captain’s armband was not legible on the Team screenshot' } }
+  }
+
+  /**
+   * **Every legal FPL squad is 2/5/5/3, so one that is not was misread.** This
+   * is the check that turns a wrong name from a plausible squad into a refused
+   * upload — and it costs nothing, because the positions are already on the
+   * list the read chose from.
+   */
+  if (positions) {
+    const counts: Record<string, number> = { GKP: 0, DEF: 0, MID: 0, FWD: 0 }
+    for (const p of squad) {
+      const position = positions.get(p.playerId)
+      if (position === undefined) {
+        return {
+          ok: false,
+          failure: { screen: 'team', because: 'a player on the Team screenshot could not be identified' },
+        }
+      }
+      counts[position] = (counts[position] ?? 0) + 1
+    }
+
+    const wrong = Object.entries(SQUAD_SHAPE).filter(([position, wanted]) => counts[position] !== wanted)
+    if (wrong.length > 0) {
+      const [position, wanted] = wrong[0] as [string, number]
+      return {
+        ok: false,
+        failure: {
+          screen: 'team',
+          because:
+            `the Team screenshot read as ${String(counts[position] ?? 0)} ${position} where a squad has ${String(wanted)}, ` +
+            'so at least one player was matched to the wrong name',
+        },
+      }
+    }
   }
 
   const bank = raw.transfers?.bankTenths

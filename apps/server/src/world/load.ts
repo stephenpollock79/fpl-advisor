@@ -141,7 +141,7 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
 
   const [{ data: playerRows }, { data: clubRows }, { data: fixtureRows }, { data: projectionRows }, { data: stateRows }] =
     await Promise.all([
-      reference.from('player').select('id, club_id, position, first_name, surname, shirt_number').in('id', playerIds),
+      reference.from('player').select('id, club_id, position, first_name, surname, shirt_name, shirt_number').in('id', playerIds),
       reference.from('club').select('id, name, short_name'),
       reference.from('fixture').select('id, gameweek, home_club, away_club, kickoff, home_difficulty, away_difficulty, finished').in('gameweek', horizon),
       reference.from('projection').select('gameweek, player_id, projected_points, feed_read_id').in('gameweek', horizon).in('player_id', playerIds),
@@ -167,6 +167,8 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
       position: p['position'] as 'GKP' | 'DEF' | 'MID' | 'FWD',
       firstName: p['first_name'] as string,
       surname: p['surname'] as string,
+      // Falls back to the surname on rows written before 2026-09-15.
+      shirtName: (p['shirt_name'] as string | null) ?? (p['surname'] as string),
       shirtNumber: p['shirt_number'] as number | null,
     })),
     clubs: (clubRows ?? []).map((c: Row) => ({

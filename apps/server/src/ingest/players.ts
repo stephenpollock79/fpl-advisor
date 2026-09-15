@@ -21,6 +21,13 @@ export type PlayerRow = {
   position: 'GKP' | 'DEF' | 'MID' | 'FWD'
   firstName: string
   surname: string
+  /**
+   * **What FPL prints on the shirt**, and therefore what a squad screenshot
+   * shows. Not the same as `surname` for every player: Calafiori's second name
+   * is his full family name and João Pedro's is "Junqueira de Jesus". The
+   * screenshot parse matches on this.
+   */
+  shirtName: string
   shirtNumber: number | null
 }
 
@@ -68,6 +75,7 @@ type BootstrapPayload = {
     element_type: number
     first_name: string
     second_name: string
+    web_name: string
     squad_number: number | null
     status: string
     news: string | null
@@ -117,6 +125,7 @@ export function toPlayerRows(bootstrap: BootstrapPayload): PlayerRow[] {
       position,
       firstName: e.first_name,
       surname: e.second_name,
+      shirtName: e.web_name,
       shirtNumber: e.squad_number,
     }
   })

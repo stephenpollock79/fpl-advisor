@@ -30,8 +30,8 @@ const fixtures = [
 ]
 
 const players = [
-  { id: 101, clubId: 1, position: 'GKP' as const, firstName: 'A', surname: 'Blanker', shirtNumber: 1 },
-  { id: 102, clubId: 2, position: 'MID' as const, firstName: 'B', surname: 'Doubler', shirtNumber: 7 },
+  { id: 101, clubId: 1, position: 'GKP' as const, firstName: 'A', surname: 'Blanker', shirtName: 'Blanker', shirtNumber: 1 },
+  { id: 102, clubId: 2, position: 'MID' as const, firstName: 'B', surname: 'Doubler', shirtName: 'Doubler', shirtNumber: 7 },
 ]
 
 const squad = [

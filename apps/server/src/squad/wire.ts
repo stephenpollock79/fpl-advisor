@@ -42,7 +42,7 @@ export function screenshotDeps(authenticate: ScreenshotDeps['authenticate']): Sc
       // error, which would quietly strip the club from every line and leave the
       // model choosing between two players of the same name on nothing.
       const [{ data: players }, { data: clubs }] = await Promise.all([
-        reference.from('player').select('id, surname, position, club_id'),
+        reference.from('player').select('id, surname, shirt_name, position, club_id'),
         reference.from('club').select('id, short_name'),
       ])
 
@@ -52,7 +52,12 @@ export function screenshotDeps(authenticate: ScreenshotDeps['authenticate']): Sc
 
       return ((players ?? []) as Record<string, unknown>[]).map((p) => ({
         id: p['id'] as number,
-        name: p['surname'] as string,
+        // **The shirt name, because that is what the screenshot shows.**
+        // Matching on the surname put two strangers in a corrected squad on
+        // 2026-09-15: Calafiori's surname is his full family name and João
+        // Pedro's is "Junqueira de Jesus", so the model chose the nearest row
+        // it could see. Falls back for rows written before the column existed.
+        name: (p['shirt_name'] as string | null) ?? (p['surname'] as string),
         club: clubName.get(p['club_id'] as number) ?? '',
         position: p['position'] as string,
       }))

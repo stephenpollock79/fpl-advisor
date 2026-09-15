@@ -31,13 +31,23 @@ const squad = (): ParsedSquad => ({
   freeTransfers: 2,
 })
 
+/** Every player the fixture squad names, in a legal 2/5/5/3. */
+const TRACKED = [
+  ...[1, 12].map((id) => ({ id, name: `Keeper${String(id)}`, club: 'MCI', position: 'GKP' })),
+  ...[2, 3, 4, 13, 14].map((id) => ({ id, name: `Def${String(id)}`, club: 'LIV', position: 'DEF' })),
+  ...[5, 6, 7, 8, 15].map((id) => ({ id, name: `Mid${String(id)}`, club: 'ARS', position: 'MID' })),
+  ...[9, 10, 11].map((id) => ({ id, name: `Fwd${String(id)}`, club: 'NEW', position: 'FWD' })),
+]
+
 const harness = (overrides: Partial<Parameters<typeof screenshotRoutes>[0]> = {}) => {
   const stored: { gameweek: number; squad: ParsedSquad }[] = []
   const app = screenshotRoutes({
     authenticate: async (cookie) => (cookie ? ({ userId: 'u1', accessToken: 't1' } as never) : null),
     model: () => ({ async readSquadScreenshots() { return { raw: fromSquad(squad()), record: null as never } } }) as never,
     advisedGameweek: async () => 5,
-    trackedPlayers: async () => [{ id: 1, name: 'Haaland', club: 'MCI', position: 'FWD' }],
+    // A legal 2/5/5/3, matching the fixture squad's ids — the composition check
+    // reads positions off this list, so a stub of one player would fail it.
+    trackedPlayers: async () => TRACKED,
     storeCorrectedSquad: async (_u, gameweek, parsed) => {
       stored.push({ gameweek, squad: parsed })
       return 'snap-new'
@@ -314,9 +324,13 @@ describe('F2-UP-02, F2-UP-03 · the two the criteria deliberately do not build',
     //
     // The cost is bounded by the rule ruled on 2026-09-15: a wrong upload is
     // replaced by the next one, and the gameweek rollover clears it either way.
+    // Different players entirely, and still a legal 2/5/5/3 — because a
+    // stranger's squad is a real squad. The app cannot tell whose it is, and
+    // the criterion says not to pretend otherwise.
     const strangers: ParsedSquad = { ...squad(), players: squad().players.map((p) => ({ ...p, playerId: p.playerId + 500 })) }
     const { post, stored } = harness({
       model: () => ({ async readSquadScreenshots() { return { raw: fromSquad(strangers), record: null as never } } }) as never,
+      trackedPlayers: async () => TRACKED.map((p) => ({ ...p, id: p.id + 500 })),
     })
 
     expect((await post({ team: IMAGE, transfers: IMAGE })).status).toBe(200)
