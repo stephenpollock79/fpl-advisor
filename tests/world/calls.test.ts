@@ -19,9 +19,9 @@ const clubs = [
 ]
 
 const players = [
-  { id: 557, clubId: 1, position: 'MID' as const, firstName: 'Christos', surname: 'Tzolis', shirtNumber: 21 },
-  { id: 40, clubId: 2, position: 'MID' as const, firstName: 'Morgan', surname: 'Rogers', shirtNumber: 27 },
-  { id: 124, clubId: 3, position: 'MID' as const, firstName: 'Pascal', surname: 'Groß', shirtNumber: 13 },
+  { id: 557, clubId: 1, position: 'MID' as const, firstName: 'Christos', surname: 'Tzolis', shirtName: 'Tzolis', shirtNumber: 21 },
+  { id: 40, clubId: 2, position: 'MID' as const, firstName: 'Morgan', surname: 'Rogers', shirtName: 'Rogers', shirtNumber: 27 },
+  { id: 124, clubId: 3, position: 'MID' as const, firstName: 'Pascal', surname: 'Groß', shirtName: 'Groß', shirtNumber: 13 },
 ]
 
 // Club 1 plays in GW4 and GW6 but blanks GW5; clubs 2 and 3 play all three.

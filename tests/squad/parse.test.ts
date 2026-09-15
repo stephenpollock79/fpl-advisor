@@ -62,6 +62,47 @@ describe('F2-AC-01, F2-AC-02 · what each picture owes', () => {
   })
 })
 
+describe('F2-UP-01 · a wrong match is caught by the shape of the squad', () => {
+  /** 2 GKP, 5 DEF, 5 MID, 3 FWD — what every legal FPL squad holds. */
+  const legal = new Map<number, string>([
+    [1, 'GKP'], [12, 'GKP'],
+    [2, 'DEF'], [3, 'DEF'], [4, 'DEF'], [13, 'DEF'], [14, 'DEF'],
+    [5, 'MID'], [6, 'MID'], [7, 'MID'], [8, 'MID'], [15, 'MID'],
+    [9, 'FWD'], [10, 'FWD'], [11, 'FWD'],
+  ])
+
+  it('F2-UP-01: a legal fifteen passes the composition check', () => {
+    expect(parseSquad(raw(), legal).ok).toBe(true)
+  })
+
+  it('F2-UP-01: a forward matched to a midfielder is refused, not shown as a 3-5-2', () => {
+    // **The defect this exists for.** On 2026-09-15 João Pedro was matched to a
+    // midfielder, landed in midfield, and the formation quietly read 3-5-2 for
+    // a 3-4-3 side. Nothing looked broken — which is why a name check alone is
+    // not enough and the squad's own shape has to be the guard.
+    const misread = new Map(legal)
+    misread.set(9, 'MID')
+
+    const result = parseSquad(raw(), misread)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.because).toMatch(/matched to the wrong name/)
+    expect(result.failure.because).toMatch(/6 MID where a squad has 5/)
+  })
+
+  it('F2-UP-01: a player the list does not hold is refused rather than dropped', () => {
+    const missing = new Map(legal)
+    missing.delete(7)
+
+    const result = parseSquad(raw(), missing)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.failure.because).toMatch(/could not be identified/)
+  })
+})
+
 describe('F2-UP-01 · all-or-nothing, and which picture fell short', () => {
   it('F2-UP-01: four of fifteen legible applies nothing, and the failure names the Team screenshot', () => {
     // The trigger is a genuinely partial Team read — the case the criterion

@@ -71,6 +71,7 @@ export async function ingestWorld(log: (message: string) => void = console.warn)
     position: p.position,
     first_name: p.firstName,
     surname: p.surname,
+    shirt_name: p.shirtName,
     shirt_number: p.shirtNumber,
   })))
 
