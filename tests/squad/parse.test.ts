@@ -93,6 +93,11 @@ describe('F2-UP-01 · a wrong match is caught by the shape of the squad', () => 
     if (result.ok) return
     expect(result.failure.because).toMatch(/matched to the wrong name/)
     expect(result.failure.because).toMatch(/6 MID where a squad has 5/)
+    // **And it names who it put where.** A count alone says something is wrong
+    // and nothing about what, which is the fault every message in this path
+    // had on 2026-09-15 — the player in the wrong line is the misread one.
+    expect(result.failure.because).toMatch(/MID: .*Player9/)
+    expect(result.failure.because).toMatch(/FWD: /)
   })
 
   it('F2-UP-01: an id the read copied wrongly is resolved from the name it saw', () => {

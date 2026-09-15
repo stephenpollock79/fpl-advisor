@@ -231,7 +231,10 @@ export function parseSquad(
    * list the read chose from.
    */
   if (positions) {
+    const nameOf = new Map((known ?? []).map((p) => [p.id, p.name]))
     const counts: Record<string, number> = { GKP: 0, DEF: 0, MID: 0, FWD: 0 }
+    const placed: Record<string, string[]> = { GKP: [], DEF: [], MID: [], FWD: [] }
+
     for (const p of squad) {
       const position = positions.get(p.playerId)
       if (position === undefined) {
@@ -241,10 +244,21 @@ export function parseSquad(
         }
       }
       counts[position] = (counts[position] ?? 0) + 1
+      placed[position]?.push(nameOf.get(p.playerId) ?? String(p.playerId))
     }
 
     const wrong = Object.entries(SQUAD_SHAPE).filter(([position, wanted]) => counts[position] !== wanted)
     if (wrong.length > 0) {
+      /**
+       * **Name who it put where.** A count alone — "4 DEF where a squad has 5"
+       * — says something is wrong and nothing about what, which is the fault
+       * every message in this path has had tonight. Listing the matched names
+       * against each position shows the culprit at a glance: the defender
+       * sitting in the midfield line is the one that was misread.
+       */
+      const summary = (['GKP', 'DEF', 'MID', 'FWD'] as const)
+        .map((position) => `${position}: ${placed[position]?.join(', ') || 'none'}`)
+        .join(' · ')
       const [position, wanted] = wrong[0] as [string, number]
       return {
         ok: false,
@@ -252,7 +266,7 @@ export function parseSquad(
           screen: 'team',
           because:
             `the Team screenshot read as ${String(counts[position] ?? 0)} ${position} where a squad has ${String(wanted)}, ` +
-            'so at least one player was matched to the wrong name',
+            `so at least one player was matched to the wrong name — ${summary}`,
         },
       }
     }
