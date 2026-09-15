@@ -215,3 +215,41 @@ The three that prompted this, all found by Stephen on a phone rather than by the
 passing — the criterion belongs in `docs/coverage-gaps.md` with what would close it, and the
 identifier must **not** be named in a test that reaches only the other half. An honest gap
 costs a line in a file. A false green costs whatever it was hiding.
+
+## J. What a spec has to name
+
+*Section J added 2026-09-15, after three consecutive cold reviews led with the same finding.*
+
+**P17. A spec names the value, not just the behaviour.** Wherever a spec says what something
+does, it states the number, the source or the set it does it with — the threshold, the window,
+the field it reads, which list it counts, which of two figures it shows. Where a value genuinely
+cannot be fixed in advance, the spec says so and names who decides it in the build.
+
+**An unnamed value does not stop a build.** It gets chosen, silently and correctly-looking, by
+whoever is writing that line — and the first person to see the choice is whoever opens the screen
+afterwards. That is the whole failure: not a wrong decision, a decision nobody made.
+
+The three that prompted this, one per slice, each from that slice's review:
+
+- **Slice 6.** The captaincy tie-break uses a stronger signal. **Which data the signal comes
+  from** was not named.
+- **Slice 7.** Repeated opens are coalesced into one feed read. **For how long** was not named;
+  the build picked two minutes. The swapped-transfer cost was the same shape, and the build filed
+  every swapped pair at zero.
+- **Slice 8.** Four of them. Whether a call row's points figure is **this gameweek or the
+  three-gameweek horizon** the conviction is built from; whether the squad widget's figure is a
+  **total or a change**; **which source** the editorial names for the squad; and whether the
+  editorial counts **only the calls this run planned, or the carried ones too**.
+
+Two of slice 8's four were wrong on the phone and one was a defect — the editorial said "3 calls
+this week" over a screen showing six. None of them was caught by a test, because each was a
+coherent answer to a question the spec had not asked.
+
+**The test to apply while writing.** Read each sentence of *Interfaces* and ask whether two
+competent people would build the same thing from it. Where they would not, the missing word is a
+value, and it goes in.
+
+**This makes specs longer, and the word budget is already tight.** That is the accepted cost: a
+value named in a spec is a sentence Stephen can disagree with before it is built, and the same
+value found in a review is a round trip after it is. If the budget and this rule genuinely
+collide, say so rather than dropping either.
