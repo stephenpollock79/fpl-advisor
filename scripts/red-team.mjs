@@ -92,11 +92,12 @@ console.log(`\nRed-team probes against ${BASE}\n`)
   )
   check('referrer policy', referrer === 'strict-origin-when-cross-origin', referrer ?? 'absent — full URLs may travel to third parties')
 
-  // **Which mode the policy is in is the finding, not a pass or a fail.** It is
-  // deliberately report-only until the reports from real use say the source list
-  // is complete (STE-161); printing it is how nobody has to remember that the
-  // check above passes either way.
-  note('policy mode', csp ? 'enforcing' : reportOnly ? 'report-only — blocking nothing yet' : 'none')
+  // **Enforcing is the claim now, so it is a check** (STE-161). The policy went
+  // out report-only and was enforced the same evening on the evidence of
+  // `tests/e2e/csp.spec.ts`, which walks the production build behind the real
+  // headers. Report-only on the deployed app would mean a revert nobody
+  // announced, and that is exactly what a probe is for.
+  check('the content security policy is enforced, not merely reported', Boolean(csp), reportOnly ? 'report-only — blocking nothing' : 'absent')
   if (hsts) note('HSTS max-age', `${hsts} — five minutes is deliberate; the undo is that long`)
 }
 

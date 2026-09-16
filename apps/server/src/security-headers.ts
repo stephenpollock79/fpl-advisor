@@ -7,10 +7,16 @@
  */
 
 /**
- * **Report-only, for now.** The browser evaluates this and reports what it would
- * have refused, while refusing nothing — so it cannot take the app away before
- * Friday's deadline. It is flipped to `Content-Security-Policy` once the reports
- * from a few days of real use say the list below is complete.
+ * **Enforcing, on evidence rather than on a wait.**
+ *
+ * It shipped report-only because nothing in this repo could say whether the list
+ * below was complete — the browser suite runs against the Vite dev server, which
+ * sends no headers at all — and the plan was to collect violation reports from a
+ * phone over several days. `tests/e2e/csp.spec.ts` replaced that wait: it serves
+ * the production build through this very function and walks the app with a real
+ * browser listening for what the policy refuses. Nothing is refused, and the
+ * test goes red for a real omission — proved by deleting the font host and
+ * watching four typefaces fail.
  *
  * What each source is actually for, so nobody has to guess when one has to move:
  *
@@ -21,23 +27,26 @@
  *   stylesheet and `fonts.gstatic.com` serves the font files; naming only the
  *   first is the classic mistake, and the page then renders in a fallback face
  *   with nothing in the console but a font error.
- * - `'unsafe-inline'` on styles only, because two components set a `style`
- *   attribute — a club's kit colours and the drag transform — and a style
- *   attribute is governed by this list. Scripts get no such allowance: the
- *   production build emits a file and no inline script, which is what makes
- *   `script-src 'self'` the line that carries this policy's whole value.
+ * - `'unsafe-inline'` on styles only. **It is probably unnecessary, and it stays
+ *   anyway.** The two components that set a `style` prop — a club's kit colours
+ *   and the drag transform — go through React, which writes each property via
+ *   the CSSOM rather than emitting a `style` attribute for the parser, and CSP
+ *   does not police the CSSOM. Adding `style-src-attr 'none'` produced no
+ *   violation anywhere in the walk, which is the measurement. Tightening it is
+ *   still a separate change from enforcing the policy: one of those two is
+ *   backed by evidence and the other would be riding on it (STE-173).
+ *   Scripts get no such allowance: the production build emits a file and no
+ *   inline script, which is what makes `script-src 'self'` the line that carries
+ *   this policy's whole value.
  * - `data:` on images for icons inlined by the build.
  *
  * **PostHog is deliberately absent.** STE-161 said this policy would have to
  * name it; the client has never loaded it (STE-35 was cancelled), so naming it
  * would permit a source nothing uses.
  *
- * **Nothing in this repo can tell you whether the list is right.** The browser
- * suite runs against the Vite dev server, which never sends these headers, so a
- * page whose fonts were silently refused would pass every flow. That is the
- * whole reason the policy ships report-only with somewhere to report to: the
- * evidence has to come from a real browser on real screens, and then the header
- * name changes by one word.
+ * **The report route stays.** `report-uri` is honoured in enforcing mode too, so
+ * the day a source is added and forgotten, the failure arrives as a line in the
+ * log rather than as a screen that renders wrong on a phone.
  */
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -88,7 +97,7 @@ export function securityHeaders(isSecure: boolean): Record<string, string> {
     // sensitive in a path today, and this is what keeps that true by accident
     // rather than by vigilance.
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Content-Security-Policy-Report-Only': CONTENT_SECURITY_POLICY,
+    'Content-Security-Policy': CONTENT_SECURITY_POLICY,
     ...(isSecure ? { 'Strict-Transport-Security': HSTS } : {}),
   }
 }

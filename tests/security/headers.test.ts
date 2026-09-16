@@ -29,13 +29,20 @@ describe('STE-161 · the headers every response carries', () => {
     expect(HSTS).not.toContain('preload')
   })
 
-  it('STE-161: the policy is sent report-only, so it refuses nothing', () => {
+  it('STE-161: the policy is enforced, and says so in one header rather than two', () => {
     const headers = securityHeaders(true)
-    expect(headers).toHaveProperty('Content-Security-Policy-Report-Only')
-    // The enforcing header is the one that can blank the screen. Flipping to it
-    // is a deliberate act for after the deadline, not something that arrives
-    // with an unrelated change.
-    expect(headers).not.toHaveProperty('Content-Security-Policy')
+    expect(headers).toHaveProperty('Content-Security-Policy')
+    // Sending both is the state that looks safe and is not: a browser obeys the
+    // enforcing one and reports against the other, so a policy nobody meant to
+    // enforce is enforced while the reports say everything is fine.
+    expect(headers).not.toHaveProperty('Content-Security-Policy-Report-Only')
+  })
+
+  it('STE-161: an enforced policy still reports, so a missed source is not silent', () => {
+    // Enforcing without `report-uri` is the trap: the page simply renders wrong
+    // and nothing anywhere says why. `tests/e2e/csp.spec.ts` catches a source
+    // this repo can reach; this is what catches one it cannot.
+    expect(CONTENT_SECURITY_POLICY).toContain('report-uri /api/csp-report')
   })
 
   it('STE-161: the policy names both Google Fonts hosts, not just the stylesheet', () => {
