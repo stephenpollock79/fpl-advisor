@@ -111,6 +111,8 @@ export type StoredCall = {
   pointsHit: number
   costTenths: number
   isForced: boolean
+  /** The change has to happen — forced, or the incumbent cannot hold the role. */
+  mustChange: boolean
   /**
    * Set by code when FPL expects a price on either side of a transfer to move
    * tonight (STE-117). Never on a substitution, never from conviction. The
@@ -171,16 +173,26 @@ export async function generateWeek(input: {
       const kind = KIND[call.outcome.type]
 
       /**
-       * **A forced call is not asked for either, and for the same reason as a
-       * keep** (STE-143). Its reason is structural — the holder cannot fill the
-       * role — and the model is given only the two players' figures, so it can
-       * build nothing but a comparative case. On a forced call the comparison
-       * usually runs the other way, and the card then argues against the row
-       * printed directly above it.
+       * **A call that has to happen is not asked for either, and for the same
+       * reason as a keep** (STE-143, widened on STE-150). Its reason is
+       * structural — the incumbent cannot fill the role — and the model is given
+       * only the two players' figures, so it can build nothing but a comparative
+       * case. On such a call the comparison usually runs the other way, and the
+       * card then argues against the row printed directly above it.
        *
-       * It also saves a model call on every forced call (NFR Cost control).
+       * **`mustChange`, not `isForced`.** This read `isForced` until 2026-09-16,
+       * and then the vice call correctly stopped being forced (`F4-AC-07`
+       * allows it only where the holder cannot score). The explanation silently
+       * stopped applying, the model was asked again, and it rebuilt the same
+       * false case: *"Rogers' superior form and season points outweigh
+       * Calvert-Lewin's slight xPts edge"*, above a row reading 7.9 against 6.7.
+       *
+       * **A behaviour keyed to a flag ends the moment that flag is corrected.**
+       * It is keyed to the obligation now, which is what it was always about.
+       *
+       * It also saves a model call every time (NFR Cost control).
        */
-      if (call.outcome.isForced) {
+      if (call.outcome.mustChange) {
         return { text: forcedLine(kind, rows, out.name, into.name), source: 'template' as const, record: null }
       }
 
@@ -263,6 +275,14 @@ export async function generateWeek(input: {
       pointsHit: figures.pointsHit,
       costTenths: figures.costTenths,
       isForced: figures.isForced,
+      /**
+       * **Not persisted, and it does not need to be.** The world read derives
+       * the same obligation from the two calls it holds (STE-144). This carries
+       * it within the run, so the reasoning step and anything counting model
+       * calls can ask the question directly instead of inferring it from a flag
+       * that means something narrower (STE-150).
+       */
+      mustChange: call.outcome.reading === 'call' && call.outcome.mustChange,
       watch: watchReason !== null,
       watchReason,
       reasoning: line?.text ?? '',
@@ -374,8 +394,14 @@ export async function composeEditorial(input: {
   }
 
   const editorialInput: EditorialInput = {
-    calls: input.calls
+    // **Strongest first**, so leading with the strongest is the natural reading
+    // of the list rather than an instruction the model has to remember
+    // (STE-150). A forced or must-change call is not the strongest by net — it
+    // is floored at zero — and is deliberately not hoisted: it is an obligation
+    // to state, not the biggest gain to lead on.
+    calls: [...input.calls]
       .filter((c) => !c.isReading)
+      .sort((a, b) => b.net - a.net)
       .map((c) => ({
         title: `${input.nameOf(c.outPlayerId)} → ${input.nameOf(c.inPlayerId)}`,
         kind: kindOf(c),
