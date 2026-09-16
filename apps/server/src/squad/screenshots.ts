@@ -20,6 +20,7 @@ import { Hono } from 'hono'
 import type { AuthenticatedUser } from '../auth/session.js'
 import type { ModelCallRecord, ModelPort } from '../model/client.js'
 import { COMMON_CAUSES, type ParseFailure, type ParsedSquad, parseSquad } from './parse.js'
+import { jsonObject } from '../json-body.js'
 
 /** Each image, before base64. Two untouched phone screenshots would be ~5.5 MB of body. */
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024
@@ -78,7 +79,7 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
     const user = await deps.authenticate(c.req.header('Cookie'))
     if (!user) return c.json({ error: 'not_signed_in' }, 401)
 
-    const body = (await c.req.json().catch(() => ({}))) as { team?: unknown; transfers?: unknown }
+    const body = await jsonObject(c.req.raw)
     const team = typeof body.team === 'string' ? body.team : null
     const transfers = typeof body.transfers === 'string' ? body.transfers : null
 

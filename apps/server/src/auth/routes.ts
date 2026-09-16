@@ -21,6 +21,7 @@
  */
 
 import { Hono } from 'hono'
+import { jsonObject } from '../json-body.js'
 import type { AuthenticatedUser } from './session.js'
 import {
   clearedCookieHeader,
@@ -82,7 +83,7 @@ export function authRoutes(deps: AuthDeps) {
   const app = new Hono()
 
   app.post('/api/auth/request-code', async (c) => {
-    const { email } = await c.req.json<{ email?: string }>().catch(() => ({ email: undefined }))
+    const { email } = await jsonObject(c.req.raw)
     // Returns before touching anything, and that is not a leak: it separates
     // junk from well-formed, never authorised from unauthorised. Do not "fix"
     // it with an artificial delay.
@@ -146,9 +147,7 @@ export function authRoutes(deps: AuthDeps) {
   })
 
   app.post('/api/auth/verify', async (c) => {
-    const { email, code } = await c.req
-      .json<{ email?: string; code?: string }>()
-      .catch(() => ({ email: undefined, code: undefined }))
+    const { email, code } = await jsonObject(c.req.raw)
     if (typeof email !== 'string' || typeof code !== 'string') {
       return c.json({ error: 'invalid_code' }, 400)
     }

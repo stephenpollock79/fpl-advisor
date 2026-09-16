@@ -15,7 +15,8 @@
     "coverage:criteria": "node scripts/criteria-coverage.mjs",
     "e2e": "playwright test",
     "typecheck": "tsc -p packages/engine/tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit",
-    "check:rls-live": "node scripts/live-rls-check.mjs"
+    "check:rls-live": "node scripts/live-rls-check.mjs",
+    "check:red-team": "node scripts/red-team.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

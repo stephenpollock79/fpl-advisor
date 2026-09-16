@@ -15,6 +15,7 @@
  */
 
 import { Hono } from 'hono'
+import { jsonObject as body } from '../json-body.js'
 import type { AuthenticatedUser } from '../auth/session.js'
 import { type EntryPayload, type LinkedTeam, toLinkedTeam } from '../fpl/entry.js'
 
@@ -106,9 +107,7 @@ export function teamLinkRoutes(deps: TeamLinkDeps) {
   return app
 }
 
-async function body(request: Request): Promise<Record<string, unknown>> {
-  return (await request.json().catch(() => ({}))) as Record<string, unknown>
-}
+
 
 /**
  * A team identifier is a positive whole number and nothing else. Rejected here
