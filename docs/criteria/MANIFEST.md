@@ -1,6 +1,6 @@
 <!-- DERIVED FILE — DO NOT EDIT. Regenerate with extract-criteria.py. -->
 <!-- source: PRD - The FPL Advisor.md -->
-<!-- source-sha256: f5e1d5cf84fabce6 -->
+<!-- source-sha256: 6413da97356bc077 -->
 
 # Criteria files
 
@@ -18,6 +18,6 @@ Per-feature extracts of PRD section 3.2. A ticket cites a criterion by identifie
 | `F6.criteria.md` | F6 · Refresh and regeneration | 1643 | 34 |
 | `F7.criteria.md` | F7 · Account, access and session | 1515 | 31 |
 | `F8.criteria.md` | F8 · Assistant Overview — the week in one read | 1563 | 38 |
-| `NFR.criteria.md` | Non-functional requirements | 837 | 0 |
+| `NFR.criteria.md` | Non-functional requirements | 796 | 0 |
 
-Full PRD for comparison: 24,767 words.
+Full PRD for comparison: 24,871 words.
