@@ -50,6 +50,13 @@ export type Recomputed = {
    * proposing to buy a player the manager already owns.
    */
   unexecutable: boolean
+  /**
+   * **Which condition refused it**, for the log and for the card's wording.
+   * Null whenever `unexecutable` is false. Three separate faults used to share
+   * one boolean, and the only way to tell them apart was to reason from the
+   * outside — which cost an hour on 2026-09-16 (STE-142).
+   */
+  unexecutableBecause: 'player_unknown' | 'incoming_excluded' | 'already_owned' | 'no_selling_price' | null
 }
 
 export type SideNow = {
@@ -112,6 +119,7 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
       previousConviction: call.conviction,
       movedBand: false,
       unexecutable: true,
+      unexecutableBecause: gone ? 'player_unknown' : excluded ? 'incoming_excluded' : 'already_owned',
     }
   }
 
@@ -138,6 +146,7 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
       previousConviction: call.conviction,
       movedBand: false,
       unexecutable: true,
+      unexecutableBecause: 'no_selling_price',
     }
   }
 
@@ -171,6 +180,7 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
     previousConviction: movedBand ? call.conviction : null,
     movedBand,
     unexecutable: false,
+    unexecutableBecause: null,
   }
 }
 
@@ -202,6 +212,7 @@ export function recomputeAll(
         previousConviction: null,
         movedBand: false,
         unexecutable: false,
+    unexecutableBecause: null,
       } satisfies Recomputed
     }
   })

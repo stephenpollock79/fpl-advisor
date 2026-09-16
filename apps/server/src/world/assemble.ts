@@ -107,7 +107,15 @@ export type WorldCall = {
    * zero, and every surface has to say which it is holding.
    */
   isReading: boolean
-  readingReason: 'incumbent_wins' | 'below_floor' | null
+  /**
+   * **`unexecutable` is not one of the engine's reasons and is never stored.**
+   * The engine has two — the holder is ahead, or the pair are too close to
+   * separate — and both mean *nothing here is worth doing*. A call that cannot
+   * be carried out means the opposite: there was something, and it can no
+   * longer be done. This value is computed on the way out of a world read and
+   * the database's check constraint does not allow it, which is correct.
+   */
+  readingReason: 'incumbent_wins' | 'below_floor' | 'unexecutable' | null
   conviction: number | null
   band: Band | null
   k: number
@@ -412,11 +420,38 @@ function refreshedCalls(calls: readonly WorldCall[], world: readonly WorldPlayer
     // the strength of a lookup miss.
     if (again.unexecutable && !sides.has(call.outPlayerId)) return call
 
+    /**
+     * **Say when a run's call is suppressed, and which condition did it.**
+     *
+     * A call planned as live and shown as a reading is the hardest state in
+     * this app to reason about from the outside — the editorial counts one
+     * list, the screen counts another, and nothing recorded what happened in
+     * between. That cost an hour on 2026-09-16 and was diagnosed by elimination
+     * rather than evidence (STE-142). One line ends it.
+     */
+    if (again.unexecutable && !call.isReading) {
+      console.warn(`[world] ${call.key} was planned as a call and cannot be executed — ${String(again.unexecutableBecause)}`)
+    }
+
     return {
       ...call,
       net: again.net,
       isReading: again.isReading || again.unexecutable,
-      readingReason: again.isReading || again.unexecutable ? (call.readingReason ?? 'incumbent_wins') : null,
+      /**
+       * **A call that cannot be done says so** (STE-142).
+       *
+       * This fell back to `incumbent_wins` for every suppressed call, which is
+       * the engine's term for *net ≤ 0 — the holder is simply better*. So a
+       * transfer the app could not execute was shown as "no transfer is worth
+       * making this week. Hold the free transfer." **Not a softer version of
+       * the truth: the opposite of it.** The app had a call and could not carry
+       * it out, and told the manager there was nothing there.
+       */
+      readingReason: again.unexecutable
+        ? 'unexecutable'
+        : again.isReading
+          ? (call.readingReason ?? 'incumbent_wins')
+          : null,
       conviction: again.conviction,
       band: again.band,
       previousConviction: again.previousConviction,
@@ -452,6 +487,7 @@ function safeRecompute(call: StoredFigure, sides: Map<number, SideNow>): Recompu
       previousConviction: null,
       movedBand: false,
       unexecutable: false,
+      unexecutableBecause: null,
     }
   }
 }

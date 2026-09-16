@@ -199,7 +199,7 @@ export type WorldCall = {
    * keep as a weak change — and it is excluded from every tally (F4-AC-03).
    */
   isReading: boolean
-  readingReason: 'incumbent_wins' | 'below_floor' | null
+  readingReason: 'incumbent_wins' | 'below_floor' | 'unexecutable' | null
   conviction: number | null
   band: 'certain' | 'strong' | 'lean' | 'thin' | null
   k: number
