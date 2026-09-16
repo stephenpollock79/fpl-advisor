@@ -6,10 +6,12 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { engineIdentity } from '@fpl/engine'
 import { Hono } from 'hono'
 import { authRoutes } from './auth/routes.js'
+import { authDeps } from './auth/wire.js'
 import { authenticateRequest } from './auth/session.js'
 import { fetchEntry } from './fpl/entry.js'
 import { saveLink } from './team-link/link.js'
 import { teamLinkRoutes } from './team-link/routes.js'
+import { confirmationIsValid, mintConfirmation } from './team-link/confirmation.js'
 import { worldRoutes } from './world/routes.js'
 import { worldDeps } from './world/wire.js'
 import { decisionRoutes } from './decisions/routes.js'
@@ -72,8 +74,21 @@ app.get('/api/health', (c) =>
   }),
 )
 
-app.route('/', authRoutes(env))
-app.route('/', teamLinkRoutes({ fetchEntry, authenticate: authenticateRequest, saveLink }))
+app.route('/', authRoutes(authDeps(env)))
+app.route(
+  '/',
+  teamLinkRoutes({
+    fetchEntry,
+    authenticate: authenticateRequest,
+    saveLink,
+    // SESSION_COOKIE_SECRET reaches the token here and nowhere else, so the
+    // routes stay testable and no secret lands in a request handler.
+    mintConfirmation: (user, fplTeamId) =>
+      mintConfirmation(env.sessionCookieSecret, user.userId, fplTeamId),
+    confirmationIsValid: (user, fplTeamId, token) =>
+      confirmationIsValid(env.sessionCookieSecret, user.userId, fplTeamId, token),
+  }),
+)
 app.route('/', worldRoutes(worldDeps(authenticateRequest)))
 app.route('/', decisionRoutes(decisionDeps(authenticateRequest)))
 app.route('/', runRoutes(runDeps(authenticateRequest)))

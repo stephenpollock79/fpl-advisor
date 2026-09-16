@@ -11,7 +11,19 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
+import {
+  confirmationIsValid,
+  mintConfirmation,
+} from '../../apps/server/src/team-link/confirmation.js'
 import { teamLinkRoutes } from '../../apps/server/src/team-link/routes.js'
+
+/**
+ * A fixed secret, and the **real** mint and verify bound to it rather than
+ * stubs. The criterion is that a confirm is bound to a resolve, so a stubbed
+ * binding would prove the routes call something and nothing about whether the
+ * binding holds.
+ */
+const SECRET = 'test-secret-not-a-real-one'
 
 const entry = {
   id: 314159,
@@ -27,9 +39,19 @@ function harness(overrides: Partial<Parameters<typeof teamLinkRoutes>[0]> = {}) 
     fetchEntry: vi.fn(async () => entry),
     authenticate: vi.fn(async () => ({ userId: 'user-1', accessToken: 'token-1' })),
     saveLink,
+    mintConfirmation: (user: { userId: string }, fplTeamId: number) =>
+      mintConfirmation(SECRET, user.userId, fplTeamId),
+    confirmationIsValid: (user: { userId: string }, fplTeamId: number, token: unknown) =>
+      confirmationIsValid(SECRET, user.userId, fplTeamId, token),
     ...overrides,
   }
   return { app: teamLinkRoutes(deps), deps, saveLink }
+}
+
+/** Resolves an identifier and hands back the token that resolve issued for it. */
+async function resolved(app: ReturnType<typeof teamLinkRoutes>, fplTeamId: number): Promise<string> {
+  const response = await app.request(post('/api/team-link/resolve', { fplTeamId }))
+  return ((await response.json()) as { confirmation: string }).confirmation
 }
 
 function post(path: string, body: unknown) {
@@ -54,6 +76,8 @@ describe('linking an FPL team', () => {
         managerName: 'Ada Lovelace',
         overallRank: 2_523_055,
       },
+      // Handed back so the confirm that follows can be tied to this resolve.
+      confirmation: expect.stringMatching(/^\d+\.[A-Za-z0-9_-]+$/),
     })
     // The whole point of the criterion: a mistyped identifier is usually still a
     // valid one belonging to a stranger, so nothing is written until it is accepted.
@@ -64,8 +88,9 @@ describe('linking an FPL team', () => {
 describe('accepting the resolved team', () => {
   it('F7-AC-13, F7-AC-11: confirm stores the link, written as the signed-in user', async () => {
     const { app, saveLink } = harness()
+    const confirmation = await resolved(app, 314159)
 
-    const response = await app.request(post('/api/team-link/confirm', { fplTeamId: 314159 }))
+    const response = await app.request(post('/api/team-link/confirm', { fplTeamId: 314159, confirmation }))
 
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ status: 'linked' })
@@ -81,10 +106,12 @@ describe('accepting the resolved team', () => {
 
   it('F7-AC-13: confirm re-reads FPL rather than trusting the posted team', async () => {
     const { app, saveLink } = harness()
+    const confirmation = await resolved(app, 314159)
 
     await app.request(
       post('/api/team-link/confirm', {
         fplTeamId: 314159,
+        confirmation,
         teamName: 'Not This One',
         managerName: 'Someone Else',
         overallRank: 1,
@@ -132,5 +159,91 @@ describe('the guards on both routes', () => {
 
     expect(response.status).toBe(404)
     expect(await response.json()).toEqual({ error: 'team_not_found' })
+  })
+})
+
+/**
+ * The half of F7-AC-14 that did not exist until slice 10.
+ *
+ * `docs/coverage-gaps.md` carried this as an open gap: the tests above prove
+ * resolve stores nothing and that confirm writes what FPL returns rather than
+ * what the browser posted — **neither proves the ordering**, which is the
+ * criterion's own wording. A direct POST to confirm linked a team that had never
+ * been shown back, and the guarantee lived entirely in `LinkTeam.tsx`.
+ */
+describe('F7-AC-14 · the identifier is confirmed before it is linked', () => {
+  it('F7-AC-14: a confirm with no prior resolve neither stores nor reads FPL', async () => {
+    const { app, saveLink, deps } = harness()
+
+    // The exact request that used to link a stranger's team silently.
+    const response = await app.request(post('/api/team-link/confirm', { fplTeamId: 314159 }))
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual({ error: 'not_confirmed' })
+    expect(saveLink).not.toHaveBeenCalled()
+    // Checked before the upstream read, so a forged confirm costs nothing and
+    // cannot be mistaken for FPL being unreachable.
+    expect(deps.fetchEntry).not.toHaveBeenCalled()
+  })
+
+  it('F7-AC-14: the token a resolve hands back confirms that identifier', async () => {
+    const { app, saveLink } = harness()
+
+    // The trigger is a real resolve, and the token is taken out of its response
+    // rather than minted by the test.
+    const confirmation = await resolved(app, 314159)
+    const response = await app.request(post('/api/team-link/confirm', { fplTeamId: 314159, confirmation }))
+
+    expect(response.status).toBe(200)
+    expect(saveLink).toHaveBeenCalledTimes(1)
+  })
+
+  it('F7-AC-14: a token for one team does not confirm another', async () => {
+    // The criterion's own reason for existing: a mistyped identifier is usually
+    // still a valid one belonging to a stranger. Resolving 314159 must not let
+    // 271828 be linked.
+    const { app, saveLink } = harness()
+    const confirmation = await resolved(app, 314159)
+
+    const response = await app.request(post('/api/team-link/confirm', { fplTeamId: 271828, confirmation }))
+
+    expect(response.status).toBe(400)
+    expect(saveLink).not.toHaveBeenCalled()
+  })
+
+  it('F7-AC-14: a token minted for another user does not confirm for this one', async () => {
+    const other = mintConfirmation(SECRET, 'user-2', 314159)
+    const { app, saveLink } = harness()
+
+    const response = await app.request(post('/api/team-link/confirm', { fplTeamId: 314159, confirmation: other }))
+
+    expect(response.status).toBe(400)
+    expect(saveLink).not.toHaveBeenCalled()
+  })
+
+  it('F7-AC-14: a tampered or expired token is refused', async () => {
+    const { app, saveLink } = harness()
+    const good = await resolved(app, 314159)
+    const [expiry, mac] = good.split('.')
+
+    const expired = mintConfirmation(SECRET, 'user-1', 314159, Date.now() - 601_000)
+    const tampered = `${expiry}.${mac!.slice(0, -1)}${mac!.endsWith('A') ? 'B' : 'A'}`
+    const nonsense = 'not-a-token'
+
+    for (const confirmation of [expired, tampered, nonsense]) {
+      const response = await app.request(post('/api/team-link/confirm', { fplTeamId: 314159, confirmation }))
+      expect(response.status, `for ${confirmation}`).toBe(400)
+    }
+    expect(saveLink).not.toHaveBeenCalled()
+  })
+
+  it('F7-AC-14: the token carries no identity, only an expiry and a signature', async () => {
+    // Nothing to parse out of an untrusted string, and a captured token says
+    // nothing about whose it was.
+    const { app } = harness()
+    const confirmation = await resolved(app, 314159)
+
+    expect(confirmation).not.toContain('user-1')
+    expect(confirmation).not.toContain('314159')
   })
 })

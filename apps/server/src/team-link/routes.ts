@@ -25,6 +25,10 @@ export type TeamLinkDeps = {
   authenticate: (cookie: string | undefined) => Promise<AuthenticatedUser | null>
   /** Writes the accepted link, as the user, so the row policies apply. */
   saveLink: (user: AuthenticatedUser, team: LinkedTeam) => Promise<void>
+  /** The opaque token resolve hands back, which confirm then requires (F7-AC-14). */
+  mintConfirmation: (user: AuthenticatedUser, fplTeamId: number) => string
+  /** True only for a token this server minted, for this user and this team, unexpired. */
+  confirmationIsValid: (user: AuthenticatedUser, fplTeamId: number, token: unknown) => boolean
 }
 
 export function teamLinkRoutes(deps: TeamLinkDeps) {
@@ -34,25 +38,57 @@ export function teamLinkRoutes(deps: TeamLinkDeps) {
     const found = await lookUp(c.req.raw, c.req.header('Cookie'))
     if ('failure' in found) return c.json({ error: found.failure }, found.status)
 
-    return c.json({ team: found.team })
+    return c.json({
+      team: found.team,
+      // The half of F7-AC-14 that was missing until slice 10. Minted for the
+      // identifier actually shown back, so a confirm can be checked against a
+      // resolve that happened rather than against a screen order nobody can see.
+      confirmation: deps.mintConfirmation(found.session, found.team.fplTeamId),
+    })
   })
 
   app.post('/api/team-link/confirm', async (c) => {
-    const found = await lookUp(c.req.raw, c.req.header('Cookie'))
-    if ('failure' in found) return c.json({ error: found.failure }, found.status)
+    const session = await deps.authenticate(c.req.header('Cookie'))
+    if (!session) return c.json({ error: 'not_signed_in' }, 401)
 
-    await deps.saveLink(found.session, found.team)
+    const payload = await body(c.req.raw)
+    const fplTeamId = readTeamId(payload)
+    if (fplTeamId === null) return c.json({ error: 'invalid_team_id' }, 400)
+
+    /**
+     * **Checked before the FPL read, deliberately.** A confirm that was never
+     * resolved must cost no upstream request, and its failure must not be
+     * describable as "FPL is down" — a linking step that fails for two reasons
+     * with one message is how a missing mechanism hides.
+     *
+     * This is written out rather than folded into `lookUp` with a flag, because
+     * the order of these four checks is the criterion and burying it would hide
+     * exactly the thing the criterion is about.
+     */
+    if (!deps.confirmationIsValid(session, fplTeamId, payload['confirmation'])) {
+      return c.json({ error: 'not_confirmed' }, 400)
+    }
+
+    const entry = await deps.fetchEntry(fplTeamId)
+    if (!entry) return c.json({ error: 'team_not_found' }, 404)
+
+    // Still re-read from FPL rather than trusting the posted team. The token
+    // binds *which identifier* was shown back, never what it was called — see
+    // lookUp's note, which this route no longer shares but still obeys.
+    await deps.saveLink(session, toLinkedTeam(entry))
     return c.json({ status: 'linked' })
   })
 
   /**
-   * Both routes do the same three things in the same order, and confirm does not
-   * take the client's word for the team.
+   * Resolve's three steps. Confirm had the same three until slice 10, and now
+   * has four in a different order — the confirmation check has to come before
+   * the FPL read, which a shared helper could only express as a flag.
    *
-   * It re-reads FPL from the identifier instead. What the browser posts is a
-   * request to link *that id*, never an assertion about whose team it is — a
-   * confirm that stored the posted name would let a crafted request write any
-   * label it liked against a real identifier, and the screen would agree with it.
+   * The rule both routes still obey: the team is read from FPL by identifier,
+   * never taken from the request. What the browser posts is a request to link
+   * *that id*, never an assertion about whose team it is — storing the posted
+   * name would let a crafted request write any label it liked against a real
+   * identifier, and the screen would agree with it.
    */
   async function lookUp(request: Request, cookie: string | undefined) {
     const session = await deps.authenticate(cookie)
