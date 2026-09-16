@@ -34,6 +34,45 @@ import styles from './Landing.module.css'
 const COOLDOWN_SECONDS = 60
 
 /**
+ * Where the last send is remembered, so the countdown survives a logout.
+ *
+ * **It did not, and that broke the promise directly above.** The countdown lived
+ * in this component's state, so signing out and coming back wiped it while the
+ * server went on counting — and the screen offered a send it had been built
+ * specifically not to offer. Stephen hit it on 2026-09-16 on the first realistic
+ * path anyone would take: ask for a code, log in, log out, ask again, nothing
+ * arrives and nothing says why.
+ *
+ * **It leaks nothing.** The value is written by this browser's own action and
+ * says only *you asked recently* — never whether any address has access, so
+ * F7-AC-02 and F7-AC-07 are untouched. It is deliberately not keyed to the
+ * address: erring towards a cooldown that is occasionally too cautious is the
+ * right direction for a control whose whole job is to not offer a dead button.
+ */
+const LAST_SEND_KEY = 'gaffer.lastCodeRequest'
+
+/** Seconds still to wait, from whatever this browser last recorded. 0 on anything unreadable. */
+function cooldownRemaining(): number {
+  try {
+    const at = Number(localStorage.getItem(LAST_SEND_KEY))
+    if (!Number.isFinite(at) || at <= 0) return 0
+    return Math.max(0, Math.ceil((at + COOLDOWN_SECONDS * 1000 - Date.now()) / 1000))
+  } catch {
+    // Private windows and blocked site data both throw here. A cooldown is a
+    // courtesy; losing it must never stop the screen rendering.
+    return 0
+  }
+}
+
+function recordSend(): void {
+  try {
+    localStorage.setItem(LAST_SEND_KEY, String(Date.now()))
+  } catch {
+    /* As above. The server is the limit; this is only the screen being honest. */
+  }
+}
+
+/**
  * The claims, and the screen each one is about (F7-AC-16).
  *
  * **The copy is the handoff's**, with two departures, both because **F5 is below
@@ -94,7 +133,7 @@ export function Landing({ onSignedIn, startOn = 'about' }: { onSignedIn: () => v
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [cooldown, setCooldown] = useState(0)
+  const [cooldown, setCooldown] = useState(cooldownRemaining)
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -112,6 +151,9 @@ export function Landing({ onSignedIn, startOn = 'about' }: { onSignedIn: () => v
 
   async function send(event: FormEvent) {
     event.preventDefault()
+    // Belt as well as braces: the button is disabled, and a stray submit (Enter
+    // in the field) must not spend a request the server will refuse anyway.
+    if (cooldown > 0) return
     setError(null)
     setBusy(true)
     try {
@@ -119,6 +161,7 @@ export function Landing({ onSignedIn, startOn = 'about' }: { onSignedIn: () => v
       // Always the same next step: an address with no access reaches here too,
       // and must not be able to tell (F7-AC-02, F7-AC-05).
       setSent(true)
+      recordSend()
       setCooldown(COOLDOWN_SECONDS)
     } catch {
       setError('Could not reach the app. Try again in a moment.')
@@ -135,6 +178,7 @@ export function Landing({ onSignedIn, startOn = 'about' }: { onSignedIn: () => v
     } catch {
       /* Same silence as above: a failure here must not describe the address. */
     }
+    recordSend()
     setCooldown(COOLDOWN_SECONDS)
   }
 
@@ -275,8 +319,24 @@ export function Landing({ onSignedIn, startOn = 'about' }: { onSignedIn: () => v
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                 />
-                <button className={styles.button} type="submit" disabled={busy || email.trim() === ''}>
-                  {busy ? 'Sending…' : 'Send me a code'}
+                {/* **This button ignored the cooldown until 2026-09-16**, and
+                    that is the whole of the defect Stephen found. The countdown
+                    was only ever applied to *Send another code*, which lives on
+                    the next step — so signing out and returning put him back
+                    here, in front of a button that looked ready and did nothing.
+                    A send the server will swallow must not be offered on either
+                    step (F7-AC-08). */}
+                <button
+                  className={styles.button}
+                  type="submit"
+                  disabled={busy || email.trim() === '' || cooldown > 0}
+                  data-testid="send-code"
+                >
+                  {busy
+                    ? 'Sending…'
+                    : cooldown > 0
+                      ? `Send another code in ${String(cooldown)}s`
+                      : 'Send me a code'}
                 </button>
               </form>
             ) : (

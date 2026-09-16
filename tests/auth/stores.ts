@@ -81,7 +81,9 @@ export function memoryAttempts(allowed = 5): MemoryAttempts {
       return (counts.get(subject) ?? 0) >= allowed
     },
     async bump(subject: string) {
-      counts.set(subject, (counts.get(subject) ?? 0) + 1)
+      const next = (counts.get(subject) ?? 0) + 1
+      counts.set(subject, next)
+      return { nowSpent: next >= allowed }
     },
     async clear(subject: string) {
       counts.delete(subject)

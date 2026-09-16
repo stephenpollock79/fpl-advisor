@@ -39,8 +39,16 @@ export type ThrottleStore = {
 export type AttemptStore = {
   /** True once the code is spent (F7-AC-09). Read before the provider is called. */
   spent: (subject: string) => Promise<boolean>
-  /** Counts one wrong attempt. Called only after a verification actually failed. */
-  bump: (subject: string) => Promise<void>
+  /**
+   * Counts one wrong attempt and says whether **that** attempt spent the code.
+   *
+   * Returning the answer matters: F7-UP-02 wants the fifth failure itself to
+   * report the code as dead, "rather than leaving the manager retyping a code
+   * that can no longer work". A route that only consults `spent` on the way in
+   * tells him on the sixth — which is one more pointless attempt than the
+   * criterion allows, and it looks identical to the first five.
+   */
+  bump: (subject: string) => Promise<{ nowSpent: boolean }>
   /** Forgets the count — a fresh code was sent, or a sign-in succeeded. */
   clear: (subject: string) => Promise<void>
 }

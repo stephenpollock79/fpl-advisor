@@ -253,3 +253,47 @@ value, and it goes in.
 value named in a spec is a sentence Stephen can disagree with before it is built, and the same
 value found in a review is a round trip after it is. If the budget and this rule genuinely
 collide, say so rather than dropping either.
+
+## K. What a spec has to say about going wrong
+
+*Section K added 2026-09-16, on Stephen's ruling, from two proposals raised the same day.*
+
+**P18. A spec names what its change breaks elsewhere.** Where a slice changes a value, removes a
+feature or moves a control, the spec states what else depended on that thing and what happens to
+it now.
+
+**The failure is not a wrong decision — it is a consequence nobody traced.** `P17` catches a value
+the spec failed to name; this catches a value the spec named correctly while missing what else was
+reading it. Three instances across slices 8 and 9, none caught by a test, because every change was
+correct in itself:
+
+- **Slice 8.** Cutting the Chips section also cut the Landing screen's chip claim, leaving four
+  where `F7-AC-16` says five. And the call stepper's position label did not survive the move into
+  the status bar.
+- **Slice 9.** An upload changes the bank and the free-transfer count — and nothing said what
+  happens to decisions already taken against the old figures.
+
+Slice 8's review separated these out itself and said they did not yet have three occurrences.
+Slice 9 supplied the third.
+
+**P19. A spec says what happens when something is absent, broken or expired.** For each dependency
+a behaviour leans on and each input it takes, the spec states the posture when it is unavailable,
+missing, malformed or out of date — and, where the manager is looking at a screen, what he sees and
+what he can do next.
+
+**An unstated failure posture does not stop a build either.** It gets chosen by whoever is writing
+the line, and the choice is usually *fail closed*, because that is the safe-sounding default. That
+is right for a send nobody is waiting on and wrong for a code the manager is holding in his hand.
+**The two cases look identical while you are writing them and differ entirely for the person on the
+phone.** Five instances across slices 9 and 10:
+
+- **Slice 9.** If the regeneration after a correction fails, the uploaded squad still stands.
+- **Slice 10.** Four, and all four were decided silently: a dependency **down** — if the attempt
+  counter cannot be read, verify refuses the code; an input **missing** — when the source-address
+  header is absent, every such request shares one bucket; an input **malformed** — a submission that
+  is not a well-formed address is answered without consulting the limits; a thing **run out** — an
+  expired confirmation returns the link screen to the ID field with its own message.
+
+**Deliberately two rules rather than one.** `P18` is *what this change breaks elsewhere*; `P19` is
+*what this behaviour does when its own inputs fail*. They read alike and catch different misses,
+and folding them together would lose one of the two every time.

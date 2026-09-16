@@ -173,11 +173,23 @@ export function authRoutes(deps: AuthDeps) {
 
     const verified = await deps.verifyCode(email, code)
     if (!verified) {
-      await deps.attempts.bump(subject)
-      // F7-UP-02: wrong, expired and already-used still read alike here. Only
-      // exhaustion is distinguished, and only because it is the one case where
-      // retyping the same code can never work.
-      return c.json({ error: 'invalid_code' }, 400)
+      const { nowSpent } = await deps.attempts.bump(subject)
+      /**
+       * **The fifth failure says so itself.** F7-UP-02 asks for the error to
+       * report a spent code "rather than leaving the manager retyping a code
+       * that can no longer work" — so the attempt that reaches the limit is the
+       * one that must say it, not the next one after it.
+       *
+       * Checking only on the way in looked equivalent and is not: it costs the
+       * manager one more attempt that cannot succeed, worded exactly like the
+       * four before it. Found by Stephen on a phone on 2026-09-16, against tests
+       * that agreed with the build instead of with the criterion.
+       *
+       * Wrong, expired and already-used still read alike below. Only exhaustion
+       * is distinguished, and only because it is the one case where retyping the
+       * same code can never work.
+       */
+      return c.json({ error: nowSpent ? 'code_spent' : 'invalid_code' }, 400)
     }
 
     await deps.attempts.clear(subject)
