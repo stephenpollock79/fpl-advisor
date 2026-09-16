@@ -19,6 +19,7 @@ is why they are dated later than 0004 and 0005, which cite 0002.
 | 0009 | Model routing and cost control | New, 2026-09-08 |
 | 0010 | Criterion identifiers in test names | New, 2026-09-08 |
 | 0011 | The shared permission file is the last word | New, 2026-09-08 |
+| 0012 | What the model may author, and what it must always be given | New, 2026-09-16 |
 
 **The Decision Log stays the fuller record.** An ADR states the decision and its consequences for the build;
 the Decision Log holds the argument, the alternatives and who decided what. Cite it by number (#68) rather
