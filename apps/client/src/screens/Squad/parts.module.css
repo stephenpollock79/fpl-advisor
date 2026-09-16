@@ -127,8 +127,8 @@
 .card {
   width: 100%;
   min-width: 0;
-  padding: 0 0 4px;
-  gap: 2px;
+  padding: 0 0 3px;
+  gap: 1px;
   border-radius: 7px;
   overflow: hidden;
   background: var(--card);
@@ -137,18 +137,18 @@
 
 .cardTop {
   width: 100%;
-  padding: 2px 0 3px;
+  padding: 1px 0 2px;
   background: var(--green-dark);
   color: #fff;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-align: center;
   line-height: 1.1;
 }
 
 /* Quieter than the figure: the unit repeats eleven times and the number does not. */
-.cardTop span { font-size: 7px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.82; }
+.cardTop span { font-size: 6px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.82; }
 
 /* **One green everywhere**, bench included. A muted cap was tried and dropped:
    it was meant to say these four are not in the eleven, but the `GK · GKP` label
@@ -156,45 +156,36 @@
    information rather than adding any — at the cost of the squad looking like two
    different components. */
 
-/* Clearance for the badges. The armband and the availability marker both sit at
-   `top: -5px` on the kit, so at a smaller margin they ride up over the cap — a
-   white disc half on a dark band, which reads as a mistake rather than a badge. */
-.card .kit { margin-top: 7px; }
+/* The badges overhang the shirt by 5px and the margin above it is 4, so they
+   are pulled down to `-2px` rather than the kit being pushed down to clear them
+   — the kit's margin is height the pitch rows are using (STE-169). */
+.card .kit { margin-top: 4px; width: 29px; height: 25px; }
+.card .armband,
+.card .marker { top: -2px; }
 
 /* The name takes the card's width rather than the slot's fixed 66px, so a five
    man line narrows the text rather than overflowing it. */
-.card .surname { max-width: 100%; padding: 0 3px; }
+.card .surname { max-width: 100%; padding: 0 3px; font-size: 9px; }
 
 /* **Its own little chip, not the card's bottom edge.** Flush and square it read
    as one block ending in a colour; rounded and inset it reads as the opponent
    being a separate fact about the player, which is what it is. */
-.card .pill { margin: 1px 4px 0; }
+.card .pill { margin: 0 4px 0; font-size: 8px; padding: 1px 4px; }
 
 /* ---------------------------------------------------------------------------
-   The card, on a short viewport.
+   One card, at every height.
    ---------------------------------------------------------------------------
-   **A browser never gives you the whole phone.** Chrome on iOS keeps roughly
-   180px of an 844pt screen for its address bar and toolbar, and the card is
-   taller than the bare shirt it replaced — so at the height a real browser
-   leaves, the fourth row fell off the pitch. It clipped the forwards on
-   Stephen's phone, which is the same failure `SquadScreen.module.css` already
-   carries a comment about from the first time it happened.
+   **There were two of these until 2026-09-16** — a roomy card above 760px and a
+   tightened one below it — because the card was drawn at 844 and then had to pay
+   for its own height once a real browser's toolbar was accounted for.
 
-   So the card pays for its own height where there is none to spare, and keeps it
-   where there is — added to the home screen, or in any browser with a shorter
-   toolbar, the roomier version above applies unchanged. */
-@media (max-height: 760px) {
-  .card { gap: 1px; padding-bottom: 3px; }
-  .card .cardTop { padding: 1px 0 2px; font-size: 10px; }
-  .card .cardTop span { font-size: 6px; }
-  .card .kit { margin-top: 4px; width: 29px; height: 25px; }
-  /* **The badges move, not the kit.** They overhang the shirt by 5px, and the
-     margin above is only 4px here — so the armband and the doubt pill sat on
-     the green cap, a white disc half on a dark band. Giving the kit its 7px
-     back would cost the pitch a row; moving the badges down three costs
-     nothing, because they are positioned rather than laid out (STE-169). */
-  .card .armband,
-  .card .marker { top: -2px; }
-  .card .surname { font-size: 9px; }
-  .card .pill { font-size: 8px; padding: 1px 4px; margin-top: 0; }
-}
+   That split was wrong twice over. The media query tests the *viewport*, so an
+   app added to the home screen reports 844 and took the roomy card, while the
+   height it actually has after the status bar and the home indicator is about
+   735 — tighter than the browser case the tightened card was written for. And
+   Stephen judged the tightened one the better-looking card anyway, which leaves
+   the roomy version with nothing to recommend it but its history.
+
+   So there is one card. Where there is spare height the pitch spreads its rows,
+   which is what the extra room is worth spending on. */
+
