@@ -373,16 +373,52 @@ function keepVerdict(figures: Shown['figures'], role: 'captaincy' | 'vice-captai
   return `Nobody in your eleven projects higher. He keeps the ${band}.`
 }
 
+/**
+ * The short badges beside the direction label.
+ *
+ * Everything here is *conditional* — the things that appear on some players and
+ * not others, which is exactly why they cannot live on the meta line. Kept short
+ * because this row shares its width with the direction label.
+ */
+function extras(player: WorldPlayer): string[] {
+  const badges: string[] = []
+  if (player.benchOrder !== null && player.benchOrder > 0) badges.push(`BENCH ${String(player.benchOrder)}`)
+  return badges
+}
+
 function Side({ player, direction, onChange }: { player: WorldPlayer; direction: 'out' | 'in'; onChange?: (() => void) | undefined }) {
   return (
     <div className={direction === 'out' ? styles.side : styles.sideRight}>
-      <span className={styles.dir}>{direction === 'out' ? '▼ OUT' : 'IN ▲'}</span>
+      {/**
+        * **The extras ride on the direction row, not the meta line** (STE-125).
+        *
+        * `MCI · DEF · £5.6m` is about as much as a side gets at 390px. Adding
+        * `· bench 3` wrapped it onto a second line, so the header grew taller on
+        * some cards and not others: the card jumped as you stepped between
+        * calls, and the two sides stopped lining up — the incoming player sat
+        * higher than the outgoing one.
+        *
+        * The direction row is on every card, is four characters long, and has
+        * the rest of the width doing nothing. Putting the variable items there
+        * costs no height at all, which the alternatives did: a second row would
+        * have added a line to every card whether or not it had anything to say,
+        * and shortening `bench 3` to `B3` only buys room until the next extra
+        * arrives — injury and doubt markers and a second fixture in a double
+        * gameweek all belong here too.
+        */}
+      <span className={styles.dirRow}>
+        <span className={styles.dir}>{direction === 'out' ? '▼ OUT' : 'IN ▲'}</span>
+        {extras(player).map((extra) => (
+          <span key={extra} className={styles.extra} data-testid={`${direction}-extra`}>
+            {extra}
+          </span>
+        ))}
+      </span>
       <span data-testid={`${direction}-name`} className={styles.name}>
         {player.name}
       </span>
       <span className={styles.meta}>
         {player.clubShortName} · {player.position} · {formatMoney(player.nowCostTenths)}
-        {player.benchOrder !== null && player.benchOrder > 0 ? ` · bench ${String(player.benchOrder)}` : ''}
       </span>
       {onChange ? (
         <button className={styles.change} onClick={onChange} type="button" aria-label={`Change ${direction}`}>

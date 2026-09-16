@@ -62,6 +62,35 @@ rather than a link being tapped, which is a fact about the email template and th
 manager's thumb. Its manual-coverage row is from 2026-09-08.
 
 
+**F6-AC-07 — the scoping half never existed, and the naming half was naming
+something untrue.** The criterion asks for one refresh control *scoped to the
+screen it is on* — all categories on the Overview, one category on a decision
+tab, the season plan on the Chips tab — with that scope carried in the control's
+accessible name and stated on the confirmation sheet.
+
+**No run has ever been scoped.** `run.scope` is a column with a check constraint
+that nothing sets, and `POST /api/runs/stream` takes no scope: every run reads
+the whole world and rewrites every pending call. So the naming half was built
+and **untrue on two of the three tabs** — the confirmation sheet said "Refresh
+transfers" over a run that also rewrote captaincy and substitutions.
+
+**Nothing was wrong with the advice.** What the wording could cost was a
+*pending* call on a tab the manager believed he was leaving alone; a selected one
+is carried forward and survives (`F6-AC-02`).
+
+**Ruled by Stephen 2026-09-16: the run keeps doing everything and the wording
+changes to match** (STE-158), rather than scoping the run to fit the label.
+`F6-AC-08` already leaned that way — *one rule is easier to trust than a rule
+plus three shortcuts* — and `F6-AC-09` needs the news token's refresh to be
+all-scope regardless, which is now simply what every refresh is.
+
+**So the app is right and the PRD has not caught up.** Same shape as `F8-AC-12`
+on 2026-09-15, and it wants the same treatment: a Cowork edit to the PRD, then
+`docs/criteria/` regenerated. **Until then `F6-AC-07` must not be read as met**,
+and the identifier has been taken off the two tests that named it — in their
+names and in their prose, because the coverage script reads whole files. *Home:
+STE-158.*
+
 **F7-UP-05 — nobody has ever been given access, so nothing can be checked.**
 Named by slice 10's cold review as in scope and uncovered, which is correct. The
 criterion is about **a second person being added**: the owner creates their
