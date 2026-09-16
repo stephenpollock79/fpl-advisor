@@ -411,6 +411,7 @@ function refreshedCalls(calls: readonly WorldCall[], world: readonly WorldPlayer
         band: call.band,
         isReading: call.isReading,
         pointsHit: call.pointsHit,
+        isForced: call.isForced,
       },
       sides,
     )
