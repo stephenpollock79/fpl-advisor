@@ -348,6 +348,23 @@ export async function composeEditorial(input: {
    * model supplied one — *"Injury forces Calvert-Lewin out"*, about a fit
    * player it then recommended for the captaincy (STE-146).
    */
+  /**
+   * **What kind of move this is, in the words the manager would use.**
+   *
+   * The prompt gave two names and an arrow and nothing else, so a captaincy
+   * change read as one more swap in a list of them: *"Calafiori to De Cuyper,
+   * Semenyo to Groß, and Haaland to Calvert-Lewin"* — two substitutions and an
+   * armband, indistinguishable (STE-149). The model could not have said which
+   * was which; it was never told.
+   */
+  const kindOf = (c: StoredCall): string => {
+    if (c.shape === 'captain') return 'captaincy change'
+    if (c.shape === 'vice') return 'vice-captaincy change'
+    if (c.shape === 'transfer') return 'transfer'
+    if (c.shape === 'bench_order') return 'bench order'
+    return 'substitution'
+  }
+
   const whyOf = (c: StoredCall): string | undefined => {
     if (c.shape === 'vice' && wouldCaptain !== null && wouldCaptain === c.outPlayerId) {
       return 'the armband is moving to him, so the vice armband has to move too — not optional, and not about his fitness'
@@ -361,6 +378,7 @@ export async function composeEditorial(input: {
       .filter((c) => !c.isReading)
       .map((c) => ({
         title: `${input.nameOf(c.outPlayerId)} → ${input.nameOf(c.inPlayerId)}`,
+        kind: kindOf(c),
         net: c.net,
         band: c.band,
         forced: c.isForced,
