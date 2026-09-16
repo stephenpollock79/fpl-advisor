@@ -39,3 +39,36 @@ export function keepLine(
     ? `${holderName} keeps it: ${held} projected points this gameweek, the highest in your eleven.`
     : `${holderName} keeps it: ${held} projected points, and nothing in your eleven is clear enough of him to justify a change.`
 }
+
+/**
+ * **Why a forced call is being made, in the manager's terms — and why the model
+ * is not asked** (found live 2026-09-16, STE-143).
+ *
+ * A forced call is not a comparison. The holder cannot fill the role, so the
+ * best of those who can takes it — and that is true whether or not he is the
+ * better player. **The model is handed the two players' figures and nothing
+ * else**, so asked to explain such a call it can only build a comparative case,
+ * and on a forced call the comparison usually runs the other way.
+ *
+ * That is exactly what shipped: the vice armband had to move off Calvert-Lewin
+ * because he was taking the captaincy, and the card read *"Rogers' superior
+ * form and season points make him the safer armband bet"* — directly above a
+ * row showing 7.9 against 6.7. **Not a weak argument, a false one.**
+ *
+ * Same treatment a keep already gets, and for the same reason: where the
+ * comparison misleads, the sentence is code's.
+ */
+export function forcedLine(
+  kind: 'captain' | 'vice' | 'transfer' | 'substitution',
+  rows: readonly EvaluationRow[],
+  outName: string,
+  inName: string,
+): string {
+  const xpts = rows.find((r) => r.key === 'xpts')
+  const takes = (xpts?.in ?? 0).toFixed(1)
+
+  return kind === 'captain' || kind === 'vice'
+    ? `${outName} cannot hold this armband as things now stand, so it has to move. ${inName} is the best of those who can, on ${takes} projected points.`
+    : `${outName} cannot play this gameweek, so he has to come out. ${inName} is the best replacement available, on ${takes} projected points.`
+}
+

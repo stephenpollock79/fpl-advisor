@@ -142,7 +142,15 @@ export function HeadToHead({
               </span>
             )}
           </span>
-          {isForced ? <span className={styles.flagForced}>FORCED</span> : null}
+          {/* **A disc, not a word.** The pill wrapped onto its own line on a
+              390-wide card and pushed the whole strip taller; the letter fits
+              beside the figures. The accessible name stays the full word — "F"
+              alone is meaningless read aloud. */}
+          {isForced ? (
+            <span className={styles.flagForced} title="Forced" aria-label="Forced">
+              F
+            </span>
+          ) : null}
         {/* What the last refresh did to this call, until the card has been seen
             (F6-AC-13). Truncates before the title does, because the title is
             what tells the manager which call he is looking at. */}

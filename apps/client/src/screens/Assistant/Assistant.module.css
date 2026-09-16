@@ -125,9 +125,26 @@
 .lean { background: #fbf1dc; color: #7a5410; border-color: #ecd6a6; }
 .thin { background: var(--warm-1); color: var(--ink-3); border-color: var(--border-light); }
 .noChange { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
-.flagForced,
 .flagWatch { margin-left: auto; padding: 2px 7px; border-radius: 5px; font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.1em; }
-.flagForced { background: var(--red-disc); color: #fff; }
+/* A disc rather than a pill: the word wrapped to its own line at 390 and took
+   the strip's height with it. Fixed size and no shrink, so it holds its shape
+   beside NET, COST and STRENGTH however long those run. */
+.flagForced {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--red-disc);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
 /* A button, because its reason is one tap away (F3-AC-18). */
 .flagWatch { background: #f2b33d; color: #3d2a05; border: none; cursor: pointer; }
 .watchNote { margin: 0; padding: 6px 14px; background: #fdf4df; border-bottom: 1px solid #ecd6a6; font-size: 11px; line-height: 1.35; color: #5a3f0a; }
