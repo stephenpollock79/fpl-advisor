@@ -15,6 +15,9 @@
 import { type Route, expect, test } from '@playwright/test'
 import { world } from './fixture'
 
+/** The stubbed resolve token, so the confirm stub can check the client actually forwards it. */
+const RESOLVE_TOKEN = 'e2e-confirmation-token'
+
 /** A stranger: signed out, and nothing else stubbed. */
 async function strangerOpens(page: Parameters<typeof test>[0] extends never ? never : import('@playwright/test').Page) {
   await page.route('**/api/me', (route: Route) => route.fulfill({ status: 401, json: { error: 'not_signed_in' } }))
@@ -118,9 +121,21 @@ test('F7-AC-15: confirming the team ends onboarding in the Thinking state, not o
     }),
   )
   await page.route('**/api/team-link/resolve', (route: Route) =>
-    route.fulfill({ json: { team: { fplTeamId: 6131656, teamName: 'Noggingham Forest', managerName: 'Stephen', overallRank: 12345 } } }),
+    route.fulfill({
+      json: {
+        team: { fplTeamId: 6131656, teamName: 'Noggingham Forest', managerName: 'Stephen', overallRank: 12345 },
+        // The token resolve issues, which confirm now requires (F7-AC-14).
+        confirmation: RESOLVE_TOKEN,
+      },
+    }),
   )
   await page.route('**/api/team-link/confirm', (route: Route) => {
+    // **Asserted rather than ignored.** A stub that accepted any confirm would
+    // stay green after the client stopped sending the token, which is the whole
+    // failure this test would then be hiding — the server would refuse in
+    // production and nothing here would say so.
+    const sent = (route.request().postDataJSON() as { confirmation?: string }).confirmation
+    if (sent !== RESOLVE_TOKEN) return route.fulfill({ status: 400, json: { error: 'not_confirmed' } })
     linked = true
     return route.fulfill({ json: { status: 'linked' } })
   })

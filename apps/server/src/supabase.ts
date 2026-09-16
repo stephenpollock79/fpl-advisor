@@ -1,9 +1,10 @@
 /**
- * The two ways this server talks to Supabase, and the rule that separates them.
+ * The ways this server talks to Supabase, and the rule that separates them.
  *
  *   User data      -> userClient(accessToken)   — the signed-in user's own token
  *   Reference data -> referenceClient()         — the service key
  *   app_session    -> sessionClient()           — the service key
+ *   auth_throttle  -> throttleClient()          — the service key
  *
  * ADR 0007: **user data is read with the signed-in user's token, never the
  * service key.** The service key carries BYPASSRLS, so a server that uses it for
@@ -11,10 +12,10 @@
  * of the isolation those policies are for. Nothing on screen would look wrong.
  * That hazard is asserted, not just described, in tests/rls/isolation.test.ts.
  *
- * The two service-key exports are the same client behind different names on
- * purpose. There is no way to make the boundary a compile error while both need
- * the same key, so the next best mechanism is that misuse has to be written down:
- * `referenceClient().from('manager')` reads wrong in a diff in a way that
+ * The three service-key exports are the same client behind different names on
+ * purpose. There is no way to make the boundary a compile error while they all
+ * need the same key, so the next best mechanism is that misuse has to be written
+ * down: `referenceClient().from('manager')` reads wrong in a diff in a way that
  * `serviceClient().from('manager')` does not.
  */
 
@@ -54,5 +55,18 @@ export function referenceClient(): SupabaseClient {
 
 /** Service key. `app_session` only, which is unreachable as anon or authenticated. */
 export function sessionClient(): SupabaseClient {
+  return createClient(env.supabaseUrl, env.supabaseServiceKey, NO_PERSISTENCE)
+}
+
+/**
+ * Service key. `auth_throttle` only.
+ *
+ * A fourth name for the same key, for the reason the docblock above gives: the
+ * boundary cannot be a compile error while every service table needs the same
+ * credential, so the next best mechanism is that misuse has to be written down.
+ * This one is written before anyone is authenticated — there is no user token
+ * that could read it, which is why it is service-role rather than a lapse.
+ */
+export function throttleClient(): SupabaseClient {
   return createClient(env.supabaseUrl, env.supabaseServiceKey, NO_PERSISTENCE)
 }

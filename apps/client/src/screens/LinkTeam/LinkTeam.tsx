@@ -14,7 +14,7 @@
  */
 
 import { type FormEvent, useState } from 'react'
-import { ApiError, type LinkedTeam, confirmTeam, resolveTeam } from '../../api'
+import { ApiError, type ResolvedTeam, confirmTeam, resolveTeam } from '../../api'
 import styles from './LinkTeam.module.css'
 import avatar from '../../assets/gaffer-avatar.png'
 
@@ -22,7 +22,7 @@ type Props = { onLinked: () => void }
 
 export function LinkTeam({ onLinked }: Props) {
   const [entered, setEntered] = useState('')
-  const [found, setFound] = useState<LinkedTeam | null>(null)
+  const [found, setFound] = useState<ResolvedTeam | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -45,10 +45,13 @@ export function LinkTeam({ onLinked }: Props) {
     setError(null)
     setBusy(true)
     try {
-      await confirmTeam(found.fplTeamId)
+      await confirmTeam(found.team.fplTeamId, found.confirmation)
       onLinked()
     } catch (cause) {
       setError(describe(cause))
+      // Back to the ID field on an expired confirmation: the token is spent and
+      // pressing the same button again can only fail.
+      if (cause instanceof ApiError && cause.code === 'not_confirmed') setFound(null)
     } finally {
       setBusy(false)
     }
@@ -95,24 +98,24 @@ export function LinkTeam({ onLinked }: Props) {
         <>
           <div className={styles.found}>
             <div className={styles.foundLabel}>✓ FOUND · IS THIS YOU?</div>
-            <div className={styles.teamName}>{found.teamName}</div>
+            <div className={styles.teamName}>{found.team.teamName}</div>
             <div className={styles.grid}>
               <div>
                 <div className={styles.gridLabel}>Manager</div>
-                <div className={styles.gridValue}>{found.managerName}</div>
+                <div className={styles.gridValue}>{found.team.managerName}</div>
               </div>
               <div>
                 <div className={styles.gridLabel}>Overall rank</div>
                 <div className={styles.gridValue}>
-                  {found.overallRank === null
+                  {found.team.overallRank === null
                     ? 'Not ranked yet'
-                    : found.overallRank.toLocaleString('en-GB')}
+                    : found.team.overallRank.toLocaleString('en-GB')}
                 </div>
               </div>
             </div>
             <div className={styles.footerRow}>
               <span className={styles.gridLabel}>Team ID</span>
-              <span className={styles.idValue}>{found.fplTeamId}</span>
+              <span className={styles.idValue}>{found.team.fplTeamId}</span>
             </div>
           </div>
 
@@ -168,6 +171,16 @@ function describe(cause: unknown): string {
     }
     if (cause.code === 'invalid_team_id') {
       return 'A team ID is a whole number, like 1234567.'
+    }
+    /**
+     * The confirmation the server issued has run out, which after ten minutes
+     * it does (F7-AC-14). Not the manager's mistake and not a broken app, so it
+     * gets its own sentence — and `accept` clears the found team, so the screen
+     * goes back to the ID field rather than leaving a button that will fail
+     * again every time it is pressed.
+     */
+    if (cause.code === 'not_confirmed') {
+      return 'That took a little too long. Look your team up again.'
     }
   }
   return 'Something went wrong at our end. Try again in a moment.'

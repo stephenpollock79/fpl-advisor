@@ -18,7 +18,7 @@
  */
 
 import { type FormEvent, useEffect, useState } from 'react'
-import { requestCode, verifyCode } from '../../api'
+import { ApiError, requestCode, verifyCode } from '../../api'
 import avatar from '../../assets/gaffer-avatar.png'
 import shotOverview from '../../assets/shot-overview.png'
 import shotPitch from '../../assets/shot-pitch.png'
@@ -145,10 +145,28 @@ export function Landing({ onSignedIn, startOn = 'about' }: { onSignedIn: () => v
     try {
       await verifyCode(email.trim(), code.trim())
       onSignedIn()
-    } catch {
-      // Wrong, expired, already used and spent-after-five all read alike, as the
-      // server intends (F7-UP-02) — and inline, never a toast (F7-AC-20).
-      setError('That code did not work. It may have expired or already been used. Request another and try again.')
+    } catch (cause) {
+      /**
+       * **Wrong, expired and already used read alike. Spent does not.**
+       *
+       * The first three are indistinguishable on purpose — the server knows
+       * which it was and deliberately does not say. Exhaustion is the one case
+       * F7-UP-02 asks to be called out: *"after five failures the code is spent,
+       * and the inline error says so rather than leaving the manager retyping a
+       * code that can no longer work."*
+       *
+       * Until slice 10 this line said the opposite, and carried a comment
+       * asserting that was correct. It was a misreading of the criterion, and
+       * the cost was real: five wrong guesses and the screen still invited a
+       * sixth that could never succeed.
+       *
+       * Inline in the red card either way, never a toast (F7-AC-20).
+       */
+      setError(
+        cause instanceof ApiError && cause.code === 'code_spent'
+          ? 'That code is used up — five attempts is the limit. Request another and try again.'
+          : 'That code did not work. It may have expired or already been used. Request another and try again.',
+      )
     } finally {
       setBusy(false)
     }

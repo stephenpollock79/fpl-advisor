@@ -35,7 +35,16 @@ const SPEC: Spec[] = [
     required: true,
     why: 'Reference tables and the session table. Never user data — see ADR 0007.',
   },
-  { name: 'SESSION_COOKIE_SECRET', required: true, why: 'Signing the session cookie.' },
+  // **Corrected 2026-09-16.** This said "Signing the session cookie" from slice 1
+  // and was false the whole time: the session cookie is 32 random bytes and is
+  // signed by nothing. The variable was required at boot and read by no code at
+  // all. Slice 10 is what finally reads it, and a declared reason that is not
+  // true is worse than none — it stops anyone asking what the variable is for.
+  {
+    name: 'SESSION_COOKIE_SECRET',
+    required: true,
+    why: 'Keys the throttle subject digests and signs the team-link confirmation token (F7-AC-06, F7-AC-14).',
+  },
   // Read by the model module in production (ADR 0008), and still not required:
   // it must be absent locally, where the Claude Code session authenticates, so
   // requiring it would block every local boot. A production run without it fails

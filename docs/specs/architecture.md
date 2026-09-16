@@ -155,10 +155,61 @@ for. Nothing on screen would look wrong. That is why this sentence is here, in A
 integration test for STE-58 — it is in the silent-failure class (G7), and repetition is the cheapest
 mitigation available.
 
-**Rate limiting** (F7-AC-06, F7-AC-07) is ours, not the provider's: at most one code per address per
-sixty seconds, an hourly ceiling per address, a matching ceiling per source address, and a throttled
-request must return exactly what an accepted one returns. It is stored in `auth_throttle`, which is
-written before anyone is authenticated and is therefore service-role only.
+**Rate limiting** (F7-AC-06, F7-AC-07) is ours, not the provider's. Built in slice 10; the values:
+
+| Limit | Setting |
+| --- | --- |
+| Per address | **1 per 60 seconds**, **5 per hour** |
+| Per source address | **5 per hour** |
+| Wrong code attempts before the code is spent | **5**, over a **3600-second** window |
+
+Stored in `auth_throttle`, which is written before anyone is authenticated and is therefore
+service-role only. **Subjects are HMAC-SHA256 digests keyed by `SESSION_COOKIE_SECRET`, never
+addresses** — an email is a guessable input, so a bare hash is reversible for exactly the addresses
+anyone would care about, and this table must not become a list of who tried to sign in.
+
+**The source address is the *last* entry of `X-Forwarded-For`, not the first.** The header is
+append-only; the entry Railway's edge appended is the only one a caller cannot author, and taking
+the conventional leftmost "real client IP" would let any request pick its own bucket with one
+header. Deliberately **not** the same rule as `isSecureRequest`'s, which takes the *first* element of
+`X-Forwarded-Proto` — correct there, because the leftmost proto is the client-to-edge protocol and
+reading it wrong fails closed. Do not make the two consistent. What this buys: a caller cannot shift
+its own bucket. What it does not: a caller changing source address, which an IPv6 /64 or a datacentre
+range defeats outright. The per-address ceiling is the one that protects the inbox and the send
+allowance, and it is unaffected.
+
+**The send is not awaited, and that is a security property.** Until slice 10 the response body was
+already identical for every case while the *duration* was not: measured against dev on 2026-09-08, an
+address with an account took **3.46s** and one without **0.045s**, because a real send waits on SMTP.
+Seventy-seven times is a usable oracle for whether any address has access, which is precisely what
+F7-AC-02 forbids — and a test asserting the bodies match would have passed throughout. So the send is
+started and detached, its outcome logged server-side where the caller cannot see it. The accepted
+cost is a redeploy between the response and the send losing one code; *Send another code* is the
+recovery and is already on screen (F7-AC-08).
+
+**Every limit is asked in one database call**, with the attempt reset folded in. A check-then-record,
+or moving the reset out to its own call, makes the allowed path longer than the throttled one and
+brings the same oracle back at 2× instead of 77×. The deciding therefore lives in a SQL function
+rather than in TypeScript — which is also what lets the pglite suite exercise the production logic
+verbatim instead of a re-implementation of it.
+
+**The attempt counter resets on an event, not a clock.** A code that is actually sent clears it; a
+**throttled** request does not, because nothing was sent and the live code is still live — clearing
+there would be an unlimited guessing loop for one extra request per five attempts. The window is
+deliberately longer than the code's own life for the same reason, so no Supabase console setting is
+load-bearing for a security control. Attempts are counted for **every** address including ones the
+provider has never heard of; counting only real accounts would make `/api/auth/verify` the
+enumeration oracle `request-code` just stopped being.
+
+**Every migration states its function grants, not only its table grants.** Postgres grants `EXECUTE`
+to `PUBLIC` on each new function, and STE-29's "Automatically expose new tables = OFF" covers tables
+— so a function in `public` with no explicit revoke is published by PostgREST as an anon-callable
+RPC. Same failure class as grants-before-policies, one layer along.
+
+**`F7-AC-01` is a provider setting and was false on both projects until 2026-09-16** (STE-159).
+`shouldCreateUser: false` in the request-code route blocks creation through *our* route; Supabase's
+own `/auth/v1/signup` endpoint never passes through it. Asserted by `scripts/live-rls-check.mjs`
+rather than trusted, along with `F7-AC-03`.
 
 ---
 
@@ -179,7 +230,7 @@ bug the moment something tries to read it from the browser, which under ADR 0007
 | --- | --- | --- |
 | `manager` | user | The person's FPL team link and confirmed identity |
 | `app_session` | service | The opaque session, its sliding expiry, and the provider refresh token |
-| `auth_throttle` | service | Code-request attempts, per address and per source address |
+| `auth_throttle` | service | Code-request counters per address and per source, and verify attempts per address. Subjects are HMAC digests, never addresses |
 | `gameweek` | reference | Gameweeks, deadlines, and the `is_next` / `data_checked` flags |
 | `club` | reference | The twenty clubs, for names, kits and the three-per-club rule |
 | `player` | reference | Identity only — name, club, position, shirt number |
@@ -438,11 +489,11 @@ list rather than inferred from a module graph — that is the point of it (ADR 0
 | --- | --- |
 | `GET /api/health` | Liveness, the deployed commit, the port it bound, the Node major it is running on (§10.1) and which declared variables are present. Already built (STE-30). |
 | `POST /api/auth/request-code` | Sends a code, or does not. **Returns the same response either way** — for an unknown address (F7-AC-02, F7-UP-01) and for a throttled one (F7-AC-07, F7-UP-03). |
-| `POST /api/auth/verify` | Verifies the code, creates the `app_session` row, sets the cookie. Dies after five wrong attempts (F7-AC-09). |
+| `POST /api/auth/verify` | Verifies the code, creates the `app_session` row, sets the cookie. After five wrong attempts returns `code_spent` — **distinct from `invalid_code`**, and the sixth attempt never reaches the provider (F7-AC-09, F7-UP-02). Wrong, expired and already-used stay indistinguishable from each other. |
 | `POST /api/auth/logout` | Revokes the session row (F7-AC-24, F7-AC-25). |
 | `GET /api/me` | The manager, the linked team, and whether a team link is still needed. |
-| `POST /api/team-link/resolve` | Resolves an FPL team id and returns the team for confirmation. **Stores nothing** (F7-AC-14). |
-| `POST /api/team-link/confirm` | Stores the accepted link. |
+| `POST /api/team-link/resolve` | Resolves an FPL team id and returns the team for confirmation, with a short-lived `confirmation` token. **Stores nothing** (F7-AC-14). |
+| `POST /api/team-link/confirm` | Stores the accepted link. **Requires the `confirmation` from a prior resolve of that same identifier**, checked before the FPL read, so a confirm that was never resolved neither stores nor costs an upstream request (F7-AC-14). |
 | `GET /api/world` | The gameweek, the squad snapshot, fixtures, projections, calls and decisions — everything a screen re-derives from. One call, because the client holds the world. |
 | `POST /api/runs` | Starts a run. **Plain JSON since slice 5**; F6 makes it a hand-written SSE endpoint that streams progress — no framework supplies this (ADR 0005) — with `AbortController` plus request-close as the cancellation (F6-AC-19, F6-AC-20). |
 | `GET /api/runs/:id/diff` | The post-run diff (F6-AC-11). |
@@ -600,7 +651,7 @@ which it could reach one.
 | `ANTHROPIC_API_KEY` | The production reasoning path (ADR 0008). Absent locally, where the Claude Code session authenticates instead. |
 | `ANTHROPIC_MODEL_FILTER`, `ANTHROPIC_MODEL_REASON`, `ANTHROPIC_MODEL_PARSE` | Overrides for the pinned identifiers, which are otherwise set in code. Recorded per call, beside the identifier the provider reports it ran. **The parse gained its own on 2026-09-16** (STE-136): it used to follow the filter override, so a value set there would have silently swallowed its move to Sonnet. |
 | `MODEL_MODE` | `mock` forces the no-spend route. Otherwise a present `ANTHROPIC_API_KEY` means the direct Messages API, and its absence means the Claude Code session (ADR 0008, amended 2026-09-11). |
-| `SESSION_COOKIE_SECRET` | Signing the session cookie. |
+| `SESSION_COOKIE_SECRET` | Keys the throttle subject digests and signs the team-link confirmation token (F7-AC-06, F7-AC-14). **Read since slice 10; before that it was required at boot and read by nothing**, while this table and `env.ts` both said it signed the session cookie — which is 32 random bytes signed by nothing. |
 | `POSTHOG_KEY` | Analytics. |
 | `PORT`, `RAILWAY_GIT_COMMIT_SHA` | Injected by Railway. |
 

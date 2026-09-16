@@ -45,20 +45,40 @@ the suite stays green.
 **F7-AC-01, F7-AC-03, F7-AC-04 are provider settings**, configured under STE-29 and
 not assertable from this repo at all. F7-AC-03 in particular has no provider-level
 enforcement — password sign-in is always accepted and fails today only because no
-password is set. That is asserted in slice 10 (STE-68), not here.
+password is set.
+
+**Asserted since 2026-09-16 by `scripts/live-rls-check.mjs`** (slice 10, STE-68),
+which attempts a registration and a password sign-in against whichever project is
+named. **F7-AC-03 passed on both projects. F7-AC-01 failed on both** — public
+registration was on at dev *and* prod, so anyone could create an account at
+Supabase's own endpoint, then sign in through our login normally and spend against
+the £50 cap. `shouldCreateUser: false` in the route blocks creation through *our*
+route only; the provider's signup endpoint never passes through it. *Home:
+STE-159.* Neither may be read as met from the coverage figure — one is a live
+provider fact that only this hand-run script can see, and the other was false.
+
+**F7-AC-04 remains unasserted and unassertable**: it is about a code being typed
+rather than a link being tapped, which is a fact about the email template and the
+manager's thumb. Its manual-coverage row is from 2026-09-08.
 
 
-**F7-AC-02, F7-AC-05, F7-AC-07, F7-UP-01 — the identical response is not yet
-identical.** Measured on 2026-09-08: `/api/auth/request-code` returns the same
-body and status for an address with an account, one without, and a throttled
-request — but takes 3.46s, 0.045s and 0.115s respectively, because a real send
-waits on SMTP. The body is not the leak; the clock is, and a ~77x difference is a
-usable oracle for whether an address has access.
+**F7-AC-02, F7-AC-05, F7-AC-07, F7-UP-01 — closed 2026-09-16 by slice 10
+(STE-68).** The send is started and never awaited, and all three limits plus the
+attempt reset are asked in one database call, so no path's duration depends on
+whether the address has an account.
 
-**So none of those four may be ticked off against the matching body.** A test
-asserting the bodies match would pass while the criterion is false — the same
-shape as asserting a policy exists rather than that isolation holds. Recorded in
-full on STE-68, which owns the fix.
+**The reason it was written is the part worth keeping.** Measured on 2026-09-08,
+`/api/auth/request-code` returned the same body and status for an address with an
+account, one without, and a throttled request — and took 3.46s, 0.045s and 0.115s
+respectively, because a real send waits on SMTP. **The body was never the leak.
+The clock was**, and a ~77x difference is a usable oracle for whether any address
+has access. A test asserting the bodies match would have passed for the eight days
+the criterion was false.
+
+So the test that closes it asserts **ordering, not elapsed time**: it hands the
+route a send that never settles and proves the answer comes back anyway.
+Restoring the `await` fails it by timeout rather than by a flaky millisecond
+count — verified by doing exactly that before the commit landed.
 
 **F7-AC-16 — four claims, where the criterion says five.** Most of the criterion
 is genuinely covered by `tests/e2e/landing.spec.ts`: the only screen reachable
@@ -101,6 +121,14 @@ its own trigger.
 docblock reading `F7-AC-15 – F7-AC-26` would have counted it covered off a
 range in a comment — the script reads whole files, not titles. That nearly
 happened again on the day it was fixed.
+
+**F7-AC-14 — closed 2026-09-16 by slice 10 (STE-68).** `resolve` now issues a
+short-lived signed token and `confirm` refuses without one that matches the
+identifier being linked, checked before the FPL read. The token carries no
+identity — only an expiry and a signature reach the browser.
+
+**Kept, because the shape of the gap is the useful part.** What follows is what
+it said while it was open.
 
 **F7-AC-14 — the confirm step is enforced in the client, not the server.**
 `tests/team-link/routes.test.ts` proves that `resolve` stores nothing and that
