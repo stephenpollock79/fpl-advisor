@@ -4,6 +4,15 @@
 proves less than its criterion asks, recorded so the gap is visible rather than
 inferred from a green suite.
 
+**Every `Home:` below must name an open ticket.** Seven of them pointed at
+`STE-133` — a bookkeeping ticket, which can close a gap in no sense at all — and
+one pointed at `STE-68`, which closed the same day the entry was written. An
+entry whose home is closed is not a record, it is a note nobody will read again,
+and that is the exact failure `P14` names: *the citation must resolve both ways…
+it looks checkable, and is not.* Repointed 2026-09-16 (STE-133). **When a ticket
+named here closes with its gap still open, the gap needs a new home before the
+ticket does.**
+
 **This file is deliberately outside `scripts/criteria-coverage.mjs`'s view.** It
 names criteria in prose, and the script counts a named criterion as covered. An
 earlier draft of this section lived in `docs/manual-coverage.md` and silently
@@ -109,7 +118,7 @@ F7-AC-01 exists to prevent, and it would draw on the same £50.
 
 **So F7-UP-05 must not be read as met**, and no test may name it. It closes the
 day a second person is actually given access — which the criterion itself calls
-"a decision rather than a formality". *Home: STE-68.*
+"a decision rather than a formality". *Home: STE-179.*
 
 **F7-AC-02, F7-AC-05, F7-AC-07, F7-UP-01 — closed 2026-09-16 by slice 10
 (STE-68).** The send is started and never awaited, and all three limits plus the
@@ -158,7 +167,7 @@ reads uncovered in the report — and it should stay that way. The position of a
 control and the *absence* of a visible label are exactly what `CLAUDE.md` says to
 put on a human checklist rather than fake with a class-name assertion. It needs a
 row in `docs/manual-coverage.md` written from a real pass on the phone, not a
-test. *Home: STE-133.*
+test. *Home: STE-178.*
 
 **F7-AC-15 — closed 2026-09-15 by slice 8 (STE-66).** Confirming the team now
 goes straight into the first advice run, which is the Thinking state every other
@@ -296,7 +305,7 @@ component that recomputed a band from a stored conviction would pass every test
 in the engine suite while producing exactly the disagreement between two screens
 that the rule forbids.
 
-*Home: STE-133.* That is where conviction first renders, and the check
+*Home: STE-176.* That is where conviction first renders, and the check
 is not another engine test — it is that F3's components take net, conviction and
 band as values and hold no arithmetic over them.
 
@@ -317,7 +326,7 @@ Deliberately **not** entered in `docs/manual-coverage.md`: that register holds
 criteria that have been verified, and an entry made in advance would turn the
 coverage figure into a claim about the future.
 
-*Home: STE-133*, as the first slice that puts the figure in front of
+*Home: STE-178*, as the first slice that puts the figure in front of
 anyone.
 
 *Automated half closed 2026-09-11 (slice 5).* The figure is labelled *strength*,
@@ -420,7 +429,7 @@ other halves are still unproven.
 
 **F6-UP-03 must not be read as met**, and what would close it is a test that
 rolls the gameweek and asserts the decisions, the shortlist and the pending
-calls are gone and the squad has been captured again. *Home: STE-133.*
+calls are gone and the squad has been captured again. *Home: STE-177.*
 
 **F6-AC-20 — cancelling is built twice over and asserted nowhere.** A cancelled
 run must be treated exactly as a run that never started: recorded `cancelled`
@@ -447,7 +456,7 @@ half the criterion is about, because a cancel recorded as `failed` is a failure
 put in front of him for something he chose to do.
 
 **What would close it:** read the `run` row after cancelling a real run and
-confirm its status is `cancelled`. *Home: STE-133.*
+confirm its status is `cancelled`. *Home: STE-178.*
 
 **F6-UP-03's stop has been run against real data once, and only in the direction
 that proves nothing.** On 2026-09-14, on `97bc6c7`, opening the app with gameweek
@@ -461,7 +470,7 @@ directions with fabricated clocks; what is unobserved is the state on a phone.
 
 **It closes itself.** GW5's deadline is Friday 18 September at 18:30 UK. Opening
 the app after it, before GW6 becomes next, is the state — and it is the first
-weekend the app will ever have been live across a deadline. *Home: STE-133.*
+weekend the app will ever have been live across a deadline. *Home: STE-154.*
 
 **F6-AC-02 is asserted on a screen, never across a refresh — which is the only
 circumstance the criterion is about.** `tests/e2e/assistant.spec.ts` names it and
@@ -479,7 +488,7 @@ What is still unproven end to end is the two halves joined: accept a call,
 refresh, and see the card still there reading *selected · locked*.
 
 **What would close it:** an end-to-end spec that decides a call, runs a refresh,
-and asserts the card survives it. *Home: STE-133.*
+and asserts the card survives it. *Home: STE-177.*
 
 
 
