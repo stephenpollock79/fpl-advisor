@@ -324,7 +324,7 @@ byte-identical either way, since it is arithmetic over published inputs that hav
 | `user_id`, `gameweek`, `call_key` | composite PK | Keyed to the call's *identity*, not to a `call` row. |
 | `state` | `text` | `selected` or `rejected`. Pending is the absence of a row (F3-AC-01's third state needs no storage). |
 | `decided_at` | `timestamptz` | |
-| `broken_by_snapshot_id` | `uuid` null | Set when a squad correction contradicts a selected call and the lock is broken (F2-AC-07, F6-RS-07). Kept rather than deleted, because the manager has to be told why. |
+| `broken_by_snapshot_id` | `uuid` null | **Unused since 2026-09-16 and written by nothing** (STE-139). It held the snapshot that broke a selected call, back when a correction reconciled the new squad against existing decisions. An upload now clears every decision for the gameweek, so there is no lock left to mark. The column stays because migrations are additive; **do not read it, and do not take its presence as a rule being enforced** — that mistake is what STE-138 was. |
 
 **`chip_plan`** (F5, below the cut line) — one row per chip per generation: `verdict`
 (`play` / `target` / `hold` / `spent`), `target_gameweek`, a six-cell `timeline`, and an editorial

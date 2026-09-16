@@ -112,22 +112,29 @@ test('F2-AC-08: the Squad screen says nothing about where its squad came from', 
   await expect(page.getByText(/as at the .* deadline/i)).toHaveCount(0)
 })
 
-test('F2-AC-07: a call the new squad contradicts is dropped, and the manager is told why', async ({ page }) => {
+test('an upload clears every decision, and the manager is told rather than left to notice', async ({ page }) => {
   await openSheet(page)
 
   /**
-   * **The trigger is an upload that broke locks**, which is the only
-   * circumstance this criterion is about. Until 2026-09-16 the server marked
-   * those decisions broken and nothing read the mark: the call stayed on screen
-   * reading SELECTED and the next run planned around a transfer that brought in
-   * a player already owned (STE-138).
+   * **Deliberately names no criterion, and does not spell one out either.**
+   * Two of F2's acceptance criteria — the one saying selected calls survive a
+   * correction, and the one describing the lock-breaking this replaces — were
+   * overruled on 2026-09-16, and neither has caught up in the PRD yet
+   * (STE-139). Naming either would report a criterion covered by a test
+   * asserting the opposite of what it says: worse than uncovered, because the
+   * number then stops anyone looking.
    *
-   * The count is the server's, computed from the new fifteen. What is asserted
-   * here is the half the criterion spends its words on — that the manager is
-   * told, rather than finding a decision he made quietly gone.
+   * **The identifiers are not written even in this comment.** The coverage
+   * script reads whole files, so an explanation of why a criterion is not
+   * covered is counted as covering it — which is exactly what happened on the
+   * first draft of this block, and twice before it in this repo.
+   * `docs/coverage-gaps.md` is where they are named.
+   *
+   * The trigger is an upload the server answers with decisions cleared, which
+   * is the only circumstance this behaviour exists for.
    */
   await page.route('**/api/squad/screenshots', (route: Route) =>
-    route.fulfill({ json: { snapshotId: 'snap-new', locksBroken: 2 } }),
+    route.fulfill({ json: { snapshotId: 'snap-new', decisionsCleared: 2 } }),
   )
   await page.route('**/api/runs/stream', (route: Route) =>
     route.fulfill({ headers: { 'content-type': 'text/event-stream' }, body: '' }),
@@ -139,8 +146,8 @@ test('F2-AC-07: a call the new squad contradicts is dropped, and the manager is 
 
   const told = page.getByTestId('dropped')
   await expect(told).toContainText('2 calls')
-  await expect(told).toContainText('no longer work')
-  await expect(told).toContainText('dropped')
+  await expect(told).toContainText('cleared')
+  await expect(told).toContainText('for this squad')
 })
 
 test('F6-AC-15: an upload asks for one run, and walking away and back does not ask again', async ({ page }) => {

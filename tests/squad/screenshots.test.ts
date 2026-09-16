@@ -1,6 +1,6 @@
 /**
- * The upload route and what an uploaded squad survives (F2-AC-04 – F2-AC-07,
- * F2-UP-01, F6-RS-06, F6-RS-07).
+ * The upload route and what an uploaded squad survives (F2-AC-04, F2-UP-01,
+ * F6-RS-06).
  *
  * **The persistence tests open the world rather than inspecting a row** (P16).
  * The rule is *an uploaded squad is not thrown away on the next open*, and the
@@ -10,7 +10,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { contradictedBy } from '../../apps/server/src/refresh/contradicted.js'
 import { type ParsedSquad, parseSquad } from '../../apps/server/src/squad/parse.js'
 import { screenshotRoutes } from '../../apps/server/src/squad/screenshots.js'
 import type { WorldParts } from '../../apps/server/src/world/assemble.js'
@@ -56,7 +55,7 @@ const harness = (overrides: Partial<Parameters<typeof screenshotRoutes>[0]> = {}
       stored.push({ gameweek, squad: parsed })
       return 'snap-new'
     },
-    breakContradictedLocks: async () => 0,
+    clearDecisions: async () => 0,
     ...overrides,
   })
   const post = (body: unknown) =>
@@ -276,7 +275,7 @@ describe('F2-AC-04, F2-UP-01 · the upload applies everything or nothing', () =>
       trackedPlayers: async () => [],
       gameweekFixtures: async () => [],
       storeCorrectedSquad: async () => 'x',
-      breakContradictedLocks: async () => 0,
+      clearDecisions: async () => 0,
     })
     const response = await app.request('/api/squad/screenshots', { method: 'POST', body: '{}' })
     expect(response.status).toBe(401)
@@ -310,33 +309,45 @@ describe('F2-AC-04 · a failed correction leaves the squad it could not replace'
   })
 })
 
-describe('F2-AC-07, F6-RS-07 · only a correction can break a lock', () => {
-  const call = (key: string, outPlayerId: number, inPlayerId: number, movesSquad = true) => ({
-    key,
-    outPlayerId,
-    inPlayerId,
-    movesSquad,
+describe('An upload clears the board (ruled 2026-09-16, STE-139)', () => {
+  /**
+   * **The trigger is a successful upload**, not a call to the clearing function
+   * — which would prove the delete and nothing about whether the route reaches
+   * it (P16). These drive the real route, so a clear that stopped being wired
+   * up fails here.
+   */
+  it('every decision for the gameweek is cleared, and the count comes back', async () => {
+    const cleared: number[] = []
+    const { post } = harness({
+      clearDecisions: async (_u, gameweek) => {
+        cleared.push(gameweek)
+        return 3
+      },
+    })
+
+    const response = await post({ team: IMAGE, transfers: IMAGE })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ snapshotId: 'snap-new', decisionsCleared: 3 })
+    // The gameweek being advised, never the one already played.
+    expect(cleared).toEqual([5])
   })
 
-  it('F2-AC-07, F6-RS-07: a squad without the incoming player breaks that lock', () => {
-    // The trigger is the contradiction itself: the manager selected a transfer
-    // bringing 200 in, and the picture does not show him.
-    const broken = contradictedBy([1, 2, 3], [call('transfer:out=1:in=200', 1, 200)])
-    expect(broken).toEqual(['transfer:out=1:in=200'])
-  })
+  it('a failed read clears nothing, because the squad it would clear against was never written', async () => {
+    const cleared: number[] = []
+    const { post } = harness({
+      model: () => ({ async readSquadScreenshots() { return { raw: null, record: null as never } } }) as never,
+      clearDecisions: async (_u, gameweek) => {
+        cleared.push(gameweek)
+        return 3
+      },
+    })
 
-  it('F2-AC-07: a squad still holding the outgoing player breaks that lock too', () => {
-    expect(contradictedBy([1, 2, 200], [call('transfer:out=1:in=200', 1, 200)])).toEqual(['transfer:out=1:in=200'])
-  })
+    await post({ team: IMAGE, transfers: IMAGE })
 
-  it('F2-AC-07: a lock the squad agrees with survives, so a correction is not a reset', () => {
-    expect(contradictedBy([2, 3, 200], [call('transfer:out=1:in=200', 1, 200)])).toEqual([])
-  })
-
-  it('F2-AC-07: a captaincy lock is never contradicted, because it moves nobody in or out', () => {
-    // Both players are in the fifteen either way; an armband cannot disagree
-    // with a squad list.
-    expect(contradictedBy([1, 2], [call('captaincy:captain:from=1:to=2', 1, 2, false)])).toEqual([])
+    // **Order is the safety.** A clear that ran first and then met a failed
+    // write would take the manager's decisions and leave the old squad.
+    expect(cleared).toEqual([])
   })
 })
 

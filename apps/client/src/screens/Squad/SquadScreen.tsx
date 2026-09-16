@@ -44,7 +44,7 @@ export function SquadScreen({
   world: World
   onAssistant: () => void
   /** A correction landed: go to the Assistant and run, as F2-AC-05 requires. */
-  onCorrected: (locksBroken: number) => void
+  onCorrected: (decisionsCleared: number) => void
   account: Account
 }) {
   const [mode, setMode] = useState<'pitch' | 'stat'>('pitch')
@@ -83,13 +83,13 @@ export function SquadScreen({
       {uploadOpen ? (
         <UploadSheet
           onCancel={() => setUploadOpen(false)}
-          onCorrected={(locksBroken) => {
+          onCorrected={(decisionsCleared) => {
             setUploadOpen(false)
             // **Through F6's regeneration, never a path of its own**
             // (F2-AC-05, F2-AC-06): the Assistant's Thinking state is the one
             // route every re-read of the world passes through, and the run it
             // starts is the same streamed one a refresh starts.
-            onCorrected(locksBroken)
+            onCorrected(decisionsCleared)
           }}
         />
       ) : null}

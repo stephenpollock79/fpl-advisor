@@ -54,10 +54,12 @@ export type ScreenshotDeps = {
     squad: ParsedSquad,
   ) => Promise<string>
   /**
-   * Breaks any selected call the new squad contradicts (F2-AC-07), and reports
-   * how many, so the diff can say so.
+   * **Clears every decision for the gameweek**, and reports how many, so the
+   * manager can be told rather than finding his choices gone. The uploaded
+   * squad is the current state and the decisions were taken about the old one
+   * (ruled 2026-09-16, STE-139).
    */
-  breakContradictedLocks: (user: AuthenticatedUser, gameweek: number, snapshotId: string) => Promise<number>
+  clearDecisions: (user: AuthenticatedUser, gameweek: number) => Promise<number>
   /** The run's own record of what the parse cost. */
   recordParse?: (user: AuthenticatedUser, record: ModelCallRecord) => Promise<void>
 }
@@ -199,9 +201,12 @@ export function screenshotRoutes(deps: ScreenshotDeps) {
     }
 
     const snapshotId = await deps.storeCorrectedSquad(user, gameweek, result.squad)
-    const locksBroken = await deps.breakContradictedLocks(user, gameweek, snapshotId)
+    // **After the squad is on file, never before.** A clear that ran first and
+    // then met a failed write would have taken the manager's decisions with it
+    // and left the old squad standing — the worst of both.
+    const decisionsCleared = await deps.clearDecisions(user, gameweek)
 
-    return c.json({ snapshotId, locksBroken })
+    return c.json({ snapshotId, decisionsCleared })
   })
 
   return app

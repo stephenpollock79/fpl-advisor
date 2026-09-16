@@ -100,10 +100,10 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
    *
    * It lives here because `Squad` survives that walk: the two screens are a view
    * swap inside it. And it is a value rather than a flag, because the correction
-   * has something to say — how many selected calls the new squad contradicted.
+   * has something to say — how many decisions the new squad cleared.
    */
-  const [pendingRun, setPendingRun] = useState<{ locksBroken: number } | null>(
-    justLinked ? { locksBroken: 0 } : null,
+  const [pendingRun, setPendingRun] = useState<{ decisionsCleared: number } | null>(
+    justLinked ? { decisionsCleared: 0 } : null,
   )
 
   // A first open fetches both feeds before answering, so this can take a few
@@ -128,7 +128,7 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
         onReload={reload}
         account={account}
         startRun={pendingRun !== null}
-        locksBroken={pendingRun?.locksBroken ?? 0}
+        decisionsCleared={pendingRun?.decisionsCleared ?? 0}
         // **Consumed, not remembered.** The request is spent the moment the run
         // it asked for begins, so coming back to this screen is an ordinary
         // arrival rather than a fresh correction (F6-AC-15, STE-137).
@@ -140,8 +140,8 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
     <SquadScreen
       world={state.world}
       onAssistant={() => setView("assistant")}
-      onCorrected={(locksBroken) => {
-        setPendingRun({ locksBroken })
+      onCorrected={(decisionsCleared) => {
+        setPendingRun({ decisionsCleared })
         reload()
         setView("assistant")
       }}

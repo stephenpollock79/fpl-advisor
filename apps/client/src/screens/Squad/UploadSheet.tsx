@@ -87,7 +87,7 @@ async function shrink(file: File): Promise<string> {
   return canvas.toDataURL('image/png')
 }
 
-export function UploadSheet({ onCancel, onCorrected }: { onCancel: () => void; onCorrected: (locksBroken: number) => void }) {
+export function UploadSheet({ onCancel, onCorrected }: { onCancel: () => void; onCorrected: (decisionsCleared: number) => void }) {
   const [images, setImages] = useState<Partial<Record<Screen, string>>>({})
   const [failure, setFailure] = useState<UploadFailure | null>(null)
   const [busy, setBusy] = useState(false)
@@ -117,10 +117,9 @@ export function UploadSheet({ onCancel, onCorrected }: { onCancel: () => void; o
       const result = await uploadScreenshots(team, transfers)
       if (result.ok) {
         // Straight into the run, exactly as a refresh does (F2-AC-05, F2-AC-06).
-        // **The count travels with it.** A call the new squad contradicts is
-        // dropped rather than force-kept, and F2-AC-07 asks for the manager to
-        // be told why rather than finding the decision gone.
-        onCorrected(result.locksBroken)
+        // **The count travels with it**, so the manager is told his previous
+        // choices were cleared rather than finding them gone (STE-139).
+        onCorrected(result.decisionsCleared)
         return
       }
       setFailure(result.failure)

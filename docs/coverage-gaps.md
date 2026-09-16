@@ -391,35 +391,39 @@ refresh, and see the card still there reading *selected · locked*.
 **What would close it:** an end-to-end spec that decides a call, runs a refresh,
 and asserts the card survives it. *Home: STE-133.*
 
-**F2-AC-07 — the manager is told; that the lock is actually dropped is not
-proven here.** The criterion has two halves: a call the new squad contradicts
-is **broken and dropped**, and the manager is **told why** rather than finding
-his decision gone.
+**F2-AC-06 and F2-AC-07 — overruled by Stephen on 2026-09-16, and the PRD has
+not caught up.** Both describe a correction that *reconciles*: `F2-AC-06` says
+selected calls survive an upload and rejected ones stay suppressed, and
+`F2-AC-07` is the entire lock-breaking mechanism for the one exception.
 
-`tests/e2e/upload.spec.ts` causes the real trigger — an upload the server
-answers with locks broken — and asserts the second half: the screen says how
-many calls no longer work and that they have been dropped. It fails if that
-message is routed back through the transient notice the refresh clears, which
-is how it was first written.
+**The build now clears every decision for the gameweek on an upload**, rejections
+included. The reason is that reconciliation leaks: the mechanism knew two shapes
+of contradiction, and three holes were named in one evening — the bank moves
+with an upload and nothing checked affordability, the free-transfer count moves
+and nothing checked that either, and a captaincy or substitution call was
+excluded from contradiction altogether, so one naming a player the upload
+removed passed straight through. Each hole produces confident wrong advice,
+which is worse than a cleared board. And a decision taken before an upload was
+taken about a different squad.
 
-**The first half is a database query clause and nothing exercises it.**
-`world/load.ts` and `runs/wire.ts` now exclude a decision carrying
-`broken_by_snapshot_id`, and both readers have to, or the run plans around a
-call the screen has stopped showing. No harness runs those loaders against a
-database: `tests/world/routes.test.ts` hands in assembled parts and never
-reaches the query, and the pglite suite has no PostgREST for the Supabase
-client to talk to.
+**So neither may be read as met from the coverage figure.**
 
-**So `F2-AC-07` may not be read as fully verified from the coverage figure.**
-What would close it is a loader test against a real project — the same class of
-check as `scripts/live-rls-check.mjs`, which exists for exactly this reason.
+- `F2-AC-07` is **named by no test**, and reads uncovered. Nothing in the build
+  implements it any more.
+- `F2-AC-06` is still named by `tests/e2e/upload.spec.ts`, which covers its first
+  sentence — the correction runs through F6's regeneration rather than a path of
+  its own, and that is still true and still tested. **Its second sentence is
+  false by decision.**
 
-**Worth keeping why it mattered.** Until 2026-09-16 the column was written and
-read by nothing, so the stamp changed nothing: the card still read SELECTED,
-the next run still planned around the transfer, and the Assistant offered a
-move that brought in a player already owned — a squad with four from one club,
-caught only by the engine's own club-limit warning firing on a plan that should
-never have been assembled. **A column existing and being written was mistaken
-for the rule being enforced**, which is the same shape as a policy that exists
-without isolation. *Home: STE-138.*
+The behaviour that replaced them is tested — `an upload clears every decision,
+and the manager is told rather than left to notice` — and that test deliberately
+names no criterion, because naming one would report a criterion covered by a
+test asserting the opposite of what it says.
+
+*Home: STE-139*, which carries the Cowork prompt for the PRD edit. This entry is
+deleted when the criteria are regenerated, not before. Same shape as `F8-AC-12`:
+built as specified, changed on Stephen's instruction the same evening, recorded
+until the source catches up.
+
+
 

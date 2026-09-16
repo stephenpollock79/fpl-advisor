@@ -76,7 +76,7 @@ export type UploadFailure = {
 export async function uploadScreenshots(
   team: string,
   transfers: string,
-): Promise<{ ok: true; snapshotId: string; locksBroken: number } | { ok: false; failure: UploadFailure }> {
+): Promise<{ ok: true; snapshotId: string; decisionsCleared: number } | { ok: false; failure: UploadFailure }> {
   const response = await fetch('/api/squad/screenshots', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -88,7 +88,7 @@ export async function uploadScreenshots(
     return {
       ok: true,
       snapshotId: String(payload['snapshotId'] ?? ''),
-      locksBroken: Number(payload['locksBroken'] ?? 0),
+      decisionsCleared: Number(payload['decisionsCleared'] ?? 0),
     }
   }
 
