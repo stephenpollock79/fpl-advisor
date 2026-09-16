@@ -331,6 +331,31 @@ export async function composeEditorial(input: {
   nameOf: (playerId: number) => string
   context: { exception: 'blank' | 'double' | null; squadSource: 'deadline' | 'screenshot' }
 }): Promise<{ text: string; record: ModelCallRecord | null }> {
+  /**
+   * **Who would wear the captain's armband once this week's captain call is
+   * taken** — the same derivation the plan, the world read and the refresh gate
+   * all make, from the same two calls (STE-144).
+   */
+  const captainCall = input.calls.find((c) => c.shape === 'captain' && !c.isReading)
+  const wouldCaptain = captainCall?.inPlayerId ?? null
+
+  /**
+   * **Why a call is on the list, where its own figures do not say.**
+   *
+   * The vice call is the case that matters: it can be worth +0.00 on a *thin*
+   * band and still have to happen, because the armband cannot stay on the
+   * player being made captain. Handed that call with no reason attached, the
+   * model supplied one — *"Injury forces Calvert-Lewin out"*, about a fit
+   * player it then recommended for the captaincy (STE-146).
+   */
+  const whyOf = (c: StoredCall): string | undefined => {
+    if (c.shape === 'vice' && wouldCaptain !== null && wouldCaptain === c.outPlayerId) {
+      return 'the armband is moving to him, so the vice armband has to move too — not optional, and not about his fitness'
+    }
+    if (c.isForced) return 'his club has no fixture, or the availability gate excludes him'
+    return undefined
+  }
+
   const editorialInput: EditorialInput = {
     calls: input.calls
       .filter((c) => !c.isReading)
@@ -339,6 +364,7 @@ export async function composeEditorial(input: {
         net: c.net,
         band: c.band,
         forced: c.isForced,
+        ...(whyOf(c) === undefined ? {} : { because: whyOf(c) }),
       })),
     exception: input.context.exception,
     squadSource: input.context.squadSource,
