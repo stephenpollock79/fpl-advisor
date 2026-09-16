@@ -111,7 +111,7 @@ export function AssistantScreen({
   onReload,
   account,
   startRun = false,
-  locksBroken = 0,
+  decisionsCleared = 0,
   onRunStarted,
 }: {
   world: World
@@ -119,11 +119,11 @@ export function AssistantScreen({
   onReload: () => void
   account: Account
   /**
-   * **How many selected calls the uploaded squad contradicted** (`F2-AC-07`).
-   * Each was dropped rather than force-kept, and the criterion asks for the
-   * manager to be told why rather than finding a decision gone.
+   * **How many decisions the upload cleared.** An uploaded squad is the current
+   * state, so every choice made about the old one goes with it — told to the
+   * manager rather than left to be noticed (STE-139).
    */
-  locksBroken?: number
+  decisionsCleared?: number
   /** Spends the request, so returning here does not start another run. */
   onRunStarted?: () => void
   /**
@@ -159,8 +159,8 @@ export function AssistantScreen({
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   /**
-   * **Why a decision he made is no longer there** (`F2-AC-07`), and its own
-   * state rather than the notice above.
+   * **Why the decisions he made are no longer there**, and its own state rather
+   * than the notice above.
    *
    * The notice is the refresh talking — it is cleared the moment a run starts,
    * which is the very next thing a correction does. A dropped lock is not run
@@ -441,15 +441,15 @@ export function AssistantScreen({
     // (STE-137).
     onRunStarted?.()
     /**
-     * **Say what the correction cost, in the same breath as acting on it**
-     * (`F2-AC-07`). A lock the new squad contradicted is dropped; a decision
-     * that simply disappears is the outcome the criterion names as wrong.
+     * **Say what the correction cost, in the same breath as acting on it.**
+     * A decision that simply disappears is indistinguishable from one the app
+     * lost, and the whole reason the count comes back from the upload.
      */
-    if (locksBroken > 0) {
+    if (decisionsCleared > 0) {
       setDropped(
-        locksBroken === 1
-          ? 'One call you had selected no longer works with your updated squad, so it has been dropped.'
-          : `${String(locksBroken)} calls you had selected no longer work with your updated squad, so they have been dropped.`,
+        decisionsCleared === 1
+          ? 'Your updated squad is the current one, so the call you had already decided has been cleared. The advice below is for this squad.'
+          : `Your updated squad is the current one, so the ${String(decisionsCleared)} calls you had already decided have been cleared. The advice below is for this squad.`,
       )
     }
     void onRefresh()
