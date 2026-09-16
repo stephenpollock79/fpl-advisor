@@ -71,10 +71,14 @@ console.log(`\nRed-team probes against ${BASE}\n`)
   const hsts = h('strict-transport-security')
   const referrer = h('referrer-policy')
 
-  check('HTTPS is enforced for future visits (HSTS)', Boolean(hsts), hsts ?? 'absent — a first visit over http is not upgraded')
+  // **A note rather than a check, while STE-161 is open.** A probe that fails by
+  // design every time it runs is a gate nobody reads, and this file is only
+  // worth having if its failures mean something. It becomes a check the day
+  // Stephen rules on the header — or stays a note, if he rules against it.
+  note('HTTPS enforced for future visits (HSTS)', hsts ?? 'absent — awaiting a ruling on STE-161')
   check('the page cannot be framed by another site', Boolean(frame) || Boolean(csp?.includes('frame-ancestors')), frame ?? csp ?? 'absent — clickjacking is not prevented')
   check('content types are not sniffed', nosniff === 'nosniff', nosniff ?? 'absent')
-  note('content security policy', csp ?? 'absent — no restriction on where scripts may load from')
+  note('content security policy', csp ?? 'absent — awaiting a ruling on STE-161')
   note('referrer policy', referrer ?? 'absent — full URLs may travel to third parties')
 }
 
