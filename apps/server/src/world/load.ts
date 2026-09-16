@@ -73,7 +73,21 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
       .eq('status', 'succeeded')
       .order('finished_at', { ascending: false })
       .limit(1),
-    mine.from('decision').select('call_key, state').eq('gameweek', gameweek.id),
+    /**
+     * **A lock the squad broke is not a live decision** (`F2-AC-07`).
+     *
+     * `breakContradictedLocks` stamps `broken_by_snapshot_id` when an uploaded
+     * squad contradicts a call the manager selected. Until 2026-09-16 nothing
+     * read that column, so the stamp changed nothing: the card still read
+     * SELECTED, the next run still planned around the transfer, and the screen
+     * offered a move that was no longer possible — bringing in a player already
+     * owned, on a squad that then held four from one club (STE-138).
+     *
+     * The column existing and being written was mistaken for the rule being
+     * enforced. It is the same shape as a policy that exists without isolation:
+     * everything downstream looks right and none of it is.
+     */
+    mine.from('decision').select('call_key, state').eq('gameweek', gameweek.id).is('broken_by_snapshot_id', null),
   ])
 
   /**

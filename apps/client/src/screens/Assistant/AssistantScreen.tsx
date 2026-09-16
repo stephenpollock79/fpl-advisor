@@ -111,11 +111,21 @@ export function AssistantScreen({
   onReload,
   account,
   startRun = false,
+  locksBroken = 0,
+  onRunStarted,
 }: {
   world: World
   onSquad: () => void
   onReload: () => void
   account: Account
+  /**
+   * **How many selected calls the uploaded squad contradicted** (`F2-AC-07`).
+   * Each was dropped rather than force-kept, and the criterion asks for the
+   * manager to be told why rather than finding a decision gone.
+   */
+  locksBroken?: number
+  /** Spends the request, so returning here does not start another run. */
+  onRunStarted?: () => void
   /**
    * Something one screen back already asked for a run: a finished team link
    * (F7-AC-15) or a squad correction (F2-AC-05). **Not an exception to
@@ -148,6 +158,16 @@ export function AssistantScreen({
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  /**
+   * **Why a decision he made is no longer there** (`F2-AC-07`), and its own
+   * state rather than the notice above.
+   *
+   * The notice is the refresh talking — it is cleared the moment a run starts,
+   * which is the very next thing a correction does. A dropped lock is not run
+   * chatter: it is the answer to "where did my call go", and it has to outlive
+   * the run that the same upload kicked off.
+   */
+  const [dropped, setDropped] = useState<string | null>(null)
 
   useEffect(() => {
     setDecisions(initialDecisions(world.decisions))
@@ -415,6 +435,23 @@ export function AssistantScreen({
   useEffect(() => {
     if (!startRun || autoRan.current) return
     autoRan.current = true
+    // **Spend the request before taking it.** The ref below only ever guarded a
+    // re-render; walking to the Squad screen and back unmounts this component
+    // and takes the ref with it, so the flag has to be cleared where it lives
+    // (STE-137).
+    onRunStarted?.()
+    /**
+     * **Say what the correction cost, in the same breath as acting on it**
+     * (`F2-AC-07`). A lock the new squad contradicted is dropped; a decision
+     * that simply disappears is the outcome the criterion names as wrong.
+     */
+    if (locksBroken > 0) {
+      setDropped(
+        locksBroken === 1
+          ? 'One call you had selected no longer works with your updated squad, so it has been dropped.'
+          : `${String(locksBroken)} calls you had selected no longer work with your updated squad, so they have been dropped.`,
+      )
+    }
     void onRefresh()
   }, [startRun])
 
@@ -607,8 +644,14 @@ export function AssistantScreen({
         </p>
       ) : null}
 
+      {dropped ? (
+        <p className={styles.notice} role="status" data-testid="dropped">
+          {dropped}
+        </p>
+      ) : null}
+
       {notice ? (
-        <p className={styles.notice} role="status">
+        <p className={styles.notice} role="status" data-testid="notice">
           {notice}
         </p>
       ) : null}

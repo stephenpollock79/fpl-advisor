@@ -390,3 +390,36 @@ refresh, and see the card still there reading *selected · locked*.
 
 **What would close it:** an end-to-end spec that decides a call, runs a refresh,
 and asserts the card survives it. *Home: STE-133.*
+
+**F2-AC-07 — the manager is told; that the lock is actually dropped is not
+proven here.** The criterion has two halves: a call the new squad contradicts
+is **broken and dropped**, and the manager is **told why** rather than finding
+his decision gone.
+
+`tests/e2e/upload.spec.ts` causes the real trigger — an upload the server
+answers with locks broken — and asserts the second half: the screen says how
+many calls no longer work and that they have been dropped. It fails if that
+message is routed back through the transient notice the refresh clears, which
+is how it was first written.
+
+**The first half is a database query clause and nothing exercises it.**
+`world/load.ts` and `runs/wire.ts` now exclude a decision carrying
+`broken_by_snapshot_id`, and both readers have to, or the run plans around a
+call the screen has stopped showing. No harness runs those loaders against a
+database: `tests/world/routes.test.ts` hands in assembled parts and never
+reaches the query, and the pglite suite has no PostgREST for the Supabase
+client to talk to.
+
+**So `F2-AC-07` may not be read as fully verified from the coverage figure.**
+What would close it is a loader test against a real project — the same class of
+check as `scripts/live-rls-check.mjs`, which exists for exactly this reason.
+
+**Worth keeping why it mattered.** Until 2026-09-16 the column was written and
+read by nothing, so the stamp changed nothing: the card still read SELECTED,
+the next run still planned around the transfer, and the Assistant offered a
+move that brought in a player already owned — a squad with four from one club,
+caught only by the engine's own club-limit warning firing on a plan that should
+never have been assembled. **A column existing and being written was mistaken
+for the rule being enforced**, which is the same shape as a policy that exists
+without isolation. *Home: STE-138.*
+
