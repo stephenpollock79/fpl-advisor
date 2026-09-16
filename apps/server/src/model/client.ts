@@ -318,6 +318,58 @@ const PRICES: Readonly<Record<string, { input: number; output: number }>> = {
 const CACHE_WRITE_MULTIPLIER = 1.25
 const CACHE_READ_MULTIPLIER = 0.1
 
+/** A dated variant of an alias — `claude-haiku-4-5-20251001` against `claude-haiku-4-5`. */
+const isDatedVariantOf = (returned: string, alias: string) =>
+  returned.startsWith(`${alias}-`) && /^\d{8}$/.test(returned.slice(alias.length + 1))
+
+/**
+ * The price for a call, and **why this is not just `PRICES[response.model]`**.
+ *
+ * It was exactly that until 2026-09-16, and every run had under-reported its own
+ * cost since the first one (STE-157). The two aliases do not resolve the same
+ * way: Sonnet comes back from the API as the bare `claude-sonnet-5` and hits the
+ * table, while Haiku comes back **dated** — `claude-haiku-4-5-20251001` — and
+ * missed it. So `propose`, the largest call in every run by input tokens,
+ * recorded `costUsd: null` and contributed nothing to the run's total. A real run
+ * on 2026-09-16 cost about $0.016 and reported $0.0100.
+ *
+ * **The guard was working exactly as written and still produced this.** Its
+ * docblock says a model not listed records no cost rather than a guessed one,
+ * which is right — but the case it was written for is an *unfamiliar* model, and
+ * what it silently caught was a model we pinned ourselves. Hence the split below:
+ * an unknown model is still priced at nothing, quietly; **a pinned model with no
+ * price is an error and says so**, because it can only be a mistake in this file.
+ *
+ * Matching is by exact id, then by dated variant — never by loose prefix, which
+ * would price a hypothetical `claude-sonnet-5-mini` as a full Sonnet.
+ */
+export function priceFor(
+  requested: string,
+  returned: string,
+): { input: number; output: number } | null {
+  /**
+   * **Priced by what the API answered with, never by what we asked for.** Asking
+   * for `claude-sonnet-5` and being served something else is exactly the case
+   * where the requested id is the wrong price, so falling back to it would swap
+   * under-reporting for over-reporting rather than fixing anything. `requested`
+   * is used below only to decide whether the miss is worth shouting about.
+   */
+  const exact = PRICES[returned]
+  if (exact) return exact
+
+  for (const [alias, price] of Object.entries(PRICES)) {
+    if (isDatedVariantOf(returned, alias)) return price
+  }
+
+  if (Object.values(PINNED).includes(requested as (typeof PINNED)[keyof typeof PINNED])) {
+    console.error(
+      `[model] no price for pinned model ${requested} (API returned ${returned}) — ` +
+        'the run cost will be under-reported. Add it to PRICES in model/client.ts.',
+    )
+  }
+  return null
+}
+
 const pinnedFrom = (env: Env) => ({
   propose: env['ANTHROPIC_MODEL_FILTER']?.trim() || PINNED.propose,
   reason: env['ANTHROPIC_MODEL_REASON']?.trim() || PINNED.reason,
@@ -664,7 +716,7 @@ export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env
       const u = response.usage
       const cacheWrite = u.cache_creation_input_tokens ?? 0
       const cacheRead = u.cache_read_input_tokens ?? 0
-      const price = PRICES[response.model]
+      const price = priceFor(model, response.model)
       const ok = response.stop_reason !== 'refusal'
       const text = response.content.map((block) => (block.type === 'text' ? block.text : '')).join('')
 
@@ -759,7 +811,7 @@ export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env
           output_config: { format: { type: 'json_schema' as const, schema: PARSE_SCHEMA } },
         })
         const u = response.usage
-        const price = PRICES[response.model]
+        const price = priceFor(model, response.model)
         const cacheWrite = u.cache_creation_input_tokens ?? 0
         const cacheRead = u.cache_read_input_tokens ?? 0
         const ok = response.stop_reason !== 'refusal'
