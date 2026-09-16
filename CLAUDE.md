@@ -157,12 +157,41 @@ only at the prompt. ADR 0012.
 
 ## Conventions
 
-- Branch, PR, merge. No commits straight to main. `git-guardrails` hooks are installed — do not work around
-  them. The hook lives globally at `~/.claude`, not in this repo, so it is not visible in a checkout:
-  plain `git push` is deliberately left unblocked — it prompts, rather than being refused — because
-  Railway deploys on merge and the workflow depends on pushing; `--force`, `reset --hard`, `clean`,
-  `branch -D` and `checkout .` / `restore .` are blocked. The push allowance is a decision, not a
-  misconfiguration — do not "tighten" it into a block, and do not loosen it into an `allow` rule either.
+- Branch, PR, merge. **No commits straight to main, and that one is not on trust:** `main` carries a
+  GitHub ruleset requiring a pull request, passing CI, no force-push and no deletion. A direct commit is
+  refused at the push, whatever it touches — **so there is no derived-files exception and none should be
+  written.** A rule permitting what the platform refuses is a rule nobody can follow (STE-80).
+- `git-guardrails` hooks are installed. The hook lives globally at `~/.claude`, not in this repo, so it
+  is not visible in a checkout: plain `git push` is deliberately left unblocked — it prompts, rather than
+  being refused — because Railway deploys on merge and the workflow depends on pushing; `--force`,
+  `reset --hard`, `clean`, force-deleting a branch and discarding the working tree are blocked. The push
+  allowance is a decision, not a misconfiguration — do not "tighten" it into a block, and do not loosen
+  it into an `allow` rule either.
+- **A guardrail block is a stop, not a detour** (ruled 2026-09-16, STE-80). If the hook refuses a
+  command, **reaching the same end state with a different tool is working around it.** Closing a pull
+  request with its branch through `gh` destroys exactly what force-deleting that branch destroys, and
+  the hook not seeing it changes nothing about what it does. Do not reach for the other tool, and do not
+  treat a stated reason as a licence — a reason can be written for anything.
+
+  **Say what happened instead, and ask.** Name what was refused, what it would have destroyed, and
+  whether that thing exists anywhere else: *"this loses three commits that are on no other branch; they
+  look like last night's abandoned attempt — do you want them gone?"* **The hook prompts nobody.** It
+  refuses the agent and says the user forbade it, so the only way Stephen learns a guardrail fired is
+  being told. Every blocked command destroys work that cannot be recovered, which is why the question is
+  always *do you still want this?* and never *should I run this?*
+
+  **The stop is about what a command does, not what it says.** The hook matches the whole command as
+  text, so it fires on a command that merely *writes* the name of a blocked one — documentation, a
+  comment, a commit message. Where that is what happened, say so and use the file-editing tools rather
+  than the shell; where the command would actually run the blocked thing, stop and ask. The test is
+  whether running it deletes or overwrites anything. **This clause exists because the rule above blocked
+  its own first edit** — the paragraph naming the blocked commands contained them.
+
+  *Why it is a stop at all.* On 2026-09-03 the hook refused a force-delete on an unmerged branch and the
+  same outcome was reached thirty seconds later through `gh`. That outcome was correct and nothing was
+  hidden — but a guardrail a tool swap defeats only ever stops the version of you that did not think of
+  the swap, and that is not the version it was installed to protect against. It went in for 23:53 on the
+  eighth task of the day.
 - Migrations are additive and checked in. Schema changes never happen through the Supabase console.
 - Secrets come from the environment. Never a literal key, never a committed `.env`. **And there is no
   local Anthropic API key — do not create one, in `.env`, `.env.local` or anywhere else.** Local and
