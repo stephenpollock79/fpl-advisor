@@ -114,15 +114,24 @@ export async function logout(): Promise<void> {
   await post('/api/auth/logout', {})
 }
 
+/** The team to show back, and the token that lets it be confirmed (F7-AC-14). */
+export type ResolvedTeam = { team: LinkedTeam; confirmation: string }
+
 /** Looks the identifier up and hands back the team. Stores nothing (F7-AC-14). */
-export async function resolveTeam(fplTeamId: number): Promise<LinkedTeam> {
-  const { team } = await post<{ team: LinkedTeam }>('/api/team-link/resolve', { fplTeamId })
-  return team
+export async function resolveTeam(fplTeamId: number): Promise<ResolvedTeam> {
+  return await post<ResolvedTeam>('/api/team-link/resolve', { fplTeamId })
 }
 
-/** Stores the team the manager accepted (F7-AC-13). */
-export async function confirmTeam(fplTeamId: number): Promise<void> {
-  await post('/api/team-link/confirm', { fplTeamId })
+/**
+ * Stores the team the manager accepted (F7-AC-13).
+ *
+ * The confirmation comes from the resolve that showed this team back, and the
+ * server refuses a confirm without one. That is what makes "confirmed before it
+ * is linked" a mechanism rather than the order these two screens happen to run
+ * in (F7-AC-14).
+ */
+export async function confirmTeam(fplTeamId: number, confirmation: string): Promise<void> {
+  await post('/api/team-link/confirm', { fplTeamId, confirmation })
 }
 
 /** One fixture for one player in one gameweek. */
