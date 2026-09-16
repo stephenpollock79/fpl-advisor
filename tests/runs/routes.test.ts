@@ -26,7 +26,7 @@ const harness = (overrides: Partial<RunDeps> = {}) => {
     loadWeek: async () => gw4Week(),
     // No prior run, so there is nothing to diff against and everything is new —
     // which is what must happen on a first run rather than a skip.
-    refreshInputs: async () => ({ before: null, after: [], feedReadId: 'read-1', calls: [], decisions: {}, costOfSwap: () => 0 }),
+    refreshInputs: async () => ({ before: null, after: [], feedReadId: 'read-1', calls: [], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
     model: () => mockModel(),
     startRun: async (_u, gameweek, snapshotId) => {
       events.push(`start:${String(gameweek)}:${snapshotId}`)
@@ -130,7 +130,7 @@ const world = [player(1), player(2), player(3)]
  */
 const onFileAsScoredNow = async (): Promise<StoredCall> => {
   const { post, stored } = harness({
-    refreshInputs: async () => ({ before: null, after: world, feedReadId: 'r1', calls: [], decisions: {}, costOfSwap: () => 0 }),
+    refreshInputs: async () => ({ before: null, after: world, feedReadId: 'r1', calls: [], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
   })
   await post()
   const [first] = (stored[0]?.calls ?? []) as StoredCall[]
@@ -214,7 +214,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
     const onFile = await onFileAsScoredNow()
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -225,6 +225,65 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
 
     expect(body.reused).toBe(true)
     expect(modelCalls).toBe(0)
+  })
+
+  it('STE-140: a new squad is new evidence, even with every FPL record and every stored figure identical', async () => {
+    /**
+     * **The live defect, 2026-09-16.** Both halves of this gate look at the
+     * feed — FPL's player records, and the figure each stored call was made at.
+     * **Neither notices that the squad underneath every one of those calls has
+     * been replaced.**
+     *
+     * So an upload landed, nothing in the feed had moved, and the week was
+     * reused. A reuse writes no run at all: the last-run time stayed at the
+     * morning's run, the morning's calls stayed on screen, and one of them went
+     * on offering to buy a player the new squad already held.
+     *
+     * **The trigger is the snapshot differing**, which is the only circumstance
+     * this rule is about. Everything else here is held identical to the test
+     * above deliberately — same world, same call, same figures — so the only
+     * thing that can make this spend is the squad.
+     */
+    const onFile = await onFileAsScoredNow()
+    let modelCalls = 0
+    const { post } = harness({
+      refreshInputs: async () => ({
+        before: world,
+        after: world,
+        feedReadId: 'r2',
+        calls: [onFile],
+        fromSnapshotId: 'snapshot-gw3-before-the-upload',
+        decisions: {},
+        costOfSwap: () => 0,
+      }),
+      model: () => {
+        modelCalls += 1
+        return mockModel()
+      },
+    })
+
+    const body = (await post()).body as { reused: boolean }
+
+    expect(body.reused).toBe(false)
+    expect(modelCalls).toBeGreaterThan(0)
+  })
+
+  it('STE-140: and a first run, which has no squad to compare against, is never skipped on a comparison it could not make', async () => {
+    // Null is the safe direction, the same posture `before` already takes.
+    const onFile = await onFileAsScoredNow()
+    const { post } = harness({
+      refreshInputs: async () => ({
+        before: world,
+        after: world,
+        feedReadId: 'r2',
+        calls: [onFile],
+        fromSnapshotId: null,
+        decisions: {},
+        costOfSwap: () => 0,
+      }),
+    })
+
+    expect(((await post()).body as { reused: boolean }).reused).toBe(false)
   })
 
   it('STE-128: a stored figure that no longer holds is new evidence, even with every FPL record identical', async () => {
@@ -244,6 +303,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
         after: world,
         feedReadId: 'r2',
         calls: [{ ...onFile, conviction: 10, band: elsewhere as StoredCall['band'] }],
+        fromSnapshotId: 'snapshot-gw4',
         decisions: {},
         costOfSwap: () => 0,
       }),
@@ -267,7 +327,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
     const world = [player(1)]
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -285,7 +345,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
     const after = [player(1, { status: 'd', chanceOfPlayingNextRound: 100, news: 'Knock — expected to feature' })]
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [onFile], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [onFile], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -304,7 +364,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
     const after = [player(1, { status: 'i' }), player(2)]
     let modelCalls = 0
     const { post, stored } = harness({
-      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before, after, feedReadId: 'r2', calls: [], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -320,7 +380,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
   it('F6-RS-01: a first run has nothing to diff against and is never skipped on that basis', async () => {
     let modelCalls = 0
     const { post } = harness({
-      refreshInputs: async () => ({ before: null, after: [player(1)], feedReadId: 'r1', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: null, after: [player(1)], feedReadId: 'r1', calls: [], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
       model: () => {
         modelCalls += 1
         return mockModel()
@@ -339,7 +399,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
     // anything having gone wrong. Reuse means reuse.
     const onFile = await onFileAsScoredNow()
     const { post, events } = harness({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
     })
 
     const body = (await post()).body as { reused: boolean; runId: string | null }
@@ -372,6 +432,7 @@ describe('STE-130, STE-132 · what a refresh does with a call already decided', 
         after: quiet,
         feedReadId: 'r2',
         calls: [{ ...swap, ...extra }],
+        fromSnapshotId: 'snapshot-gw4',
         decisions: { [swap.key]: decision },
       }),
     })
@@ -457,7 +518,7 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
 
   it('F6-AC-18: the steps arrive in order, one at a time, ending in done', async () => {
     const { go } = stream({
-      refreshInputs: async () => ({ before: null, after: [], feedReadId: 'r1', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: null, after: [], feedReadId: 'r1', calls: [], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
     })
     const events = await read(await go())
 
@@ -473,7 +534,7 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
 
   it('F6-AC-17: a step states the scale of the job in real figures, not a spinner', async () => {
     const { go } = stream({
-      refreshInputs: async () => ({ before: null, after: [], feedReadId: 'r1', calls: [], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: null, after: [], feedReadId: 'r1', calls: [], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
     })
     const events = await read(await go())
     const diff = events.find((e) => e.data['id'] === 'diff')
@@ -485,7 +546,7 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
   it('F6-RS-08: a quiet week streams straight to done, reused, with no scoring steps', async () => {
     const onFile = await onFileAsScoredNow()
     const { go } = stream({
-      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, costOfSwap: () => 0 }),
+      refreshInputs: async () => ({ before: world, after: world, feedReadId: 'r2', calls: [onFile], decisions: {}, fromSnapshotId: 'snapshot-gw4', costOfSwap: () => 0 }),
     })
     const events = await read(await go())
 
@@ -555,6 +616,7 @@ describe('F6-AC-03, F6-AC-20 · a returning call is labelled, and a cancelled ru
         after,
         feedReadId: 'r2',
         calls: [rejected],
+        fromSnapshotId: 'snapshot-gw4',
         decisions: { [rejected.key]: 'rejected' },
       }),
     })

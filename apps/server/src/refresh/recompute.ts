@@ -46,7 +46,8 @@ export type Recomputed = {
   movedBand: boolean
   /**
    * F6-AC-06's second limb — the call cannot be executed any more. Either side
-   * having left the squad, or the incoming player failing the gate.
+   * having left the squad, the incoming player failing the gate, or a transfer
+   * proposing to buy a player the manager already owns.
    */
   unexecutable: boolean
 }
@@ -75,11 +76,33 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
   const out = sides.get(call.outPlayerId)
   const into = sides.get(call.inPlayerId)
 
+  const isTransfer = call.identity.type === 'transfer'
+
   const gone = !out || !into
   // An incoming player the gate now excludes can never be recommended
   // (ENGINE-AC-02), so the call cannot be executed whatever its arithmetic said.
   const excluded = into !== undefined && !into.availability.eligible
-  if (gone || excluded) {
+  /**
+   * **You cannot buy a player you already own** (found live 2026-09-16,
+   * STE-140).
+   *
+   * A stored transfer keeps naming the same two players, and the squad beneath
+   * it moves. Upload a squad that now contains the incoming side — because the
+   * manager made that transfer in the FPL app, or a different one that brought
+   * him in — and the call is no longer a transfer at all. The Assistant offered
+   * *Calafiori → De Cuyper* with De Cuyper already on the bench, and drew an
+   * After squad holding him twice and four players from one club.
+   *
+   * **`inSquad` was computed and passed in all along, and nothing read it.**
+   * The gate above asks whether the incoming player is *available*, which he
+   * plainly is — he is already in the fifteen.
+   *
+   * Transfers only. A substitution and a captaincy call name two players who
+   * are both in the squad by definition; applying this to them would report
+   * every one of them unexecutable.
+   */
+  const alreadyOwned = isTransfer && into !== undefined && into.inSquad
+  if (gone || excluded || alreadyOwned) {
     return {
       key: call.key,
       net: 0,
@@ -99,8 +122,6 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
       ? ({ eligible: true } as const)
       : ({ eligible: false, reason: 'unavailable' } as const),
   })
-
-  const isTransfer = call.identity.type === 'transfer'
 
   // **A transfer cannot be scored without both prices, and the engine refuses
   // rather than guessing** — the same refusal that stops a player with no

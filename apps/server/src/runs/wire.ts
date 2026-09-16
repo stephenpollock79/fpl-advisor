@@ -44,11 +44,12 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
 
       const { data: runs } = await db
         .from('run')
-        .select('id, feed_read_id')
+        .select('id, feed_read_id, squad_snapshot_id')
         .eq('status', 'succeeded')
         .order('finished_at', { ascending: false })
         .limit(1)
-      const lastRun = (runs as { id: string; feed_read_id: string | null }[] | null)?.[0] ?? null
+      const lastRun =
+        (runs as { id: string; feed_read_id: string | null; squad_snapshot_id: string | null }[] | null)?.[0] ?? null
 
       const { data: newest } = await reference
         .from('feed_read')
@@ -92,6 +93,9 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
       const { data: decisionRows } = await db.from('decision').select('call_key, state')
 
       return {
+        // **What squad that run was built on**, so a correction cannot be
+        // answered with advice about the squad it replaced (F6-RS-06, STE-140).
+        fromSnapshotId: lastRun?.squad_snapshot_id ?? null,
         before: await rows(lastRun?.feed_read_id ?? null),
         after: (await rows(feedReadId)) ?? [],
         feedReadId,
