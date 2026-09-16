@@ -237,3 +237,76 @@ describe('A call the world cannot carry out says so, rather than claiming nothin
     expect(call?.readingReason).not.toBe('incumbent_wins')
   })
 })
+
+describe('A call demoted by the world read is reported, whichever way it was demoted (STE-142)', () => {
+  /**
+   * **The first version of this log gated on `unexecutable` and stayed silent**
+   * against a live screen showing exactly the state it was written for. A call
+   * stops being a call two ways, and only one of them is *cannot be done*.
+   *
+   * The trigger here is the other one: the figures re-derived below the bar. It
+   * must go red if the gate narrows again, which is the mistake being guarded.
+   */
+  const spy = () => {
+    const lines: string[] = []
+    const original = console.warn
+    console.warn = (line: unknown) => lines.push(String(line))
+    return { lines, restore: () => (console.warn = original) }
+  }
+
+  const liveCall = {
+    key: 'substitution:out=102:in=101',
+    position: 0,
+    category: 'substitution' as const,
+    shape: 'substitution' as const,
+    outPlayerId: 102,
+    inPlayerId: 101,
+    net: 4.1,
+    conviction: 77,
+    band: 'strong' as const,
+    k: 2,
+    pointsHit: 0,
+    costTenths: 0,
+    isForced: false,
+    isReading: false,
+    readingReason: null,
+    watch: false,
+    watchReason: null,
+    reasoning: 'x',
+    reasoningSource: 'model' as const,
+    breakdown: null,
+    alternatives: null,
+  }
+
+  it('names the call, why it was demoted, and both sets of figures', () => {
+    // 102 projects 9.2 and 101 projects 4.4, so swapping 102 out for 101 can
+    // only come back negative. The stored +4.10 cannot be reproduced, and the
+    // world demotes it without it ever being unexecutable — the case the first
+    // version of this line missed.
+    const watch = spy()
+    try {
+      assembleWorld({
+        gameweek,
+        lastScored: null,
+        snapshot,
+        squad,
+        players,
+        clubs,
+        fixtures,
+        projections,
+        states,
+        calls: [liveCall as never],
+      })
+    } finally {
+      watch.restore()
+    }
+
+    const line = watch.lines.find((l) => l.includes('shown as a reading'))
+    expect(line).toBeDefined()
+    expect(line).toContain('substitution:out=102:in=101')
+    // Both figures, so the next occurrence names the divergence rather than
+    // implying one.
+    expect(line).toContain('stored net 4.10')
+    expect(line).toContain('now net')
+  })
+})
