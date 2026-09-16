@@ -109,9 +109,16 @@
 .side,
 .sideRight { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .sideRight { align-items: flex-end; text-align: right; }
+.dirRow { display: flex; align-items: center; gap: 5px; min-height: 12px; }
+.sideRight .dirRow { flex-direction: row-reverse; }
 .dir { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; opacity: 0.85; }
+/* The badges that used to overflow the meta line. `min-height` on the row above
+   holds the header's height steady whether or not any are present (STE-125). */
+.extra { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.1em; padding: 1px 5px; border-radius: 20px; border: 1px solid rgb(255 255 255 / 45%); white-space: nowrap; }
+/* Never wraps. Wrapping is what made the header grow in the first place. */
+.metaFixed { white-space: nowrap; }
 .name { font-size: 16px; font-weight: 800; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.meta { font-family: var(--font-mono); font-size: 10px; color: rgb(255 255 255 / 76%); }
+.meta { font-family: var(--font-mono); font-size: 10px; color: rgb(255 255 255 / 76%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .change { align-self: inherit; margin-top: 2px; padding: 3px 8px; border-radius: 20px; border: 1px solid rgb(255 255 255 / 55%); background: transparent; color: #fff; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.12em; cursor: pointer; }
 .vs { width: 40px; height: 40px; border-radius: 50%; background: #fff; color: var(--green-dark); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 12px; font-weight: 700; }
 

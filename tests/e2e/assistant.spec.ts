@@ -132,29 +132,45 @@ test('F3-AC-18: the flag reads WATCH with no qualifier, its reason is one tap aw
   await expect(page.getByText('WATCH', { exact: true })).toHaveCount(0)
 })
 
-test('F3-AC-07: Later on the last undecided transfer leaves it pending and moves to the other tab', async ({ page }) => {
-  // Until the Overview exists, the last card's Later has to go somewhere (STE-122).
+test('F3-AC-07: Later on the last undecided transfer leaves it pending and goes to the Overview', async ({ page }) => {
+  /**
+   * **The last card has nowhere to advance to** — head to head shows only
+   * undecided calls (F3-AC-13) — so before STE-122 it simply stayed put, which
+   * read as a control that did not work. Stephen found that running slice 5's
+   * checklist; the answer waited on the Overview existing.
+   *
+   * It goes to the Overview rather than to the next category on purpose: the
+   * call is still pending, and the Overview is where a pending call is visible
+   * beside everything else. Hopping to the next tab was the stopgap and answered
+   * a different question, leaving the deferred call out of sight.
+   */
   await open(page)
 
   await page.getByRole('button', { name: /Select/ }).click()
   await expect(page.getByTestId('in-name')).toHaveText('Striker')
   await page.getByRole('button', { name: /Later/ }).click()
 
-  await expect(page.getByRole('tab', { name: /Sub/ })).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByTestId('in-name')).toHaveText('Rogers')
-  await expect(page.getByRole('status')).toHaveText('Transfers left for later — substitutions next.')
-  // Still pending: the Transfer tab still counts it.
+  await expect(page.getByRole('tab', { name: /Overview/i })).toHaveAttribute('aria-selected', 'true')
+  // By test id rather than by role: the Overview carries its own role="status"
+  // for squad-rule breaches, so landing there makes the generic selector
+  // ambiguous. A knock-on of going to the Overview at all, not a defect.
+  await expect(page.getByTestId('notice')).toHaveText('Transfers left for later — it is on the overview.')
+  // Still pending, and still counted by the tab it came from.
   await expect(page.getByRole('tab', { name: /Transfer/ })).toContainText('1')
 })
 
-test('F3-AC-07: Later on the only undecided call left anywhere says so, and leaves it pending', async ({ page }) => {
+test('F3-AC-07: Later on the only undecided call left anywhere goes to the Overview, and leaves it pending', async ({ page }) => {
+  // The case that used to have nowhere at all to go — one call, in one category,
+  // and no other tab holding work. It said "it will be here when you come back"
+  // and left the manager looking at the same card. The Overview is now where
+  // "here" is, and it shows him the call he just deferred (STE-122).
   await open(page, {}, world.calls.filter((c) => c.key === 'substitution:upgrade:out=557:in=40'))
 
   await page.getByRole('tab', { name: /Sub/ }).click()
   await page.getByRole('button', { name: /Later/ }).click()
 
-  await expect(page.getByRole('status')).toHaveText('Left for later — it will be here when you come back.')
-  await expect(page.getByTestId('in-name')).toHaveText('Rogers')
+  await expect(page.getByRole('tab', { name: /Overview/i })).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByTestId('notice')).toHaveText('Substitutions left for later — it is on the overview.')
   await expect(page.getByRole('tab', { name: /Sub/ })).toContainText('1')
 })
 
@@ -239,17 +255,35 @@ test('F4-UP-02: rejecting the captain change holds the vice call rather than lea
   await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
 })
 
-test('F6-AC-07, F6-AC-10: the refresh control names its own scope, and asks before it runs', async ({ page }) => {
+/**
+ * **The scoping criterion is deliberately not named here, not even to say it is
+ * unmet** (STE-158) — `scripts/criteria-coverage.mjs` reads whole files, so
+ * writing the identifier in this comment would count as covering it. That trap
+ * has been sprung four times in this repo now, once this morning inside a
+ * sentence claiming it named nothing.
+ *
+ * This test used to assert the control named *transfers* on the Transfer tab and
+ * *substitutions* on the Sub tab — which it did, and which was untrue of the run
+ * behind it. Every run rewrites everything. Stephen ruled on 2026-09-16 that the
+ * run keeps doing everything and the wording changes to match, so the criterion
+ * asking for a per-screen scope is unmet until the PRD catches up, and must read
+ * uncovered rather than green. It is in `docs/coverage-gaps.md` with why.
+ *
+ * `F6-AC-10` stays: asking before a run is genuinely met, and is what the rest
+ * of this test proves.
+ */
+test('F6-AC-10: the refresh control says what it rewrites, and asks before it runs', async ({ page }) => {
   await open(page)
 
   // A fixed square symbol, so its width cannot change with the tab and take the
-  // header's height with it. What it would rewrite is named on the control for a
-  // screen reader and, for everyone, on the confirmation it opens.
-  await expect(page.getByTestId('refresh')).toHaveAttribute('aria-label', /transfers/i)
+  // header's height with it. **The same wording on every tab**, because the run
+  // is the same on every tab.
+  await expect(page.getByTestId('refresh')).toHaveAttribute('aria-label', /everything/i)
   await page.getByRole('tab', { name: 'Sub' }).click()
-  await expect(page.getByTestId('refresh')).toHaveAttribute('aria-label', /substitutions/i)
+  await expect(page.getByTestId('refresh')).toHaveAttribute('aria-label', /everything/i)
 
   await page.getByTestId('refresh').click()
+  await expect(page.getByRole('dialog')).toContainText('Refresh everything')
 
   // The confirmation explains the outcome rather than asking "are you sure?".
   const sheet = page.getByRole('dialog')

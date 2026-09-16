@@ -10,7 +10,9 @@
  * is swapped. ENGINE-AC-04's second half is this file and its children holding
  * no arithmetic over them, and a test reads the source to keep it so.
  *
- * The Overview is F8 and arrives with slice 8, so this opens on Transfer.
+ * **The Overview is the fourth view here and the one this opens on**, since
+ * slice 8. It is also where *Later* on the last undecided call now lands
+ * (STE-122), because a deferred call is visible there beside everything else.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -68,9 +70,10 @@ const TABS: { category: Category; label: string; noun: string; clear: string }[]
     noun: 'Substitutions',
     clear: 'Your eleven is already the strongest legal side, and the bench is in order.',
   },
-  // Last, deliberately. *Later* on the final undecided call hops to the next tab
-  // holding work, in this order — putting captaincy ahead of substitutions would
-  // change where the manager lands (F3-AC-07).
+  // Last, matching the Overview's own order. **The reason this comment used to
+  // give is gone**: *Later* on the final undecided call went to the next tab
+  // holding work, so this order decided where the manager landed. It goes to the
+  // Overview now (STE-122), and nothing depends on which category is last.
   {
     category: 'captaincy',
     label: 'Captain',
@@ -301,19 +304,32 @@ export function AssistantScreen({
         setCursor((c) => c + 1)
         return
       }
-      // The last undecided card in this tab has nowhere to advance to, and doing
-      // nothing reads as a broken control. Until the Overview exists (slice 8,
-      // STE-122), go to the other tab if it has calls waiting, or say so.
+      /**
+        * **The last undecided card goes to the Overview** (STE-122).
+        *
+        * Head to head shows only undecided calls (F3-AC-13), so on the last one
+        * there is nothing to advance to and the card simply stayed put —
+        * correct, and indistinguishable from a control that does not work.
+        * Stephen found it running slice 5's checklist on 2026-09-11, and the
+        * answer waited on the Overview existing at all.
+        *
+        * Going there rather than to another category is the point: the call is
+        * still pending and the Overview is where a pending call is visible
+        * beside everything else, so *Later* now takes him somewhere that shows
+        * him what he deferred. Hopping to the next category instead was the
+        * stopgap, and it answered a different question — *what else is there* —
+        * while leaving the deferred call out of sight.
+        *
+        * **Only the last card changes.** With more than one left, *Later* still
+        * moves to the next undecided call, which is right and is the branch
+        * above. F3-AC-12 covers deciding rather than deferring, so this is
+        * behaviour the criteria leave open.
+        */
       const here = TABS.find((t) => t.category === tab)
-      const next = TABS.find((t) => t.category !== tab && outstandingIn(t.category).length > 0)
-      if (next) {
-        setTab(next.category)
-        setCursor(0)
-        setHoldCleared(false)
-        setNotice(`${here?.noun ?? 'That call'} left for later — ${next.noun.toLowerCase()} next.`)
-        return
-      }
-      setNotice('Left for later — it will be here when you come back.')
+      setTab('overview')
+      setCursor(0)
+      setHoldCleared(false)
+      setNotice(`${here?.noun ?? 'That call'} left for later — it is on the overview.`)
       return
     }
     // The decided card leaves the pending list, so the same position now holds
@@ -463,9 +479,31 @@ export function AssistantScreen({
   const week = useMemo(() => weekOf(world, decisions.decisions), [world, decisions.decisions])
 
   /** What a tap would rewrite, named on the control itself (F6-AC-07). */
-  const refreshScope = onOverview
-    ? 'everything'
-    : (TABS.find((x) => x.category === tab)?.noun ?? 'everything').toLowerCase()
+  /**
+   * **Every refresh rewrites everything, so every control says so** (STE-158).
+   *
+   * This used to read `'everything'` on the Overview and the tab's own noun
+   * anywhere else — so the confirmation sheet said *"Refresh transfers"* over a
+   * run that also rewrote captaincy and substitutions. `run.scope` is a column
+   * with a check constraint that nothing has ever set, and `POST
+   * /api/runs/stream` has never taken a scope: every run reads the whole world
+   * and rewrites every pending call.
+   *
+   * Nothing was wrong with the advice. What the wording could cost was a
+   * *pending* call on a tab the manager believed he was leaving alone — a
+   * selected one is carried forward and survives (F6-AC-02).
+   *
+   * **Ruled by Stephen on 2026-09-16: the run keeps doing everything and the
+   * label changes to match**, rather than the run being scoped to fit the label.
+   * `F6-AC-08` already leans this way — *one rule is easier to trust than a rule
+   * plus three shortcuts* — and `F6-AC-09` needs the news token's refresh to be
+   * all-scope regardless, which is now simply what every refresh is.
+   *
+   * **`F6-AC-07` is unmet as written until the PRD catches up**, because it asks
+   * for a control scoped to the screen it is on. No test may name it in the
+   * meantime.
+   */
+  const refreshScope = 'everything'
 
   return (
     <main className={styles.screen}>

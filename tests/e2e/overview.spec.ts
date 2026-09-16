@@ -146,12 +146,15 @@ test('F8-AC-18: with no news outstanding the last-run line says so instead', asy
   await expect(page.getByTestId('last-run')).toContainText('squad news up to date')
 })
 
-test('F6-AC-07, F6-AC-08: the Overview carries exactly one refresh control, and it names every category', async ({ page }) => {
-  // **The criterion about this control's position and visible label is
-  // deliberately not cited anywhere in this file** — not even to say it is
-  // unmet, because the coverage script reads whole files and would count the
-  // mention. It is in `docs/coverage-gaps.md` under F8, with why. What this
-  // asserts is the part that is still true: one control, all-scope, scope named.
+test('F6-AC-08: the Overview carries exactly one refresh control, and it names what it rewrites', async ({ page }) => {
+  // **Two criteria are deliberately not cited anywhere in this file** — not even
+  // to say they are unmet, because the coverage script reads whole files and
+  // would count the mention. One is about this control's position and visible
+  // label; the other asked for a control scoped to the screen it is on, which
+  // Stephen ruled against on 2026-09-16 (STE-158) — every run rewrites
+  // everything, so every control says so. Both are in `docs/coverage-gaps.md`
+  // with why. What this asserts is what is still true: one control, all-scope,
+  // and it names what it does.
   await overview(page)
 
   const refresh = page.getByTestId('refresh')
