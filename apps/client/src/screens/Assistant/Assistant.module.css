@@ -655,3 +655,28 @@
   background: transparent; color: var(--ink-3); font-family: var(--font-mono);
   font-size: 10px; letter-spacing: 0.1em; cursor: pointer;
 }
+
+/* ---------------------------------------------------------------------------
+   Where the call card keeps the small type the rest of the app gave up.
+   ---------------------------------------------------------------------------
+   The floor went to 10px because the labels framing a figure were the hardest
+   thing on the screen to read. **On this card it cost rows.** NET · COST ·
+   STRENGTH stopped fitting on one line and wrapped to two, and every pixel of
+   header comes straight out of the evaluation table below it — which F3-AC-21
+   says is the only region allowed to scroll, on a card that must fill the
+   screen.
+
+   So these three keep 8px, and the balance strip above — the BALANCE, NBAL and
+   FREE TR labels that prompted the change — keeps 10px. Same reasoning as the
+   stat table: where density is load-bearing, a larger label is the wrong thing
+   to spend the room on. */
+.cardFigLabel {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+/* The Change control sits in the green header, whose height is charged to the
+   table as well. */
+.change { font-size: 8px; }
