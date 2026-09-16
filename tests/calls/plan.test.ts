@@ -391,8 +391,18 @@ describe('F4-UP-02 · the armband pair is never left inconsistent', () => {
     // rather than a keep, and its net is floored at zero rather than negative.
     expect(vice?.outcome.reading).toBe('call')
     if (vice?.outcome.reading === 'call') {
-      expect(vice.outcome.isForced).toBe(true)
       expect(vice.outcome.net).toBe(0)
+      /**
+       * **And it is not forced, because Haaland can play** (`F4-AC-07`,
+       * `F4-AC-08`, STE-144).
+       *
+       * This asserted `true` until 2026-09-16, which is how a red FORCED flag
+       * shipped on a fit 7.9-point holder — the test encoded the defect.
+       * `F4-AC-07` says an armband call is forced *when, and only when*, the
+       * holder cannot score; `F4-AC-08` says it is **never** forced while he
+       * can play. The obligation is real and belongs in the line, not a flag.
+       */
+      expect(vice.outcome.isForced).toBe(false)
     }
   })
 

@@ -60,7 +60,18 @@ export const evaluateCall = (input: CallInput): CallOutcome => {
 
   const shared = { type, key: callKey(input.identity), incumbentTotal, challengerTotal }
   const k = kFor(type)
+  /**
+   * **Forced means the incumbent cannot score. Nothing else** (F4-AC-07,
+   * F4-AC-08).
+   */
   const isForced = !input.incumbent.availability.eligible || input.incumbentUnplayable === true
+  /**
+   * **A change that has to happen, which is not the same as a forced one.** An
+   * incumbent who cannot hold the role is not in the running, so the comparison
+   * says nothing and the net is floored — but he can play, so the call carries
+   * no Forced flag (STE-144).
+   */
+  const mustChange = isForced || input.incumbentCannotHoldRole === true
 
   const asCall = (settledNet: number): CallOutcome => {
     const conviction = convictionOf(settledNet, k)
@@ -78,11 +89,16 @@ export const evaluateCall = (input: CallInput): CallOutcome => {
     }
   }
 
-  if (isForced) {
-    // The incumbent cannot play, so the change has to happen. The figure states
-    // how much better the replacement is, which may be not at all — the red
-    // Forced flag carries the obligation, and clamping at zero keeps a negative
-    // away from the curve without pretending the replacement is an upgrade.
+  if (mustChange) {
+    // The incumbent is not in the running, so the change has to happen. The
+    // figure states how much better the replacement is, which may be not at all
+    // — clamping at zero keeps a negative away from the curve without
+    // pretending the replacement is an upgrade.
+    //
+    // **Whether the card says so is `isForced`'s job, not this one.** Where the
+    // incumbent cannot play, the red flag carries the obligation. Where he can
+    // play but cannot hold the role, the obligation is explained in the line
+    // and the flag stays off.
     return asCall(Math.max(0, net))
   }
 

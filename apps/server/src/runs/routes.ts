@@ -191,13 +191,26 @@ function materiallyMoved(refresh: RefreshInputs, week: WeekInputs): Set<string> 
     ]),
   )
 
+  // The same derivation `plan.ts` and the world read both make: a vice armband
+  // cannot stay on the player a captain call is moving the armband onto
+  // (STE-144).
+  const captainCall = refresh.calls.find((c) => identityOf(c).type === 'captain' && !c.isReading)
+  const wouldCaptain = captainCall?.inPlayerId ?? null
+
   const moved = new Set<string>()
   for (const call of refresh.calls) {
     // One bad row must not take down the run — the same posture the world read
     // takes, and for the same reason: a call naming a player the latest feed no
     // longer knows is one call's problem, not the week's.
     try {
-      const now = recomputeCall({ ...call, identity: identityOf(call) }, sides)
+      const now = recomputeCall(
+        {
+          ...call,
+          identity: identityOf(call),
+          cannotHoldRole: identityOf(call).type === 'vice' && wouldCaptain === call.outPlayerId,
+        },
+        sides,
+      )
       if (now.movedBand || now.unexecutable) moved.add(call.key)
     } catch (cause) {
       console.error(`[runs] could not re-derive ${call.key}; treating it as moved`, cause)

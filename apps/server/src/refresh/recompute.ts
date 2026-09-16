@@ -49,6 +49,21 @@ export type StoredFigure = {
    * him as vice, which cannot be done.
    */
   isForced: boolean
+  /**
+   * **The armband cannot stay on this holder, though he can play** — derived
+   * where the calls are read, never stored (STE-144).
+   *
+   * `isForced` above is not enough on its own any more: a vice call whose
+   * holder is taking the captaincy has to happen and is **not** forced
+   * (F4-AC-07, F4-AC-08). Re-deriving it on the arithmetic alone puts it back
+   * to *he keeps the vice armband* while he is being made captain.
+   *
+   * **Nothing is stored for it, deliberately.** The relationship is visible
+   * wherever both calls are — if a captain call proposes moving the armband
+   * onto the current vice, the vice call must change — so the reader computes
+   * it, the plan computes it, and there is no column to fall out of step with.
+   */
+  cannotHoldRole: boolean
 }
 
 export type Recomputed = {
@@ -180,6 +195,7 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
      * the call (STE-143).
      */
     incumbentUnplayable: !out.hasFixture || call.isForced,
+    incumbentCannotHoldRole: call.cannotHoldRole,
     ...(isTransfer
       ? { money: { incomingPriceTenths: into.priceTenths, outgoingSellingPriceTenths: out.sellingPriceTenths ?? 0 } }
       : {}),
