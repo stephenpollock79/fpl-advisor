@@ -3,6 +3,9 @@ import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
+import { isSecureRequest } from './auth/session.js'
+import { cspReportRoutes } from './csp-report.js'
+import { securityHeaders } from './security-headers.js'
 import { engineIdentity } from '@fpl/engine'
 import { Hono } from 'hono'
 import { authRoutes } from './auth/routes.js'
@@ -50,33 +53,22 @@ let boundPort: number | null = null
 const app = new Hono()
 
 /**
- * Headers every response carries (STE-38).
+ * Headers every response carries (STE-38, STE-161).
  *
- * The red-team pass found the deployed app sending **none** of these. Each one
- * below is a tightening with no plausible way to break this app, so it is taken
- * rather than asked about (P13) — they restrict what a *browser* will do with a
- * response we already control, and none of them changes what the app serves.
- *
- * **Two deliberately absent, because both can lock the app away and neither is
- * mine to choose.** `Strict-Transport-Security` makes a browser refuse plain
- * http for as long as its max-age says, so a certificate problem becomes an
- * unreachable site rather than a warning. A `Content-Security-Policy` tight
- * enough to be worth having can break the page in a real browser in ways no test
- * here would see. Both are on STE-161 with what they would cost.
+ * The red-team pass found the deployed app sending **none** of these. Three went
+ * in the same day because no version of them can break this app. The two that
+ * needed a ruling — `Strict-Transport-Security` and `Content-Security-Policy` —
+ * are here now in the only forms that cannot take the app away before a
+ * deadline: HSTS at five minutes rather than a year, and the policy in
+ * report-only, which refuses nothing. `security-headers.ts` carries what each
+ * one costs and what it would take to undo.
  */
 app.use('/*', async (c, next) => {
   await next()
-  // The app is never framed. Without this, anyone can put gaffercalls.com in an
-  // invisible iframe over their own page and collect the taps.
-  c.header('X-Frame-Options', 'DENY')
-  // Stops a browser second-guessing a Content-Type and executing something we
-  // served as data.
-  c.header('X-Content-Type-Options', 'nosniff')
-  // Full URLs stop travelling to other origins. Nothing here puts anything
-  // sensitive in a path today, and this is what keeps that true by accident
-  // rather than by vigilance.
-  c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
+  const secure = isSecureRequest(c.req.url, c.req.header('X-Forwarded-Proto'))
+  for (const [name, value] of Object.entries(securityHeaders(secure))) c.header(name, value)
 })
+
 
 app.get('/api/health', (c) =>
   c.json({
@@ -118,6 +110,7 @@ app.route(
       confirmationIsValid(env.sessionCookieSecret, user.userId, fplTeamId, token),
   }),
 )
+app.route('/', cspReportRoutes())
 app.route('/', worldRoutes(worldDeps(authenticateRequest)))
 app.route('/', decisionRoutes(decisionDeps(authenticateRequest)))
 app.route('/', runRoutes(runDeps(authenticateRequest)))

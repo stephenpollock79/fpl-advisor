@@ -66,20 +66,28 @@ console.log(`\nRed-team probes against ${BASE}\n`)
   // a red-team pass reports what is absent, and whether absence matters is
   // Stephen's call, not this script's.
   const csp = h('content-security-policy')
+  const reportOnly = h('content-security-policy-report-only')
   const frame = h('x-frame-options')
   const nosniff = h('x-content-type-options')
   const hsts = h('strict-transport-security')
   const referrer = h('referrer-policy')
 
-  // **A note rather than a check, while STE-161 is open.** A probe that fails by
-  // design every time it runs is a gate nobody reads, and this file is only
-  // worth having if its failures mean something. It becomes a check the day
-  // Stephen rules on the header — or stays a note, if he rules against it.
-  note('HTTPS enforced for future visits (HSTS)', hsts ?? 'absent — awaiting a ruling on STE-161')
+  // **Checks rather than notes since STE-161 was ruled.** They were notes while
+  // the app had never claimed either header, because a probe that fails by
+  // design every time it runs is a gate nobody reads. Both are claimed now, so
+  // both must be true.
+  check('HTTPS enforced for future visits (HSTS)', Boolean(hsts), hsts ?? 'absent')
   check('the page cannot be framed by another site', Boolean(frame) || Boolean(csp?.includes('frame-ancestors')), frame ?? csp ?? 'absent — clickjacking is not prevented')
   check('content types are not sniffed', nosniff === 'nosniff', nosniff ?? 'absent')
-  note('content security policy', csp ?? 'absent — awaiting a ruling on STE-161')
-  note('referrer policy', referrer ?? 'absent — full URLs may travel to third parties')
+  check('a content security policy is stated', Boolean(csp ?? reportOnly), 'absent')
+  check('referrer policy', referrer === 'strict-origin-when-cross-origin', referrer ?? 'absent — full URLs may travel to third parties')
+
+  // **Which mode the policy is in is the finding, not a pass or a fail.** It is
+  // deliberately report-only until the reports from real use say the source list
+  // is complete (STE-161); printing it is how nobody has to remember that the
+  // check above passes either way.
+  note('policy mode', csp ? 'enforcing' : reportOnly ? 'report-only — blocking nothing yet' : 'none')
+  if (hsts) note('HSTS max-age', `${hsts} — five minutes is deliberate; the undo is that long`)
 }
 
 // ---------------------------------------------------------------------------

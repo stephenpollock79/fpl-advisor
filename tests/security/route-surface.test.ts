@@ -20,6 +20,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { authRoutes } from '../../apps/server/src/auth/routes.js'
+import { cspReportRoutes } from '../../apps/server/src/csp-report.js'
 import { decisionRoutes } from '../../apps/server/src/decisions/routes.js'
 import { runRoutes } from '../../apps/server/src/runs/routes.js'
 import { screenshotRoutes } from '../../apps/server/src/squad/screenshots.js'
@@ -43,6 +44,12 @@ const PUBLIC = new Map<string, string>([
     'POST /api/auth/verify',
     'Exchanges a code for a session, so by definition there is no session yet. Attempt-limited, ' +
       'and a spent code is refused before the provider is called (F7-AC-09).',
+  ],
+  [
+    'POST /api/csp-report',
+    'A browser posts a content-security-policy violation without credentials, so gating it would ' +
+      'report nothing until after sign-in — the half of the app the policy most needs checking ' +
+      'on. It reads a bounded prefix, writes one operator line, and returns 204 (STE-161).',
   ],
   [
     'POST /api/auth/logout',
@@ -80,6 +87,7 @@ const apps = {
   decisions: decisionRoutes(noOneSignedIn()),
   runs: runRoutes(noOneSignedIn()),
   screenshots: screenshotRoutes(noOneSignedIn()),
+  cspReport: cspReportRoutes(),
 }
 
 /** Every route the server actually declares, discovered rather than listed. */
