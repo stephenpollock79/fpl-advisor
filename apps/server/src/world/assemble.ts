@@ -421,16 +421,28 @@ function refreshedCalls(calls: readonly WorldCall[], world: readonly WorldPlayer
     if (again.unexecutable && !sides.has(call.outPlayerId)) return call
 
     /**
-     * **Say when a run's call is suppressed, and which condition did it.**
+     * **Say when a run's call is demoted to a reading, for any reason.**
      *
      * A call planned as live and shown as a reading is the hardest state in
      * this app to reason about from the outside — the editorial counts one
      * list, the screen counts another, and nothing recorded what happened in
-     * between. That cost an hour on 2026-09-16 and was diagnosed by elimination
-     * rather than evidence (STE-142). One line ends it.
+     * between. That cost an hour on 2026-09-16 (STE-142).
+     *
+     * **The first version of this line gated on `unexecutable` and stayed
+     * silent**, which is how it was found: a call stops being a call two ways,
+     * and only one of them is *cannot be done*. The other is that the figures,
+     * re-derived here, no longer clear the bar — and that is the more serious
+     * of the two, because the plan and this read are supposed to be the same
+     * arithmetic over the same published inputs. Both figures are printed, so
+     * the next occurrence names the divergence instead of implying one.
      */
-    if (again.unexecutable && !call.isReading) {
-      console.warn(`[world] ${call.key} was planned as a call and cannot be executed — ${String(again.unexecutableBecause)}`)
+    if (again.isReading && !call.isReading) {
+      const why = again.unexecutable ? `cannot be executed — ${String(again.unexecutableBecause)}` : 're-derived below the bar'
+      console.warn(
+        `[world] ${call.key} was planned as a call and is shown as a reading: ${why} · ` +
+          `stored net ${call.net.toFixed(2)} conviction ${String(call.conviction)} band ${String(call.band)} · ` +
+          `now net ${again.net.toFixed(2)} conviction ${String(again.conviction)} band ${String(again.band)}`,
+      )
     }
 
     return {
