@@ -97,8 +97,15 @@ console.log(`\nRed-team probes against ${BASE}\n`)
   // `tests/e2e/csp.spec.ts`, which walks the production build behind the real
   // headers. Report-only on the deployed app would mean a revert nobody
   // announced, and that is exactly what a probe is for.
-  check('the content security policy is enforced, not merely reported', Boolean(csp), reportOnly ? 'report-only — blocking nothing' : 'absent')
-  if (hsts) note('HSTS max-age', `${hsts} — five minutes is deliberate; the undo is that long`)
+  check(
+    'the content security policy is enforced, not merely reported',
+    Boolean(csp),
+    csp ? 'Content-Security-Policy' : reportOnly ? 'report-only — blocking nothing' : 'no policy at all',
+  )
+  // **The note goes with the value it explained.** It said five minutes was
+  // deliberate; the value is a year now, and an explanation of a number that is
+  // no longer there is worse than none — the check above already prints it
+  // (STE-174).
 }
 
 // ---------------------------------------------------------------------------
