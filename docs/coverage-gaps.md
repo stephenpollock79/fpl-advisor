@@ -326,9 +326,19 @@ Deliberately **not** entered in `docs/manual-coverage.md`: that register holds
 criteria that have been verified, and an entry made in advance would turn the
 coverage figure into a claim about the future.
 
-**Closed 2026-09-16 (STE-178).** Stephen confirmed across a week of real use
-that the percentage lands as the strength of the call rather than as a chance of
-being right, and the register carries the row.
+**Closed 2026-09-11, and again on 2026-09-14** — not on the 16th, whatever the
+first version of this paragraph said. The register has carried a row since slice
+5's checklist and a second from slice 7's, both recording that nothing on any
+screen calls the strength figure a chance, a likelihood, a probability or a
+confidence.
+
+**This entry was two days stale and it cost a redundant check.** On 2026-09-16 it
+was read as outstanding, put to Stephen as a question he had already answered
+twice, and answered a third time — and a third register row was written before
+anyone looked at the two already there. *An entry describing a gap that has
+closed is the same defect as a home pointing at a closed ticket*, arriving from
+the other direction: both look like work and are not. **When a gap closes, this
+file is edited in the same change that closes it.**
 
 *Automated half closed 2026-09-11 (slice 5).* The figure is labelled *strength*,
 and `tests/client/surface-rules.test.ts` fails on probability vocabulary in any
