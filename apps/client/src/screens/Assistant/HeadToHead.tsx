@@ -341,15 +341,21 @@ function Keep({
 /**
  * Why this armband is staying where it is, in the manager's terms.
  *
- * Three reasons, and they are genuinely different things to say. Two come from
+ * Four reasons, and they are genuinely different things to say. Two come from
  * the engine — the holder is ahead, or the two are too close to separate. The
  * third is the manager's own doing and the engine cannot know it: he turned down
  * the captain change, so the pair would otherwise contradict itself (F4-UP-02).
+ * The fourth is not a reason for keeping at all: the call cannot be carried out,
+ * and saying so is the opposite of the first two rather than a weaker form of
+ * them (STE-142).
  */
 function keepVerdict(figures: Shown['figures'], role: 'captaincy' | 'vice-captaincy'): string {
   const band = role === 'vice-captaincy' ? 'vice armband' : 'armband'
   if (figures.reading !== 'no_change') return `He keeps the ${band}.`
 
+  if (figures.because === 'unexecutable') {
+    return `This one can no longer be carried out with your squad as it now stands, so the ${band} is unchanged.`
+  }
   if (figures.because === 'captain_kept') {
     return `You kept your captain, so the ${band} stays where it is too — moving it now would leave the pair contradicting each other.`
   }

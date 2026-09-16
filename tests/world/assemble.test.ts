@@ -176,3 +176,64 @@ describe('F1-AC-10 · the name on screen is the name FPL prints', () => {
     expect(shown.players[0]?.name).toBe('Haaland')
   })
 })
+
+describe('A call the world cannot carry out says so, rather than claiming nothing was worth doing (STE-142)', () => {
+  /**
+   * **The trigger is a call stored as live that the world read then refuses.**
+   * That is the only circumstance this rule is about, and it is the one the
+   * screen had no honest word for: every suppressed call fell back to
+   * `incumbent_wins`, the engine's term for *net ≤ 0, the holder is simply
+   * better*. So a transfer that could not be executed was shown as "no transfer
+   * is worth making this week" — the opposite of the truth, not a softer form
+   * of it.
+   *
+   * Asserting the flag alone would not reach the defect: the flag was already
+   * right. The wrong thing was the word attached to it.
+   */
+  const transferCall = {
+    key: 'transfer:out=101:in=102',
+    position: 0,
+    category: 'transfer' as const,
+    shape: 'transfer' as const,
+    outPlayerId: 101,
+    inPlayerId: 102,
+    net: 4.1,
+    conviction: 77,
+    band: 'strong' as const,
+    k: 2,
+    pointsHit: 0,
+    costTenths: 8,
+    isForced: true,
+    isReading: false,
+    readingReason: null,
+    watch: false,
+    watchReason: null,
+    reasoning: 'x',
+    reasoningSource: 'model' as const,
+    breakdown: null,
+    alternatives: null,
+  }
+
+  it('an incoming player already in the squad is reported as no longer possible, never as the holder winning', () => {
+    // 102 is in the squad, so buying him is not a transfer at all any more.
+    const shown = assembleWorld({
+      gameweek,
+      lastScored: null,
+      snapshot,
+      squad,
+      players,
+      clubs,
+      fixtures,
+      projections,
+      states,
+      calls: [transferCall as never],
+    })
+
+    const call = shown.calls[0]
+    expect(call?.isReading).toBe(true)
+    expect(call?.readingReason).toBe('unexecutable')
+    // The word that was wrong. `incumbent_wins` says the holder is ahead, which
+    // is a claim about the arithmetic and not about whether the move is open.
+    expect(call?.readingReason).not.toBe('incumbent_wins')
+  })
+})

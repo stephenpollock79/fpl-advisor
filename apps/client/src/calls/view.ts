@@ -113,11 +113,13 @@ export type CardFigures =
       net: number
       costTenths: number
       /**
-       * Why, in the manager's terms. The engine's own two, plus one the engine
+       * Why, in the manager's terms. The engine's own two, plus two the engine
        * cannot know: the captain call was rejected, so the vice armband stays
-       * where it is rather than the pair being left inconsistent (F4-UP-02).
+       * where it is rather than the pair being left inconsistent (F4-UP-02);
+       * and the call cannot be carried out at all, which is the opposite of
+       * the engine's two rather than a weaker form of them (STE-142).
        */
-      because: 'incumbent_wins' | 'below_floor' | 'captain_kept'
+      because: 'incumbent_wins' | 'below_floor' | 'captain_kept' | 'unexecutable'
       k: number
       reasoning: string
       rows: EvaluationRow[]
@@ -416,7 +418,12 @@ export function armbandNotes(call: WorldCall): string[] {
 }
 
 /** Why the app is not proposing a change, for the card's inert panel (F4-AC-02). */
-export function readingLine(because: 'incumbent_wins' | 'below_floor' | 'captain_kept'): string {
+export function readingLine(because: 'incumbent_wins' | 'below_floor' | 'captain_kept' | 'unexecutable'): string {
+  // **Not one of the engine's two, and it must not read like them** (STE-142).
+  // Both of those say nothing here is worth doing. This says the opposite: the
+  // app had a call and cannot carry it out, and dressing that as "already the
+  // stronger option" told the manager the reverse of what happened.
+  if (because === 'unexecutable') return 'No longer possible with your current squad'
   if (because === 'captain_kept') return 'Held while the captain stays as he is'
   if (because === 'below_floor') return 'Too close to call'
   return 'Already the stronger option'
