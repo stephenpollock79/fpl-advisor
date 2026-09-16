@@ -1,3 +1,17 @@
+/*
+ * **This table keeps the 8px labels the rest of the app gave up** (STE-79).
+ *
+ * The type floor went to 10px everywhere else because the labels framing a
+ * figure were the hardest thing on the screen to read. Here it cost the PRICE
+ * column: the club tags and headers grew, the table grew with them, and a column
+ * that used to be on screen fell off the right edge.
+ *
+ * **Density is this screen's job.** Fifteen players against six measures is a
+ * grid, and the figures that matter — form, projection, price — are already at
+ * 12 and 13px. What is at 8px is the supporting text around them. Trading a
+ * visible column for a larger column heading is the wrong way round here, and
+ * only here.
+ */
 .wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; }
 
 /* The only region of this screen that scrolls, and it scrolls on both axes. */
@@ -112,8 +126,9 @@
 .table td.fit,
 .table td.good { color: #0a6e3d; }
 
+/* Same correction as the fixture pill's amber — see parts.module.css (STE-79). */
 .table td.doubtful,
-.table td.fair { color: #8a6a28; }
+.table td.fair { color: #7a5d1f; }
 
 .table td.out,
 .table td.poor { color: #a32c3c; }
