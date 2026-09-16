@@ -3,6 +3,7 @@ import { SquadScreen } from "./screens/Squad/SquadScreen"
 import { AssistantScreen } from "./screens/Assistant/AssistantScreen"
 import { LinkTeam } from "./screens/LinkTeam/LinkTeam"
 import { Landing } from "./screens/Landing/Landing"
+import { Boot } from "./screens/Boot/Boot"
 import { type Me, fetchMe } from "./api"
 import { useCallback, useEffect, useState } from "react"
 
@@ -39,8 +40,11 @@ export function App() {
     return () => controller.abort()
   }, [load])
 
-  if (failed) return <Note>Could not reach the app. Try again in a moment.</Note>
-  if (me === undefined) return <Note>Loading…</Note>
+  if (failed) return <Boot waiting={false}>Could not reach the app. Try again in a moment.</Boot>
+  // **Two sentences, because there are two waits.** Checking the session is
+  // fast and reading both feeds is not, so a single line would sit unchanged
+  // through the slow half and read as a page that had stopped.
+  if (me === undefined) return <Boot>Checking you in…</Boot>
   if (me === null) {
     return (
       <Landing
@@ -108,9 +112,9 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
 
   // A first open fetches both feeds before answering, so this can take a few
   // seconds. The Thinking state that narrates it properly is F6 and F8.
-  if (state.status === "loading") return <Note>Reading the world — squad, fixtures and projections…</Note>
-  if (state.status === "no_team_linked") return <Note>No FPL team linked yet.</Note>
-  if (state.status === "failed") return <Note>Could not load your squad: {state.because}</Note>
+  if (state.status === "loading") return <Boot>Reading the world — squad, fixtures and projections…</Boot>
+  if (state.status === "no_team_linked") return <Boot waiting={false}>No FPL team linked yet.</Boot>
+  if (state.status === "failed") return <Boot waiting={false}>Could not load your squad: {state.because}</Boot>
 
   // **The sheet belongs to the screen it was opened from** (F7-AC-23), so each
   // screen renders its own and cancelling returns there because nothing left.
@@ -150,8 +154,3 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
   )
 }
 
-function Note({ children }: { children: React.ReactNode }) {
-  return (
-    <main style={{ padding: 24, fontSize: 13, lineHeight: 1.5, color: "#46433d" }}>{children}</main>
-  )
-}

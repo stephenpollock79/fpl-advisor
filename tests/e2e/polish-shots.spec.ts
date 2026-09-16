@@ -215,3 +215,24 @@ test('overview — call rows, selected and rejected', async ({ page }) => {
   await page.getByLabel('Transfers').evaluate((el) => { el.scrollIntoView({ block: 'start' }) })
   await shot(page, '23-overview-call-rows')
 })
+
+/**
+ * **The screen every open starts on** (STE-170), and the one it stops on when
+ * the world cannot be read. Held open by a request that never answers, so the
+ * capture is of the real state rather than a component rendered on its own.
+ */
+test('boot — opening, and stopped', async ({ page }) => {
+  await page.route('**/api/me', () => {
+    /* never fulfilled: the app sits in its opening state */
+  })
+  await page.goto('/')
+  await shot(page, '24-boot-opening')
+
+  await page.unrouteAll()
+  await page.route('**/api/me', (r) =>
+    r.fulfill({ json: { manager: { user_id: 'u', fpl_team_id: 6131656, team_name: 'Noggingham Forest', manager_name: 'S', overall_rank: 1 }, needsTeamLink: false } }),
+  )
+  await page.route('**/api/world', (r) => r.fulfill({ status: 502, json: { error: 'fpl_unreachable' } }))
+  await page.goto('/')
+  await shot(page, '25-boot-stopped')
+})
