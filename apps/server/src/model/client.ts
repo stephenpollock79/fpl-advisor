@@ -653,7 +653,26 @@ export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env
       try {
         const response = await client.messages.create({
           model,
-          max_tokens: 2048,
+          /**
+           * **Room for the model to think and still answer** (2026-09-16,
+           * STE-136).
+           *
+           * 2048 was set for Haiku, which does not think unless it is asked to.
+           * **Sonnet 5 thinks by default** — omitting the thinking parameter
+           * runs it — and thinking is spent out of this same budget. So the
+           * move to Sonnet turned a comfortable ceiling into one the reply hit
+           * before it had finished: the API answered, the JSON was cut off
+           * mid-object, and the upload failed with no error, no refusal and
+           * nothing to say why.
+           *
+           * **Not solved by turning thinking off.** Reading small badges off a
+           * screenshot is exactly the work it helps with, and it is why this
+           * step is on Sonnet at all. The budget moves instead, to the
+           * documented default for a non-streaming call — large enough that a
+           * fifteen-player object plus reasoning never approaches it, and still
+           * a ceiling rather than an open bill.
+           */
+          max_tokens: 16000,
           system: PARSE_SYSTEM,
           messages: [
             {
@@ -675,10 +694,30 @@ export function apiModel(opts: { client?: Pick<Anthropic, 'messages'>; env?: Env
         const cacheRead = u.cache_read_input_tokens ?? 0
         const ok = response.stop_reason !== 'refusal'
         const text = response.content.map((block) => (block.type === 'text' ? block.text : '')).join('')
+        // Structured output where the route gives it, the text body otherwise.
+        // Either way `parseSquad` decides whether any of it is usable.
+        const answer = (response as unknown as { structured_output?: unknown }).structured_output ?? safeJson(text)
+        /**
+         * **An answer we cannot use has to say how it ended.**
+         *
+         * A call that throws already reports its status and message. A call
+         * that returns and yields no JSON reported nothing at all, so the
+         * screen read "the reader did not answer" and the cause — a reply cut
+         * off at the token ceiling — was indistinguishable from a refusal, a
+         * wrong schema or an empty picture. Every one of those has a different
+         * fix, and there was no way to tell them apart.
+         *
+         * The stop reason and the output count separate them in one upload:
+         * `max_tokens` with the budget spent is truncation, `end_turn` with
+         * few tokens is a model that answered something other than JSON.
+         */
+        const because =
+          answer === null || answer === undefined
+            ? `the reply ended on ${String(response.stop_reason)} after ${String(u.output_tokens)} output tokens and carried no usable JSON`
+            : undefined
         return {
-          // Structured output where the route gives it, the text body otherwise.
-          // Either way `parseSquad` decides whether any of it is usable.
-          raw: (response as unknown as { structured_output?: unknown }).structured_output ?? safeJson(text),
+          raw: answer,
+          because,
           record: {
             step: 'parse',
             via: 'api',
