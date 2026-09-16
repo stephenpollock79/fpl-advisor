@@ -68,7 +68,7 @@
 
 .eyebrow {
   font-family: var(--font-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -219,7 +219,21 @@
    below, which is how a shirt ended up sitting on the fixture pill of the player
    in front. The pitch distributes whatever slack there is; it never takes any
    back out of a row. */
-.row { position: relative; flex: 0 0 auto; display: flex; justify-content: space-evenly; align-items: center; }
+/* **Sized from five, not from four.** A 3-5-2 and a 5-3-3 are both legal and
+   both put five cards on one line; at a fixed card width the fifth pushed the row
+   past the pitch and clipped the names. The slots share the row instead, so four
+   sit comfortably and five narrow rather than overflow. */
+.row {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.row > * { flex: 0 1 62px; min-width: 0; }
 
 .bench {
   border: 1px solid var(--border-light);
@@ -232,7 +246,7 @@
   display: flex;
   justify-content: space-between;
   font-family: var(--font-mono);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -260,7 +274,7 @@
 .benchSlot {
   font-family: var(--font-mono);
   line-height: 1.2;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;

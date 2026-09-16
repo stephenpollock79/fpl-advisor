@@ -170,3 +170,24 @@ test('the four conviction bands', async ({ page }) => {
     await shot(page, `20-band-${String(n)}`)
   }
 })
+
+/**
+ * **Five across a line is the widest a formation gets**, and the card was sized
+ * from it rather than from the four-man case it is usually seen in. A 5-4-1 and
+ * a 3-5-2 put five in defence and five in midfield respectively.
+ */
+test('widest — five at the back (5-3-3)', async ({ page }) => {
+  // Two midfielders drop into defence: 5 DEF, 3 MID, 3 FWD.
+  const five = squad.map((p) => (p.playerId === 557 || p.playerId === 6 ? { ...p, position: 'DEF' } : p))
+  await open(page, {}, world.calls, { players: five }, null)
+  await page.getByRole('tab', { name: 'Squad' }).click()
+  await shot(page, '21-widest-five-def')
+})
+
+test('widest — five in midfield (3-5-2)', async ({ page }) => {
+  // One forward moves into midfield: 3 DEF, 5 MID, 2 FWD.
+  const five = squad.map((p) => (p.playerId === 9 ? { ...p, position: 'MID' } : p))
+  await open(page, {}, world.calls, { players: five }, null)
+  await page.getByRole('tab', { name: 'Squad' }).click()
+  await shot(page, '22-widest-five-mid')
+})
