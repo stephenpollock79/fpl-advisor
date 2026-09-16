@@ -233,7 +233,7 @@ function Pitch({ world }: { world: World }) {
         {(['GKP', 'DEF', 'MID', 'FWD'] as const).map((position) => (
           <div key={position} className={styles.row}>
             {rows[position].map((p) => (
-              <PlayerSlot key={p.playerId} player={p} />
+              <PlayerSlot key={p.playerId} player={p} card />
             ))}
           </div>
         ))}
@@ -253,7 +253,7 @@ function Pitch({ world }: { world: World }) {
               <div className={styles.benchSlot}>
                 {BENCH_SLOTS[i]} · {p.position}
               </div>
-              <PlayerSlot player={p} tight />
+              <PlayerSlot player={p} tight card />
             </div>
           ))}
         </div>

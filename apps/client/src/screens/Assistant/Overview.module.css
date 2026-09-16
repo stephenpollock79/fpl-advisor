@@ -16,7 +16,7 @@
 .editorialHead {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 7px 10px; background: var(--green-dark); color: #fff;
-  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
 }
 
 .editorialCount { opacity: 0.92; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -75,7 +75,7 @@
   font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
 }
 
-.widgetTitle { letter-spacing: 0.14em; font-size: 8px; opacity: 0.92; }
+.widgetTitle { letter-spacing: 0.14em; font-size: 10px; opacity: 0.92; }
 
 .widgetFigures { display: flex; gap: 10px; margin-left: auto; }
 
@@ -83,7 +83,7 @@
 
 .over { color: #ffb3bd; }
 
-.ft, .ftOver { padding: 3px 7px; border-radius: 20px; font-size: 8px; letter-spacing: 0.06em; white-space: nowrap; }
+.ft, .ftOver { padding: 3px 7px; border-radius: 20px; font-size: 10px; letter-spacing: 0.06em; white-space: nowrap; }
 
 .ft { background: rgb(255 255 255 / 18%); }
 
@@ -94,7 +94,7 @@
 
 .mini { display: flex; flex-direction: column; gap: 5px; }
 
-.miniLabel { font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
+.miniLabel { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
 
 .miniPitch {
   display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
@@ -125,12 +125,12 @@
 
 .markerName {
   max-width: 30px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.02em; color: var(--ink-3);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em; color: var(--ink-3);
 }
 
 .miniBench { display: flex; gap: 4px; justify-content: center; padding: 5px 3px; border-radius: 8px; background: var(--warm-2); }
 
-.legend { display: flex; justify-content: center; gap: 12px; padding: 8px 10px 0; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.1em; color: var(--muted); }
+.legend { display: flex; justify-content: center; gap: 12px; padding: 8px 10px 0; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }
 
 .legend span { display: inline-flex; align-items: center; gap: 4px; }
 
@@ -178,7 +178,7 @@
 
 .groupHead {
   display: flex; align-items: baseline; justify-content: space-between; padding-top: 4px;
-  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted);
 }
 
 .groupMeta { letter-spacing: 0.04em; text-transform: none; }
@@ -214,7 +214,7 @@
 
 .convictionCell { align-items: flex-end; }
 
-.eyebrow { font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
+.eyebrow { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; color: var(--muted); }
 
 .figure { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--ink); }
 
@@ -230,7 +230,7 @@
 .blankChip,
 .doubleChip {
   flex: none; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--border-light);
-  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.08em;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
 }
 
 .forcedFlag { background: var(--red-disc); border-color: var(--red-disc); color: #fff; }
@@ -247,7 +247,7 @@
 .state,
 .stateDecided {
   white-space: pre-line;
-  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.1em; line-height: 1.4;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; line-height: 1.4;
 }
 
 .state { color: var(--muted); }
@@ -255,7 +255,7 @@
 
 .change {
   padding: 0; border: 0; background: none; cursor: pointer;
-  font-family: var(--font-mono); font-size: 8px; font-weight: 700; letter-spacing: 0.1em; color: var(--ink-3);
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: var(--ink-3);
 }
 
 .actions { display: flex; flex-direction: column; gap: 3px; width: 100%; }

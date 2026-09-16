@@ -59,7 +59,7 @@
   background: var(--card);
 }
 .status > span { display: flex; align-items: baseline; gap: 5px; }
-.eyebrow { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.12em; color: var(--muted); }
+.eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--muted); }
 .figure { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--ink-3); }
 .negative { color: var(--red-text); }
 
@@ -114,17 +114,17 @@
 .dir { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; opacity: 0.85; }
 /* The badges that used to overflow the meta line. `min-height` on the row above
    holds the header's height steady whether or not any are present (STE-125). */
-.extra { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.1em; padding: 1px 5px; border-radius: 20px; border: 1px solid rgb(255 255 255 / 45%); white-space: nowrap; }
+.extra { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; padding: 1px 5px; border-radius: 20px; border: 1px solid rgb(255 255 255 / 45%); white-space: nowrap; }
 /* Never wraps. Wrapping is what made the header grow in the first place. */
 .metaFixed { white-space: nowrap; }
 .name { font-size: 16px; font-weight: 800; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .meta { font-family: var(--font-mono); font-size: 10px; color: rgb(255 255 255 / 76%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.change { align-self: inherit; margin-top: 2px; padding: 3px 8px; border-radius: 20px; border: 1px solid rgb(255 255 255 / 55%); background: transparent; color: #fff; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.12em; cursor: pointer; }
+.change { align-self: inherit; margin-top: 2px; padding: 3px 8px; border-radius: 20px; border: 1px solid rgb(255 255 255 / 55%); background: transparent; color: #fff; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; cursor: pointer; }
 .vs { width: 40px; height: 40px; border-radius: 50%; background: #fff; color: var(--green-dark); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 12px; font-weight: 700; }
 
 .strip { display: flex; align-items: baseline; gap: 12px; padding: 6px 14px; background: var(--warm-2); border-bottom: 1px solid #e9e4da; flex-wrap: wrap; }
 .stripCell { display: flex; align-items: baseline; gap: 5px; }
-.stripLabel { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.14em; color: var(--muted); }
+.stripLabel { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--muted); }
 .stripValue { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--ink); }
 .strength { font-family: var(--font-mono); font-size: 13px; font-weight: 700; padding: 1px 7px; border-radius: 5px; border: 1px solid transparent; }
 .certain { background: var(--green-dark); color: #fff; }
@@ -183,7 +183,7 @@
 .explainName { font-weight: 700; color: var(--ink); }
 
 .picker { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 12px; background: var(--warm-1); }
-.pickerHead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.14em; color: var(--muted); }
+.pickerHead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--muted); }
 .linkButton { border: none; background: none; font-family: var(--font-mono); font-size: 10px; color: var(--muted); cursor: pointer; }
 .pickerList { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; }
 .pickerItem { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 7px 9px; border-radius: 9px; background: var(--card); border: 1px solid var(--border-light); font-family: inherit; cursor: pointer; }
@@ -380,7 +380,7 @@
 .sweepBar { position: absolute; top: 0; bottom: 0; width: 34%; background: linear-gradient(90deg, rgb(16 152 90 / 0%), var(--green), rgb(16 152 90 / 0%)); animation: gsweep 1.5s linear infinite; }
 
 .pipelineBox { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px 8px; }
-.pipelineLabel { display: block; margin-bottom: 7px; font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.14em; color: #847f74; }
+.pipelineLabel { display: block; margin-bottom: 7px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: #847f74; }
 
 .thinkingFooter {
   flex: none;
@@ -633,4 +633,25 @@
   min-height: 36px; padding: 7px 16px; border-radius: 9px; cursor: pointer;
   border: 1px solid var(--border-strong); background: var(--card); color: var(--ink-2);
   font-family: inherit; font-size: 13px; font-weight: 800;
+}
+
+/* What sits in the space a cleared category used to leave blank (STE-165). */
+.onward { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; }
+.onwardLabel {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+}
+.onwardRow {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border-light);
+  background: var(--card); color: var(--ink); font-family: var(--font-body);
+  font-size: 14px; font-weight: 700; cursor: pointer; text-align: left;
+}
+.onwardCount { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--green-text); }
+.onwardDone { margin: 0; font-size: 13px; color: var(--muted); }
+/* Quiet, because it is the way out rather than the next thing to do. */
+.onwardBack {
+  margin-top: 2px; padding: 10px; border-radius: 10px; border: 1px dashed var(--border-strong);
+  background: transparent; color: var(--ink-3); font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.1em; cursor: pointer;
 }

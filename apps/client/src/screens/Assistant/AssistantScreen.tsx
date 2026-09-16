@@ -794,10 +794,25 @@ export function AssistantScreen({
             noun={TABS.find((t) => t.category === tab)?.noun ?? ''}
             rows={clearedRows}
             reopened={reopenedHere}
+            /* Read from the same list the tab strip counts, so the two can never
+               disagree about how much is left (STE-165). */
+            outstanding={TABS.filter((t) => t.category !== tab)
+              .map((t) => ({ category: t.category, noun: t.noun, count: outstandingIn(t.category).length }))
+              .filter((t) => t.count > 0)}
             onToggle={onToggle}
             onReview={() => {
               setHoldCleared(false)
               setCursor(0)
+            }}
+            onOverview={() => {
+              setTab('overview')
+              setCursor(0)
+              setHoldCleared(false)
+            }}
+            onGo={(category) => {
+              setTab(category as Category)
+              setCursor(0)
+              setHoldCleared(false)
             }}
           />
         ) : current ? (

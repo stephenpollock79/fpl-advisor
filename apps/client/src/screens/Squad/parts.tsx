@@ -172,16 +172,60 @@ function Shirt({ shortName, number }: { shortName: string; number: number | null
  * bench card; the S / S1 / S2 / S3 badges belong in the stat table, where the
  * fifteen are one list and nothing else says who is on the bench (F1-AC-18).
  */
-export function PlayerSlot({ player, tight = false }: { player: WorldPlayer; tight?: boolean }) {
+export function PlayerSlot({
+  player,
+  tight = false,
+  card = false,
+}: {
+  player: WorldPlayer
+  tight?: boolean
+  /**
+   * **On the pitch each player stands on a card** (STE-79), the shape FPL's own
+   * app uses: the shirt on a darker-green block, name and fixture in a white one
+   * beneath. Off the pitch — in the bench strip — the surrounding card already
+   * does this job, and a card inside a card is a box for no reason.
+   *
+   * The reason is legibility rather than fashion. A name printed straight onto
+   * grass is read against three grounds: a light stripe, a dark one, and the
+   * white markings where a line passes behind it. Contrast swung from 4.24 to
+   * 8.65 **across a single name**, which is why it looked messy rather than
+   * merely dim. On the card it is 16.07 everywhere, and the markings run behind
+   * the card instead of through the word.
+   */
+  card?: boolean
+}) {
   return (
-    <div className={`${styles.slot} ${tight ? styles.slotTight : ''}`}>
-      <div className={styles.kit}>
-        <Shirt shortName={player.clubShortName} number={player.shirtNumber} />
-        <AvailabilityMarker player={player} />
-        <Armband player={player} />
-      </div>
-      <div className={styles.surname}>{displaySurname(player.name)}</div>
-      <FixturePill fixtures={player.fixtures} onPitch />
+    <div className={`${styles.slot} ${tight ? styles.slotTight : ''} ${card ? styles.card : ''}`}>
+      {card ? (
+        <>
+          {/* The cap carries the figure this product exists to produce. FPL puts
+              price here; price is on the stat page and the projection is not. */}
+          <div className={styles.cardTop}>
+            {player.projectedPoints.toFixed(1)} <span>xPTS</span>
+          </div>
+          <div className={styles.kit}>
+            <Shirt shortName={player.clubShortName} number={player.shirtNumber} />
+            <AvailabilityMarker player={player} />
+            <Armband player={player} />
+          </div>
+          <div className={styles.surname}>{displaySurname(player.name)}</div>
+          {/* Tinted by difficulty, as in the stat table. It took a solid white
+              ground on the pitch for a reason that has stopped being true: a tint
+              of its own colour left almost no contrast *on grass*. The card is
+              white, so the same badge finally looks the same in both places. */}
+          <FixturePill fixtures={player.fixtures} />
+        </>
+      ) : (
+        <>
+          <div className={styles.kit}>
+            <Shirt shortName={player.clubShortName} number={player.shirtNumber} />
+            <AvailabilityMarker player={player} />
+            <Armband player={player} />
+          </div>
+          <div className={styles.surname}>{displaySurname(player.name)}</div>
+          <FixturePill fixtures={player.fixtures} onPitch />
+        </>
+      )}
     </div>
   )
 }

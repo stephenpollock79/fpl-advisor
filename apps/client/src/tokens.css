@@ -29,7 +29,15 @@
 
   --green: #10985a;
   --green-dark: #0a6e3d;
-  --green-text: #0e8a4e;
+  /* **Corrected 2026-09-16 (STE-79).** The handoff gives this token for text on
+     light and its value does not clear 4.5:1 on any surface the app actually
+     uses — worst of all on the Select tile's own 8% tint, where it reads 4.02.
+     It was the last failing colour in the product.
+
+     The name keeps its meaning: this is still *the green you set text in*. Only
+     the value moves, to the darker green the rest of the palette already uses,
+     which reads 5.79 on that same tile. Six places change and nothing else does. */
+  --green-text: #0a6e3d;
   --green-tint: rgb(16 152 90 / 10%);
   --green-tint-border: rgb(16 152 90 / 32%);
   --green-soft-border: #bfdccb;

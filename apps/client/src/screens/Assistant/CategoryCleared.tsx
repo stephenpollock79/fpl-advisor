@@ -29,14 +29,27 @@ export function CategoryCleared({
   noun,
   rows,
   reopened,
+  outstanding,
   onToggle,
   onReview,
+  onOverview,
+  onGo,
 }: {
   noun: string
   rows: ClearedRow[]
   reopened: number
+  /**
+   * **What is left everywhere else** (STE-165). The screen used to stop after
+   * the decided rows, leaving about 55% of the phone blank — and emptiness on a
+   * phone reads as a page that failed to load rather than a job finished. It is
+   * also the screen reached by *succeeding*, which is a poor moment to look
+   * broken.
+   */
+  outstanding: { category: string; noun: string; count: number }[]
   onToggle: (key: string) => void
   onReview: () => void
+  onOverview: () => void
+  onGo: (category: string) => void
 }) {
   const decided = rows.filter((r) => r.state !== 'reopened').length
 
@@ -72,6 +85,41 @@ export function CategoryCleared({
           Review {reopened} reopened
         </button>
       ) : null}
+
+      {/**
+        * **The space carries work, or a route to work** — never a congratulation
+        * and never an illustration. Both of these are things the screen already
+        * knew and was not saying: the counts are on the tab strip a few pixels
+        * above, and the Overview is where a decided week is read whole.
+        */}
+      <div className={styles.onward}>
+        {outstanding.length > 0 ? (
+          <>
+            <span className={styles.onwardLabel}>Still to decide</span>
+            {outstanding.map((o) => (
+              <button
+                key={o.category}
+                className={styles.onwardRow}
+                onClick={() => onGo(o.category)}
+                type="button"
+              >
+                <span>{o.noun}</span>
+                <span className={styles.onwardCount}>
+                  {o.count} {o.count === 1 ? 'call' : 'calls'} →
+                </span>
+              </button>
+            ))}
+          </>
+        ) : (
+          <p className={styles.onwardDone} data-testid="all-decided">
+            Every call this week is decided.
+          </p>
+        )}
+
+        <button className={styles.onwardBack} onClick={onOverview} type="button">
+          ← Back to the overview
+        </button>
+      </div>
     </div>
   )
 }
