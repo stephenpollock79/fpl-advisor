@@ -26,8 +26,14 @@ export type ThrottleStore = {
    * and the leak this slice closes was a clock rather than a body — so an
    * accepted request must not do more work than a throttled one. One call keeps
    * that true by construction instead of by care.
+   *
+   * `clearAttemptsFor` rides along for the same reason. A code that is actually
+   * sent kills the previous code's attempt count (F7-AC-09), and a throttled
+   * request must not — but doing that as a second call would make the allowed
+   * path longer than the throttled one, which is the clock again. It is applied
+   * only when every limit passed.
    */
-  allow: (asks: ThrottleAsk[]) => Promise<boolean>
+  allow: (asks: ThrottleAsk[], clearAttemptsFor?: string) => Promise<boolean>
 }
 
 export type AttemptStore = {

@@ -6,6 +6,7 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { engineIdentity } from '@fpl/engine'
 import { Hono } from 'hono'
 import { authRoutes } from './auth/routes.js'
+import { authDeps } from './auth/wire.js'
 import { authenticateRequest } from './auth/session.js'
 import { fetchEntry } from './fpl/entry.js'
 import { saveLink } from './team-link/link.js'
@@ -72,7 +73,7 @@ app.get('/api/health', (c) =>
   }),
 )
 
-app.route('/', authRoutes(env))
+app.route('/', authRoutes(authDeps(env)))
 app.route('/', teamLinkRoutes({ fetchEntry, authenticate: authenticateRequest, saveLink }))
 app.route('/', worldRoutes(worldDeps(authenticateRequest)))
 app.route('/', decisionRoutes(decisionDeps(authenticateRequest)))

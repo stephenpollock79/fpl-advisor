@@ -27,13 +27,18 @@ const ask = (kind: string, subject: string, limit: number, windowSeconds: number
   windowSeconds,
 })
 
-async function take(asks: ReturnType<typeof ask>[], now: string): Promise<boolean> {
+async function take(
+  asks: ReturnType<typeof ask>[],
+  now: string,
+  clearAttemptsFor: string | null = null,
+): Promise<boolean> {
   const rows = await db.as<{ allowed: boolean }>(
     'service_role',
     null,
     `select public.auth_throttle_take(
        '${JSON.stringify(asks)}'::jsonb,
-       '${now}'::timestamptz
+       '${now}'::timestamptz,
+       ${clearAttemptsFor === null ? 'null' : `'${clearAttemptsFor}'`}
      ) as allowed`,
   )
   return rows[0]!.allowed
@@ -175,6 +180,29 @@ describe('F7-AC-09 · the attempt counter, in the database that holds it', () =>
     expect(await hits(at(3599))).toBe(5)
     expect(await hits(at(3601))).toBe(0)
   })
+
+  it('F7-AC-09: a code that is actually sent clears the count, in the same call that allowed it', async () => {
+    for (let n = 1; n <= 5; n += 1) await bump(at(n))
+
+    // The trigger is a real allowed take, not a direct call to clear — because
+    // the clear is folded into that one statement precisely so the allowed path
+    // does no more work than the throttled one.
+    expect(await take([ask('address_minute', 'subject-a', 1, 60)], at(100), 'subject-a')).toBe(true)
+
+    expect(await hits(at(101))).toBe(0)
+  })
+
+  it('F7-AC-09: a throttled request does not clear the count, whatever it asks for', async () => {
+    // The most important test here. A throttled request sends no code, so the
+    // live code is still live — clearing on it would hand an attacker five fresh
+    // guesses for the price of one extra POST.
+    await take([ask('address_minute', 'subject-a', 1, 60)], at(0), null)
+    for (let n = 1; n <= 5; n += 1) await bump(at(n))
+
+    expect(await take([ask('address_minute', 'subject-a', 1, 60)], at(10), 'subject-a')).toBe(false)
+
+    expect(await hits(at(11))).toBe(5)
+  })
 })
 
 describe('F7-AC-06, F7-AC-09 · the functions are not a way in', () => {
@@ -184,7 +212,7 @@ describe('F7-AC-06, F7-AC-09 · the functions are not a way in', () => {
   // these as anon-callable RPCs. `auth_attempt_clear` in particular would undo
   // the attempt limit entirely.
   const FUNCTIONS = [
-    'public.auth_throttle_take(jsonb, timestamptz)',
+    'public.auth_throttle_take(jsonb, timestamptz, text)',
     'public.auth_attempt_hits(text, integer, timestamptz)',
     'public.auth_attempt_bump(text, integer, timestamptz)',
     'public.auth_attempt_clear(text)',

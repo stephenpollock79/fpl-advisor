@@ -73,9 +73,16 @@ revoke all on public.auth_throttle from anon, authenticated;
 -- `p_now` is a parameter rather than now() so a test can drive the window
 -- forward without sleeping. Production omits it and takes the default.
 
+-- `p_clear_attempts_for` is folded in rather than sent as a second call, and that
+-- is the same argument again. A code that is actually sent kills the previous
+-- code's attempt count (F7-AC-09) — but a *throttled* request sends nothing, so
+-- it must not clear, and doing the clear from the server would mean the allowed
+-- path made two round trips where the throttled path made one. That difference
+-- is a clock, and a clock is exactly what this slice is closing.
 create function public.auth_throttle_take(
-  p_asks jsonb,
-  p_now  timestamptz default now()
+  p_asks                jsonb,
+  p_now                 timestamptz default now(),
+  p_clear_attempts_for  text default null
 ) returns boolean
 language plpgsql
 as $$
@@ -115,6 +122,12 @@ begin
        set hits = hits + 1, updated_at = p_now
      where kind = ask ->> 'kind' and subject_hash = ask ->> 'subject';
   end loop;
+
+  -- Only on the allowed path, and only here. See the note above the signature.
+  if p_clear_attempts_for is not null then
+    delete from public.auth_throttle
+     where kind = 'verify_attempt' and subject_hash = p_clear_attempts_for;
+  end if;
 
   return true;
 end $$;
@@ -200,12 +213,12 @@ $$;
 -- Asserted in tests/auth/throttle.pg.test.ts with has_function_privilege rather
 -- than trusted.
 
-revoke execute on function public.auth_throttle_take(jsonb, timestamptz) from public, anon, authenticated;
+revoke execute on function public.auth_throttle_take(jsonb, timestamptz, text) from public, anon, authenticated;
 revoke execute on function public.auth_attempt_hits(text, integer, timestamptz) from public, anon, authenticated;
 revoke execute on function public.auth_attempt_bump(text, integer, timestamptz) from public, anon, authenticated;
 revoke execute on function public.auth_attempt_clear(text) from public, anon, authenticated;
 
-grant execute on function public.auth_throttle_take(jsonb, timestamptz) to service_role;
+grant execute on function public.auth_throttle_take(jsonb, timestamptz, text) to service_role;
 grant execute on function public.auth_attempt_hits(text, integer, timestamptz) to service_role;
 grant execute on function public.auth_attempt_bump(text, integer, timestamptz) to service_role;
 grant execute on function public.auth_attempt_clear(text) to service_role;

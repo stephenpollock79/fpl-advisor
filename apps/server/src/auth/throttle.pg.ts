@@ -14,8 +14,11 @@ import { VERIFY_ATTEMPTS } from './limits.js'
 import type { AttemptStore, ThrottleAsk, ThrottleStore } from './throttle.js'
 
 export const pgThrottleStore: ThrottleStore = {
-  async allow(asks: ThrottleAsk[]): Promise<boolean> {
-    const { data, error } = await throttleClient().rpc('auth_throttle_take', { p_asks: asks })
+  async allow(asks: ThrottleAsk[], clearAttemptsFor?: string): Promise<boolean> {
+    const { data, error } = await throttleClient().rpc('auth_throttle_take', {
+      p_asks: asks,
+      p_clear_attempts_for: clearAttemptsFor ?? null,
+    })
 
     if (error) {
       /**
