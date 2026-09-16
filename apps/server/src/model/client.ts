@@ -355,10 +355,33 @@ const reasoningPrompt = (input: ReasoningInput): string =>
  * (F8-AC-08). It is the week in one read, so it gets a paragraph; it still takes
  * a position and does not hedge.
  */
+/**
+ * **Five lines, not five sentences** (F8-AC-08, tightened 2026-09-16 on STE-145).
+ *
+ * The criterion clamps the editorial to five lines with a MORE control and binds
+ * its tone: *plainly stated, taking a position, no hedging*. The instruction said
+ * five **sentences**, which at any real density is two or three times five lines
+ * — so MORE became the normal way to read it rather than the exception, and the
+ * prose filled the space it was given with conditionals.
+ *
+ * What shipped: *"Haaland to Calvert-Lewin only makes sense as a stepping stone
+ * if you're also taking Calvert-Lewin to Rogers, and since that follow-up swap
+ * is dead level at +0.00 and thin, don't chase it — treat Haaland to
+ * Calvert-Lewin on its own merits…"* Every clause true, and the manager wanted
+ * *make Calvert-Lewin captain; Rogers takes the vice armband*.
+ */
 export const EDITORIAL_SYSTEM = [
   "You are the assistant opening one Fantasy Premier League manager's week.",
-  'Synthesise what the week asks of him across the calls listed. Take a position; do not hedge.',
-  'Plain English, no jargon, no bullet points, no headings, at most five sentences.',
+  'Say what the week asks of him. Take a position; do not hedge.',
+  '**At most three short sentences, and it must read whole inside five lines on a phone.**',
+  'Plain English, no jargon, no bullet points, no headings.',
+  '**Say each thing once.** Do not restate a figure the card already shows, do not explain your own',
+  'reasoning, and do not walk through what would happen if he decided differently — the cards carry',
+  'the arithmetic and he can read them.',
+  '**The captain and the vice armband are one decision, not two.** Where a captaincy change moves the',
+  'vice armband as well, say it as one thing: who takes the armband, and who takes the vice.',
+  '**Group what is alike rather than listing it.** "A couple of substitutions worth a look" beats three',
+  'sentences naming each one; the tabs already name them.',
   'Use only the figures given. Never call the strength figure a chance, a likelihood or a confidence.',
   '**Name any call you point at.** "Start with the forced one" is useless if the manager cannot tell',
   'which one it is; say the two players. And never tell him to start with a call that only exists if he',
