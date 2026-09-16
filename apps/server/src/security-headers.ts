@@ -63,20 +63,30 @@ export const CONTENT_SECURITY_POLICY = [
 ].join('; ')
 
 /**
- * **Five minutes, not a year, and never `preload`.**
+ * **A year, and never `preload`.** Ruled by Stephen 2026-09-16.
  *
- * This is the one header on the list a browser remembers. It refuses plain http
- * to this host for `max-age` seconds whatever the server later says, so at the
- * usual year a certificate problem stops being a warning and becomes a site
- * nobody can reach until the year is up. At 300 seconds the undo is: stop
- * sending it, and every browser forgets within five minutes of its last visit.
+ * This is the one header a browser remembers, so it is the only thing here that
+ * cannot be taken back with a deploy.
  *
- * `preload` is permanent in a way no max-age is — removal means a request to a
- * browser-vendor list — and buys nothing for a single-user app.
+ * **It went out at 300 seconds for one evening, and that was a placebo.** The
+ * protection only applies to a visit that follows an earlier one inside the
+ * max-age; at five minutes it had expired before the app was next opened. The
+ * real choice was a year or nothing.
  *
- * Raise this once it has been live through a quiet week (STE-161).
+ * **What the year actually costs, stated properly, because it was overstated
+ * first.** The only thing that can break is the certificate — Railway issues and
+ * renews it, and no deploy from here can affect it. If it ever failed, the app
+ * is unreachable either way; this header removes the option of clicking past the
+ * browser's warning and using it over a broken connection. **The lockout lasts
+ * as long as the outage, not as long as the max-age** — the app is reachable
+ * again the moment the certificate is. The max-age only bites if the app were
+ * deliberately moved somewhere that could not serve https at all.
+ *
+ * `preload` is the genuinely permanent one — removal means a request to a
+ * browser-vendor list rather than a header change — and it buys nothing for a
+ * single-user app. There is a test that it never appears.
  */
-export const HSTS = 'max-age=300'
+export const HSTS = 'max-age=31536000'
 
 /**
  * What every response carries.

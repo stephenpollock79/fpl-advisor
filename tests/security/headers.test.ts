@@ -15,17 +15,26 @@ import { CONTENT_SECURITY_POLICY, HSTS, securityHeaders } from '../../apps/serve
 describe('STE-161 · the headers every response carries', () => {
   it('STE-161: an https request gets HSTS, and a plain one does not', () => {
     // The trigger is the scheme, so the test supplies both (P16) rather than
-    // asserting the map for one of them and assuming the other.
-    expect(securityHeaders(true)['Strict-Transport-Security']).toBe('max-age=300')
+    // asserting the map for one of them and assuming the other. A plain request
+    // is local development, and claiming this about localhost would be claiming
+    // something nobody meant.
+    expect(securityHeaders(true)['Strict-Transport-Security']).toBe('max-age=31536000')
     expect(securityHeaders(false)).not.toHaveProperty('Strict-Transport-Security')
   })
 
-  it('STE-161: HSTS lasts minutes and never asks to be preloaded', () => {
-    // A year is the usual value and is the one that cannot be undone: a
-    // certificate problem then takes the site away until it expires. `preload`
-    // is worse — removal means a request to a browser-vendor list.
+  it('STE-161: HSTS lasts a year, which is the only value that protects anything', () => {
+    // It shipped at 300 seconds for one evening and that was a placebo: the
+    // protection only covers a visit following an earlier one inside the
+    // max-age, and five minutes expires before the app is next opened. A value
+    // shortened back to "be careful" would be careful about nothing.
     const seconds = Number(/max-age=(\d+)/.exec(HSTS)?.[1])
-    expect(seconds).toBeLessThanOrEqual(600)
+    expect(seconds).toBeGreaterThanOrEqual(2_592_000)
+  })
+
+  it('STE-161: HSTS never asks to be preloaded', () => {
+    // `preload` is the one thing here that a header change cannot undo — removal
+    // means a request to a browser-vendor list — and it buys nothing for a
+    // single-user app. Ruled out explicitly, so adding it has to be deliberate.
     expect(HSTS).not.toContain('preload')
   })
 
