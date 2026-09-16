@@ -84,7 +84,7 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
   const excluded = into !== undefined && !into.availability.eligible
   /**
    * **You cannot buy a player you already own** (found live 2026-09-16,
-   * STE-140).
+   * STE-141).
    *
    * A stored transfer keeps naming the same two players, and the squad beneath
    * it moves. Upload a squad that now contains the incoming side — because the
