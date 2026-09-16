@@ -33,6 +33,7 @@ const call = (extra: Partial<StoredFigure> = {}): StoredFigure => ({
   isReading: false,
   pointsHit: 0,
   isForced: false,
+  cannotHoldRole: false,
   ...extra,
 })
 
@@ -129,6 +130,7 @@ describe('a transfer is re-derived too, and that is not a detail', () => {
     isReading: false,
     pointsHit: 0,
     isForced: false,
+    cannotHoldRole: false,
     ...extra,
   })
 
@@ -182,6 +184,7 @@ describe('a transfer is re-derived too, and that is not a detail', () => {
       isReading: false,
       pointsHit: 0,
       isForced: false,
+      cannotHoldRole: false,
     }
     const sides = world(side(1, 2.4, { inSquad: true }), side(2, 7.0, { inSquad: true }))
 
@@ -234,6 +237,7 @@ describe('A call the run forced stays forced when it is re-derived (STE-143)', (
     isReading: false,
     pointsHit: 0,
     isForced,
+    cannotHoldRole: false,
   })
 
   // The holder projects far better than the challenger, so on the arithmetic

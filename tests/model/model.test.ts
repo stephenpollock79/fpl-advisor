@@ -401,5 +401,9 @@ describe('The editorial is given the week, never the arithmetic over it (STE-142
     // count the lines it was given. Both halves are needed.
     expect(EDITORIAL_SYSTEM).toMatch(/never state how many calls/i)
     expect(EDITORIAL_SYSTEM).toMatch(/never count anything/i)
+    // "Start with the forced one" told the manager nothing he could act on, and
+    // pointed at a call that only existed if he took the captaincy change first
+    // (STE-144).
+    expect(EDITORIAL_SYSTEM).toMatch(/name any call you point at/i)
   })
 })

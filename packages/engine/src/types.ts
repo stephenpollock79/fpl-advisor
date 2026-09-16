@@ -88,6 +88,27 @@ export type CallInput = {
    * exactly as a gate exclusion does (F3-AC-03, "an unplayable starter").
    */
   readonly incumbentUnplayable?: boolean
+  /**
+   * **The incumbent cannot hold this role, though he can play** — and that is a
+   * different thing from being unplayable (F4-AC-07, F4-AC-08, STE-144).
+   *
+   * One case today: the vice armband cannot stay on the player the captain call
+   * is moving the armband onto. He is available, he may well outproject every
+   * alternative, and the armband still has to move.
+   *
+   * **So this makes the call happen without making it forced.** Net is floored
+   * at zero exactly as for an unplayable incumbent, because comparing the two is
+   * meaningless when the incumbent is not in the running — but `isForced` stays
+   * false, because `F4-AC-07` says an armband call is forced *when, and only
+   * when*, the holder cannot score, and `F4-AC-08` says it is **never** forced
+   * while he can play.
+   *
+   * Until 2026-09-16 this rode on `incumbentUnplayable`, so a vice call on a fit
+   * 7.9-point holder shipped with a red FORCED flag, and the Overview editorial
+   * led on a forced call that was conditional on a decision the manager had not
+   * made and did not name which one it was.
+   */
+  readonly incumbentCannotHoldRole?: boolean
 }
 
 type Totals = {

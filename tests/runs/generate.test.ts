@@ -43,14 +43,21 @@ const inSquad = (
   isVice: armband === 'vice',
 })
 
-const build = () => {
+/**
+ * `unplayable` gives a starter no fixture, which is one of the two things
+ * `F4-AC-07` and `F3-AC-03` call forced. **The default fixture has no forced
+ * call at all since 2026-09-16** (STE-144): the vice call used to supply one,
+ * and it should never have — its holder can play.
+ */
+const build = ({ unplayable }: { unplayable?: string } = {}) => {
   nextId = 1
+  const noFixture = (name: string) => (name === unplayable ? { hasFixture: false } : {})
   const squad = [
     inSquad(player('Keeper', 'GKP', 1, 3.5), 'starter'),
     inSquad(player('Shaw', 'DEF', 2, 1.7, 44, { flagged: true }), 'starter'),
     inSquad(player('DefA', 'DEF', 3, 4.0), 'starter'),
     inSquad(player('DefB', 'DEF', 4, 3.9), 'starter'),
-    inSquad(player('Tzolis', 'MID', 5, 2.4, 64), 'starter'),
+    inSquad(player('Tzolis', 'MID', 5, 2.4, 64, noFixture('Tzolis')), 'starter'),
     inSquad(player('MidA', 'MID', 6, 5.5), 'starter'),
     inSquad(player('MidB', 'MID', 7, 5.0), 'starter'),
     inSquad(player('Semenyo', 'MID', 8, 6.2, 84), 'starter', 'captain'),
@@ -138,7 +145,9 @@ describe('One run, end to end', () => {
   })
 
   it('STE-143: a forced call is explained in code, never argued by the model', async () => {
-    const { plan, cards } = build()
+    // A starter with no fixture — genuinely forced, which is the only thing
+    // F3-AC-03 and F4-AC-07 mean by the word.
+    const { plan, cards } = build({ unplayable: 'Tzolis' })
     const { calls } = await generateWeek({
       plan,
       cards,
@@ -167,7 +176,7 @@ describe('One run, end to end', () => {
   })
 
   it('ADR 0008: every model call is recorded — one proposal and one line per call', async () => {
-    const { plan, cards } = build()
+    const { plan, cards } = build({ unplayable: 'Tzolis' })
     const { calls, modelCalls } = await generateWeek({ plan, cards, model: scriptedModel([], 'x') })
 
     expect(modelCalls.filter((m) => m.step === 'propose')).toHaveLength(1)

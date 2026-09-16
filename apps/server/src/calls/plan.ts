@@ -437,7 +437,10 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
         // Forced when, and only when, the holder cannot score this gameweek —
         // the gate, or no fixture. The same predicate the substitution search
         // uses (F4-AC-07).
-        incumbentUnplayable: !holder.hasFixture || cannotHoldTheRole,
+        incumbentUnplayable: !holder.hasFixture,
+        // **Not forced — he can play** (F4-AC-07, F4-AC-08, STE-144). The
+        // armband still has to move; the obligation is in the line, not a flag.
+        incumbentCannotHoldRole: cannotHoldTheRole,
       })
 
       return planned(

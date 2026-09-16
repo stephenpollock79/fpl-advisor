@@ -400,6 +400,15 @@ function refreshedCalls(calls: readonly WorldCall[], world: readonly WorldPlayer
     ]),
   )
 
+  /**
+   * **Who would wear the captain's armband once this week's captain call is
+   * taken** — the challenger where it proposes a change, nobody where it does
+   * not. The same derivation `plan.ts` makes, from the same two calls, so the
+   * screen cannot disagree with the run about it (STE-144).
+   */
+  const captainCall = calls.find((c) => identityOf(c).type === 'captain' && !c.isReading)
+  const wouldCaptain = captainCall?.inPlayerId ?? null
+
   return calls.map((call) => {
     const again = safeRecompute(
       {
@@ -412,6 +421,8 @@ function refreshedCalls(calls: readonly WorldCall[], world: readonly WorldPlayer
         isReading: call.isReading,
         pointsHit: call.pointsHit,
         isForced: call.isForced,
+        // A vice armband cannot stay on the player about to be made captain.
+        cannotHoldRole: identityOf(call).type === 'vice' && wouldCaptain === call.outPlayerId,
       },
       sides,
     )
