@@ -209,6 +209,13 @@ const unrecipied = userTables.filter((t) => !(t in SEEDS))
 const stamp = Date.now()
 const A = { email: `rls-check-a-${stamp}@gaffercalls.com`, ctx: {} }
 const B = { email: `rls-check-b-${stamp}@gaffercalls.com`, ctx: {} }
+/**
+ * Only ever created if F7-AC-01 is broken — public registration being off is
+ * what makes the attempt below fail. It is tracked anyway so that a failing run
+ * cleans up after itself: a check that proves a stranger can register, and then
+ * leaves the stranger's account on prod, has made the problem worse.
+ */
+const SIGNUP = { email: `rls-check-signup-${stamp}@gaffercalls.com`, ctx: {} }
 
 /**
  * Borrow an existing reference id. **Never creates one.**
@@ -272,6 +279,46 @@ try {
   A.token = await signIn(A.email)
   B.token = await signIn(B.email)
   check('both signed in with a one-time code, no password', true)
+
+  /**
+   * F7-AC-01 and F7-AC-03, which no test in this repo can reach.
+   *
+   * Both are live facts about the provider rather than facts about our code, and
+   * both are true today by construction rather than by configuration —
+   * `docs/coverage-gaps.md` says so, and names slice 10 (STE-68) as where they
+   * get asserted instead of assumed.
+   *
+   * **The one that could change under us is the password.** Supabase has no
+   * switch to turn password sign-in off: `Enable email provider` governs the
+   * one-time code and the password together, and the rest of that panel is
+   * password *policy*. So the password route into the account is live at the
+   * provider right now and fails only because no password has ever been set —
+   * while the dashboard's own Add-user dialog requires one, which is how adding
+   * a second person (F7-UP-05) would break it on day one.
+   */
+  const signup = await fetch(`${URL_}/auth/v1/signup`, {
+    method: 'POST',
+    headers: { apikey: ANON, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: SIGNUP.email, password: 'not-a-real-password-9f2b' }),
+  })
+  const signupBody = await signup.text()
+  if (signup.ok) SIGNUP.id = JSON.parse(signupBody).user?.id ?? JSON.parse(signupBody).id ?? null
+  check(
+    'F7-AC-01 · a stranger cannot register at the provider',
+    !signup.ok,
+    `HTTP ${signup.status} — ${signupBody.slice(0, 120)}`,
+  )
+
+  const byPassword = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: ANON, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: A.email, password: 'not-a-real-password-9f2b' }),
+  })
+  check(
+    'F7-AC-03 · password sign-in is refused for a real account',
+    !byPassword.ok,
+    `HTTP ${byPassword.status} — ${(await byPassword.text()).slice(0, 120)}`,
+  )
 
   for (const u of [A, B]) Object.assign(u.ctx, { userId: u.id, gameweekId, playerId })
 
@@ -365,7 +412,7 @@ try {
   const svcSession = await rest('app_session?select=id', SVC, SVC)
   check('the server can still read its own session table', svcSession.ok, `HTTP ${svcSession.status}`)
 } finally {
-  for (const u of [A, B]) {
+  for (const u of [A, B, SIGNUP]) {
     if (u.id) {
       const r = await deleteUser(u.id)
       console.log(`  ${r.ok ? 'cleaned up' : 'FAILED TO DELETE'} ${u.email}`)
