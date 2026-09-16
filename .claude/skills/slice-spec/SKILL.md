@@ -166,6 +166,22 @@ which list it counts, which of two figures it shows. Read each sentence back and
 competent people would build the same thing from it — where they would not, the missing word is a
 value. Where one genuinely cannot be fixed yet, say so and name who decides it in the build.
 
+**And two more passes over the same section, because P17 alone does not catch either.**
+
+**What this change breaks elsewhere** (P18): where the slice changes a value, removes a feature or
+moves a control, say what else was reading that thing and what happens to it now. A change can be
+entirely correct in itself and still leave a criterion unmet, a label orphaned, or a decision
+standing against figures that have moved.
+
+**What happens when something is absent, broken or expired** (P19): for each dependency the
+behaviour leans on and each input it takes, say the posture when it is unavailable, missing,
+malformed or out of date — and, where the manager is looking at a screen, what he sees and what he
+can do next. **Fail closed is the default nobody chose**, and it is right for a send nobody is
+waiting on and wrong for a code he is holding in his hand.
+
+All three are the same failure wearing different clothes: a question the spec did not ask, answered
+silently and correctly-looking by whoever wrote the line.
+
 ## Criteria in scope
 
 Identifiers only, grouped, **never restated**. The identifier resolves to `docs/criteria/`; copying

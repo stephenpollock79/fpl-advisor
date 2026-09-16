@@ -1,11 +1,21 @@
 /**
  * The run's cost figure (STE-157).
  *
- * Not a criterion identifier in sight, deliberately: `F7-AC-12` and the Cost
- * control NFR put the spend cap **outside** the application — the £50 prepaid
- * balance in the Anthropic console is the mechanism, and naming either here would
- * claim this file verifies something it cannot (P7). What it verifies is that the
- * early-warning figure ADR 0009 reads is not quietly low.
+ * **No criterion identifier appears in this file, and that sentence is the whole
+ * of why.** The Cost control NFR puts the spend cap *outside* the application:
+ * the £50 prepaid balance in the Anthropic console is the mechanism, and nothing
+ * here can verify it (P7).
+ *
+ * `scripts/criteria-coverage.mjs` reads whole files rather than test titles, so
+ * an identifier written in a comment counts as covered — including a comment
+ * saying it is deliberately **not** covered. That trap has now been sprung three
+ * times in this repo: `F6-AC-20`, a docblock range on `F7-AC-15`, and this file,
+ * whose first draft named the spend-cap criterion in a sentence claiming it named
+ * none. It shipped that way and read as covered until the next coverage run.
+ *
+ * So the rule for this file is mechanical rather than a matter of care: **write
+ * no `F<n>-AC-<nn>` here at all**, in code or in prose. What it verifies is that
+ * the early-warning figure ADR 0009 reads is not quietly low.
  *
  * It was quietly low from the first production run until 2026-09-16, and nothing
  * in the suite could see it: `costUsd` was null on one step out of six, the run's

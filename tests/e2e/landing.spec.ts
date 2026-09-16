@@ -201,3 +201,32 @@ test('F7-AC-24, F7-AC-25: log out confirms on a second page of the same sheet an
   await expect(page.getByTestId('invite-only')).toBeVisible()
   await expect(page.getByRole('tab', { name: 'Log in' })).toHaveAttribute('aria-selected', 'true')
 })
+
+test('F7-AC-08: the cooldown survives leaving the screen, so it never offers a send the server will swallow', async ({ page }) => {
+  // **The path Stephen actually took on 2026-09-16**: ask for a code, leave, come
+  // back, ask again — and the second one vanished with nothing on screen to say
+  // why. The countdown lived in component state, so it was wiped while the
+  // server went on counting. Asserted here rather than trusted, because the
+  // failure is invisible: the button looks fine and does nothing.
+  await page.route('**/api/auth/request-code', (route: Route) => route.fulfill({ json: { status: 'code_requested' } }))
+  await page.route('**/api/me', (route: Route) => route.fulfill({ status: 401, json: { error: 'not_signed_in' } }))
+
+  await page.goto('/')
+  await page.getByRole('tab', { name: /log in/i }).click()
+  await page.getByLabel(/email/i).fill('someone@example.com')
+  await page.getByRole('button', { name: /send.*code/i }).first().click()
+
+  await expect(page.getByTestId('send-another')).toBeDisabled()
+
+  // Leaving and returning is a full reload — exactly what logging out does.
+  await page.reload()
+  await page.getByRole('tab', { name: /log in/i }).click()
+  await page.getByLabel(/email/i).fill('someone@example.com')
+
+  // **Asserted without clicking anything.** The first version of this test
+  // clicked send again first, which sets the cooldown by itself — so it passed
+  // with the fix removed. Caught by deleting the production line and watching the
+  // test stay green, which is the only way that kind of hole shows up.
+  await expect(page.getByTestId('send-code')).toBeDisabled()
+  await expect(page.getByTestId('send-code')).toHaveText(/Send another code in \d+s/)
+})

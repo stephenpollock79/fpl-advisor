@@ -62,6 +62,29 @@ rather than a link being tapped, which is a fact about the email template and th
 manager's thumb. Its manual-coverage row is from 2026-09-08.
 
 
+**F7-UP-05 — nobody has ever been given access, so nothing can be checked.**
+Named by slice 10's cold review as in scope and uncovered, which is correct. The
+criterion is about **a second person being added**: the owner creates their
+account at the provider, no code is issued, nothing is shared, removing them is
+deleting the account, their data is isolated by the policies already in place,
+and spend is *not* isolated because the prepaid balance is one shared cap.
+
+**Three of those are already proven and the criterion still is not.** Isolation is
+`scripts/live-rls-check.mjs`'s whole job and it creates two real accounts to do
+it; account creation without a password is asserted in the same run; the shared
+cap is a fact about the console, not the code. What is unproven is the only part
+that matters — that a **second real person** can be added and removed without
+anything else changing — and it cannot be proven by a script that deletes its own
+accounts thirty seconds later.
+
+**It cannot be forced honestly.** There is one user. Manufacturing a second
+permanent account to satisfy a coverage figure would create exactly the thing
+F7-AC-01 exists to prevent, and it would draw on the same £50.
+
+**So F7-UP-05 must not be read as met**, and no test may name it. It closes the
+day a second person is actually given access — which the criterion itself calls
+"a decision rather than a formality". *Home: STE-68.*
+
 **F7-AC-02, F7-AC-05, F7-AC-07, F7-UP-01 — closed 2026-09-16 by slice 10
 (STE-68).** The send is started and never awaited, and all three limits plus the
 attempt reset are asked in one database call, so no path's duration depends on

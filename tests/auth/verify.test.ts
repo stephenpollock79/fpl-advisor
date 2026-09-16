@@ -76,29 +76,40 @@ beforeEach(() => {
 })
 
 describe('F7-AC-09, F7-UP-02 · a code dies after five wrong attempts', () => {
-  it('F7-AC-09, F7-UP-02: five wrong attempts spend the code and the sixth never reaches the provider', async () => {
-    const { app, verifyCode } = harness()
-
-    for (let n = 0; n < 5; n += 1) {
-      expect(await errorOf(await app.request(verify('someone@example.com', '000000')))).toBe('invalid_code')
-    }
-    expect(verifyCode).toHaveBeenCalledTimes(5)
-
-    await app.request(verify('someone@example.com', '000000'))
-
-    // The sixth attempt is refused without a verification happening at all. An
-    // attempt that reaches Supabase is an attempt.
-    expect(verifyCode).toHaveBeenCalledTimes(5)
-  })
-
-  it('F7-AC-09, F7-UP-02: the sixth attempt is a distinct error, so the screen can say the code is spent', async () => {
+  it('F7-AC-09, F7-UP-02: the fifth wrong attempt says the code is spent, not the sixth', async () => {
+    /**
+     * **This test used to assert the opposite, and it was wrong.**
+     *
+     * It checked that attempts one to five all read `invalid_code` and the sixth
+     * read `code_spent` — which is what the build did, so it passed. F7-UP-02
+     * asks for the error to say the code is spent "rather than leaving the
+     * manager retyping a code that can no longer work", and the old behaviour
+     * left him doing exactly that: a fifth message worded identically to the
+     * first four, with nothing to say the code had just died.
+     *
+     * Found by Stephen on a phone on 2026-09-16. The test had encoded the build
+     * rather than the criterion, which is the failure P16 is about wearing
+     * different clothes — the trigger was reached, and the assertion was of the
+     * wrong thing.
+     */
     const { app } = harness()
 
-    for (let n = 0; n < 5; n += 1) {
+    for (let n = 0; n < 4; n += 1) {
       expect(await errorOf(await app.request(verify('someone@example.com', '000000')))).toBe('invalid_code')
     }
 
     expect(await errorOf(await app.request(verify('someone@example.com', '000000')))).toBe('code_spent')
+  })
+
+  it('F7-AC-09: once spent, no further attempt reaches the provider', async () => {
+    const { app, verifyCode } = harness()
+
+    for (let n = 0; n < 5; n += 1) await app.request(verify('someone@example.com', '000000'))
+    expect(verifyCode).toHaveBeenCalledTimes(5)
+
+    // An attempt that reaches Supabase is an attempt, so the sixth must not.
+    expect(await errorOf(await app.request(verify('someone@example.com', '000000')))).toBe('code_spent')
+    expect(verifyCode).toHaveBeenCalledTimes(5)
   })
 
   it('F7-UP-02: wrong, expired and already-used stay indistinguishable from each other', async () => {

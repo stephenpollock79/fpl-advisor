@@ -59,12 +59,20 @@ export const pgAttemptStore: AttemptStore = {
     return (data as number) >= VERIFY_ATTEMPTS.allowed
   },
 
-  async bump(subject: string): Promise<void> {
-    const { error } = await throttleClient().rpc('auth_attempt_bump', {
+  async bump(subject: string): Promise<{ nowSpent: boolean }> {
+    const { data, error } = await throttleClient().rpc('auth_attempt_bump', {
       p_subject: subject,
       p_window_seconds: VERIFY_ATTEMPTS.windowSeconds,
     })
-    if (error) console.error(`[auth] could not count a failed attempt: ${error.message}`)
+    if (error) {
+      console.error(`[auth] could not count a failed attempt: ${error.message}`)
+      // Not spent, deliberately: an attempt we failed to count must not be the
+      // one that kills the code, or a database blip spends it on the manager's
+      // behalf. The `spent` read fails closed; this one fails open, because the
+      // two are protecting different things.
+      return { nowSpent: false }
+    }
+    return { nowSpent: (data as number) >= VERIFY_ATTEMPTS.allowed }
   },
 
   async clear(subject: string): Promise<void> {
