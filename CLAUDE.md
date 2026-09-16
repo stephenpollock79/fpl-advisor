@@ -144,6 +144,17 @@ the feed cache — are the service key's only business. ADR 0007.
 **Reasoning is constrained by construction.** The reasoning call receives only the values shown on that
 card. Do not widen its input to improve the prose.
 
+**A model given a fact without its reason will invent one** — on 15–16 September that was an injury, about
+a fit player it recommended for the captaincy two clauses later. So anything it is asked to explain arrives
+**with why it is there**, or it is told to describe and stop. It has no fitness, availability, news or
+minutes data: say so, name the words it may therefore never use, and **check the text that comes back** —
+an instruction is a convention, and `reasoning.ts` and `editorial.ts` each refuse a line that reaches past
+what was given and fall back to a templated one. **Where a comparison misleads, the sentence is code's**: a
+keep, a forced call and a must-change call are written here and never asked for, keyed to the obligation
+rather than to a flag. **And every template, default and fallback obeys the rule it stands in for** — the
+editorial's stand-in wrote the count the prompt had been forbidden, for six hours, because the fix looked
+only at the prompt. ADR 0012.
+
 ## Conventions
 
 - Branch, PR, merge. No commits straight to main. `git-guardrails` hooks are installed — do not work around
