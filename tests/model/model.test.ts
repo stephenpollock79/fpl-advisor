@@ -420,3 +420,46 @@ describe('The editorial is given the week, never the arithmetic over it (STE-142
     expect(EDITORIAL_SYSTEM).toMatch(/say each thing once/i)
   })
 })
+
+describe('The editorial is never left to invent a cause (STE-146)', () => {
+  /**
+   * **What shipped on 2026-09-16:** *"Injury forces Calvert-Lewin out, so that
+   * swap into Rogers isn't optional"* — about a player who is perfectly fit, and
+   * whom the same paragraph recommended for the captaincy two clauses later.
+   *
+   * Nothing gives the editorial fitness, injury or availability data. It
+   * invented the cause because it had a call worth +0.00 on a *thin* band and
+   * no reason it was on the list, and a zero-value call only makes sense if
+   * something happened to the player.
+   *
+   * **The trigger is a call whose arithmetic does not explain it.** Asserting
+   * the model's output would be asserting the model; what is asserted here is
+   * that the vacuum is closed from both ends — the reason is supplied, and
+   * inventing one is forbidden.
+   */
+  const call = (title: string, because?: string) => ({
+    title,
+    net: 0,
+    band: 'thin' as const,
+    forced: false,
+    ...(because === undefined ? {} : { because }),
+  })
+
+  it('a reason travels with the call it belongs to', () => {
+    const prompt = editorialPrompt({
+      calls: [call('Calvert-Lewin → Rogers', 'the armband is moving to him, so the vice armband has to move too')],
+      exception: null,
+      squadSource: 'screenshot',
+    })
+
+    expect(prompt).toContain('the vice armband has to move too')
+  })
+
+  it('and the instructions forbid supplying one, since the list is still there to explain', () => {
+    // Supplying the reason is not enough on its own: a call that legitimately
+    // has none would leave the same vacuum.
+    expect(EDITORIAL_SYSTEM).toMatch(/never give a reason you were not given/i)
+    // The specific invention, named, because it is the one it reached for.
+    expect(EDITORIAL_SYSTEM).toMatch(/injured, doubtful, out, unavailable or rotated/i)
+  })
+})

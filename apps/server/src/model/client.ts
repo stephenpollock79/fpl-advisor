@@ -156,7 +156,17 @@ export type ReasoningInput = {
  * model is told only that a lead exists so it does not write one of its own.
  */
 export type EditorialInput = {
-  calls: { title: string; net: number; band: string | null; forced: boolean }[]
+  /**
+   * **Every call carries why it is on the list, where the arithmetic does not
+   * say** (STE-146). A call worth +0.00 on a *thin* band reads as pointless, and
+   * a model asked to make sense of it will supply a cause of its own — on
+   * 2026-09-16 that cause was *"Injury forces Calvert-Lewin out"*, about a fit
+   * player it recommended for the captaincy two clauses later.
+   *
+   * `because` is code's sentence, never the model's, and it is the difference
+   * between handing over a fact and handing over a fact with its reason.
+   */
+  calls: { title: string; net: number; band: string | null; forced: boolean; because?: string }[]
   /** A lead sentence about this is shown above the paragraph (F8-AC-07). */
   exception: 'blank' | 'double' | null
   squadSource: 'deadline' | 'screenshot'
@@ -383,6 +393,11 @@ export const EDITORIAL_SYSTEM = [
   '**Group what is alike rather than listing it.** "A couple of substitutions worth a look" beats three',
   'sentences naming each one; the tabs already name them.',
   'Use only the figures given. Never call the strength figure a chance, a likelihood or a confidence.',
+  '**Never give a reason you were not given.** Where a call says why it is on the list, use that reason',
+  'and no other. Where it does not, say what the call is and stop — do not reach for a cause.',
+  '**You are never told anything about fitness, injury, doubt, suspension or minutes, so you can never',
+  'say a player is injured, doubtful, out, unavailable or rotated.** A call worth nothing on the',
+  'arithmetic is not evidence that something happened to the player.',
   '**Name any call you point at.** "Start with the forced one" is useless if the manager cannot tell',
   'which one it is; say the two players. And never tell him to start with a call that only exists if he',
   'takes another one first — an armband moving because of a captaincy change is not somewhere to start.',
@@ -587,7 +602,8 @@ export function editorialPrompt(input: EditorialInput): string {
     ...input.calls.map(
       (c) =>
         `${c.title} \u00b7 net ${c.net >= 0 ? '+' : '-'}${Math.abs(c.net).toFixed(2)}` +
-        `${c.forced ? ' \u00b7 forced' : c.band ? ` \u00b7 ${c.band}` : ''}`,
+        `${c.forced ? ' \u00b7 forced' : c.band ? ` \u00b7 ${c.band}` : ''}` +
+        `${c.because === undefined ? '' : ` \u00b7 ${c.because}`}`,
     ),
   ]
   if (input.exception) lines.push(`A ${input.exception} gameweek is already led with above.`)
