@@ -73,6 +73,8 @@ coverage script counting it would make the number a lie.
 | F7-AC-17 | Human checklist | 2026-09-15 | Same pass, item 5. The invite-only badge sits under the wordmark on the Landing screen, before anything can be typed. |
 | F7-AC-19 | Human checklist | 2026-09-15 | Same pass, item 5. The not-affiliated and advice-only disclaimer sits at the foot of the Landing screen, with the Fantasy Football IQ attribution beside it (STE-53). |
 
+| F2-AC-04 | Human checklist | 2026-09-16 | Slice 9 checklist item 1, run by Stephen on his phone against the live app after #112. Two uploads of his own two screenshots from the camera roll, and the fifteen that came back were his — including the vice-captain, which the stored squad had wrong beforehand, so the replacement is observable rather than inferred. **Nothing automated can read a real FPL screenshot**, which is the whole of why this row exists. Six reads were taken across the evening; the four before #111 and #112 are what STE-136 records. |
+
 Gaps in what the automated suite proves are recorded separately, in
 `docs/coverage-gaps.md` — a register of what *is* verified must not carry prose
 about what is not.

@@ -89,7 +89,13 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
             )
             .eq('run_id', lastRun.id)
         : { data: [] as Record<string, unknown>[] }
-      const { data: decisionRows } = await db.from('decision').select('call_key, state')
+      // **A lock the squad broke is not a constraint** (`F2-AC-07`, STE-138).
+      // The world excludes these too; both readers have to, or the run plans
+      // around a call the screen has already stopped showing.
+      const { data: decisionRows } = await db
+        .from('decision')
+        .select('call_key, state')
+        .is('broken_by_snapshot_id', null)
 
       return {
         before: await rows(lastRun?.feed_read_id ?? null),

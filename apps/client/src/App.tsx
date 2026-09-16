@@ -87,9 +87,24 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
   const reload = useReloadWorld()
   // Straight to the Assistant after the team link: that is where the run is.
   const [view, setView] = useState<"squad" | "assistant">(justLinked ? "assistant" : "squad")
-  // A squad correction returns through the Thinking state (F2-AC-05), which is
-  // the same route onboarding's first run takes.
-  const [corrected, setCorrected] = useState(false)
+  /**
+   * **A run one screen back asked for, held where it survives the journey and
+   * consumed when it is taken** (STE-137, STE-138).
+   *
+   * Two things ask for a run: a finished team link (F7-AC-15) and a squad
+   * correction (F2-AC-05). Both used to be a boolean that was set and never
+   * cleared, while the guard stopping a second run was a ref inside the
+   * Assistant. **A ref belongs to a mounted component**, so walking to the Squad
+   * screen and back threw the guard away, found the flag still set, and started
+   * another run — every time, for ever.
+   *
+   * It lives here because `Squad` survives that walk: the two screens are a view
+   * swap inside it. And it is a value rather than a flag, because the correction
+   * has something to say — how many selected calls the new squad contradicted.
+   */
+  const [pendingRun, setPendingRun] = useState<{ locksBroken: number } | null>(
+    justLinked ? { locksBroken: 0 } : null,
+  )
 
   // A first open fetches both feeds before answering, so this can take a few
   // seconds. The Thinking state that narrates it properly is F6 and F8.
@@ -112,7 +127,12 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
         onSquad={() => setView("squad")}
         onReload={reload}
         account={account}
-        startRun={justLinked || corrected}
+        startRun={pendingRun !== null}
+        locksBroken={pendingRun?.locksBroken ?? 0}
+        // **Consumed, not remembered.** The request is spent the moment the run
+        // it asked for begins, so coming back to this screen is an ordinary
+        // arrival rather than a fresh correction (F6-AC-15, STE-137).
+        onRunStarted={() => setPendingRun(null)}
       />
     )
   }
@@ -120,8 +140,8 @@ function Squad({ me, justLinked, onLoggedOut }: { me: Me; justLinked: boolean; o
     <SquadScreen
       world={state.world}
       onAssistant={() => setView("assistant")}
-      onCorrected={() => {
-        setCorrected(true)
+      onCorrected={(locksBroken) => {
+        setPendingRun({ locksBroken })
         reload()
         setView("assistant")
       }}

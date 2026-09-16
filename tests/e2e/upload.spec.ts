@@ -111,3 +111,69 @@ test('F2-AC-08: the Squad screen says nothing about where its squad came from', 
   await expect(page.getByText(/screenshot/i)).toHaveCount(0)
   await expect(page.getByText(/as at the .* deadline/i)).toHaveCount(0)
 })
+
+test('F2-AC-07: a call the new squad contradicts is dropped, and the manager is told why', async ({ page }) => {
+  await openSheet(page)
+
+  /**
+   * **The trigger is an upload that broke locks**, which is the only
+   * circumstance this criterion is about. Until 2026-09-16 the server marked
+   * those decisions broken and nothing read the mark: the call stayed on screen
+   * reading SELECTED and the next run planned around a transfer that brought in
+   * a player already owned (STE-138).
+   *
+   * The count is the server's, computed from the new fifteen. What is asserted
+   * here is the half the criterion spends its words on — that the manager is
+   * told, rather than finding a decision he made quietly gone.
+   */
+  await page.route('**/api/squad/screenshots', (route: Route) =>
+    route.fulfill({ json: { snapshotId: 'snap-new', locksBroken: 2 } }),
+  )
+  await page.route('**/api/runs/stream', (route: Route) =>
+    route.fulfill({ headers: { 'content-type': 'text/event-stream' }, body: '' }),
+  )
+
+  await choose(page, 'team')
+  await choose(page, 'transfers')
+  await page.getByTestId('upload-go').click()
+
+  const told = page.getByTestId('dropped')
+  await expect(told).toContainText('2 calls')
+  await expect(told).toContainText('no longer work')
+  await expect(told).toContainText('dropped')
+})
+
+test('F6-AC-15: an upload asks for one run, and walking away and back does not ask again', async ({ page }) => {
+  await openSheet(page)
+
+  /**
+   * **The trigger is leaving the screen and coming back**, not a re-render
+   * (P16). The guard against a second run was a ref inside the Assistant, and a
+   * ref belongs to a mounted component — so the walk threw it away while the
+   * flag asking for a run stayed set, and every return started another
+   * (STE-137). A re-render test passes against that bug and proves nothing.
+   */
+  let runs = 0
+  await page.route('**/api/runs/stream', (route: Route) => {
+    runs += 1
+    return route.fulfill({ headers: { 'content-type': 'text/event-stream' }, body: '' })
+  })
+  await page.route('**/api/squad/screenshots', (route: Route) =>
+    route.fulfill({ json: { snapshotId: 'snap-new', locksBroken: 0 } }),
+  )
+
+  await choose(page, 'team')
+  await choose(page, 'transfers')
+  await page.getByTestId('upload-go').click()
+  await expect.poll(() => runs).toBe(1)
+
+  // Away and back, twice. Nothing here is the manager asking for advice.
+  for (let i = 0; i < 2; i += 1) {
+    await page.getByRole('tab', { name: 'Squad' }).click()
+    await expect(page.getByTestId('update')).toBeVisible()
+    await page.getByRole('tab', { name: 'Assistant' }).click()
+  }
+
+  await expect(page.getByRole('tab', { name: 'Assistant' })).toBeVisible()
+  expect(runs).toBe(1)
+})
