@@ -75,6 +75,9 @@ coverage script counting it would make the number a lie.
 
 | F2-AC-04 | Human checklist | 2026-09-16 | Slice 9 checklist item 1, run by Stephen on his phone against the live app after #112. Two uploads of his own two screenshots from the camera roll, and the fifteen that came back were his — including the vice-captain, which the stored squad had wrong beforehand, so the replacement is observable rather than inferred. **Nothing automated can read a real FPL screenshot**, which is the whole of why this row exists. Six reads were taken across the evening; the four before #111 and #112 are what STE-136 records. |
 
+| F8-AC-04 | Human checklist | 2026-09-16 | Slice 9 checklist item 3, on the live app after a real upload. The editorial reads *"built from the squad screenshots you uploaded at 03:38"* — naming the source and the time. **This is the line that structurally could not fire before this slice**: the database writes `screenshot` and slice 8's client compared `screenshots`, so it always said the squad came from the deadline. Read on several runs across the night, not glanced at once. |
+| F2-UP-01 | Human checklist | 2026-09-16 | Slice 9 checklist item 2, on the live app. A genuine FPL screenshot of the wrong screen was offered and the upload was refused with the existing squad untouched. **The half this row claims is that a real wrong picture is refused at all** — the wording is asserted separately by `tests/e2e/upload.spec.ts` against a stubbed failure. **The message Stephen saw was not the "N of 15 legible" form**, so which branch fired on a real wrong screen is unestablished; he ruled it good enough for the MVP rather than chase it. A first attempt never reached this path at all, being refused for size first (STE-152). |
+
 Gaps in what the automated suite proves are recorded separately, in
 `docs/coverage-gaps.md` — a register of what *is* verified must not carry prose
 about what is not.
