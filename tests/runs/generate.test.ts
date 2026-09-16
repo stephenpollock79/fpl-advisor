@@ -127,7 +127,32 @@ describe('One run, end to end', () => {
   it('F3-AC-22: a clean model line is used, and marked as the model\'s', async () => {
     const { plan, cards } = build()
     const { calls } = await generateWeek({ plan, cards, model: scriptedModel([], '{in} projects higher this week and has the easier fixture.') })
-    expect(calls.every((c) => c.reasoningSource === 'model')).toBe(true)
+
+    // **Every call the model is asked about**, which is every call that is
+    // neither a keep nor forced. Both of those are written in code because the
+    // comparison misleads there — a keep's fallback recommends the wrong
+    // player, and a forced call's reason is not a comparison at all (STE-143).
+    const asked = calls.filter((c) => !c.isReading && !c.isForced)
+    expect(asked.length).toBeGreaterThan(0)
+    expect(asked.every((c) => c.reasoningSource === 'model')).toBe(true)
+  })
+
+  it('STE-143: a forced call is explained in code, never argued by the model', async () => {
+    const { plan, cards } = build()
+    const { calls } = await generateWeek({
+      plan,
+      cards,
+      // A line that would pass every check and still be false on a forced call.
+      model: scriptedModel([], '{in} projects higher this week and has the easier fixture.'),
+    })
+
+    const forced = calls.filter((c) => c.isForced && !c.isReading)
+    expect(forced.length).toBeGreaterThan(0)
+    for (const call of forced) {
+      expect(call.reasoningSource).toBe('template')
+      // The structural reason, not a comparison that runs the other way.
+      expect(call.reasoning).toMatch(/cannot (hold this armband|play this gameweek)/)
+    }
   })
 
   it('the model\'s transfer proposals reach the plan', async () => {
@@ -146,10 +171,18 @@ describe('One run, end to end', () => {
     const { calls, modelCalls } = await generateWeek({ plan, cards, model: scriptedModel([], 'x') })
 
     expect(modelCalls.filter((m) => m.step === 'propose')).toHaveLength(1)
-    // One reasoning call per call the manager can act on. A keep reading writes
-    // its own line and asks the model nothing (F4-AC-01).
-    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.filter((c) => !c.isReading).length)
+    /**
+     * **One reasoning call per call the model is actually asked about**, which
+     * is neither a keep nor a forced call. A keep writes its own line and asks
+     * nothing (F4-AC-01); a forced call does the same since 2026-09-16, because
+     * its reason is structural and the model can only build a comparison
+     * (STE-143). Both save a call, which is the point of counting them here.
+     */
+    const asked = calls.filter((c) => !c.isReading && !c.isForced)
+    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(asked.length)
     expect(calls.every((c) => !c.isReading)).toBe(true)
+    // The fixture must still contain a forced call, or this asserts nothing.
+    expect(calls.some((c) => c.isForced)).toBe(true)
   })
 
   it('F8-AC-01, F8-AC-06: the editorial counts the whole week, carried calls included', async () => {

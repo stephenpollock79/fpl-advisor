@@ -123,7 +123,12 @@ test('F3-AC-18: the flag reads WATCH with no qualifier, its reason is one tap aw
   await page.getByRole('button', { name: 'WATCH' }).click()
   await expect(page.getByTestId('watch-reason')).toHaveText(reason)
   await page.getByRole('button', { name: /Later/ }).click()
-  await expect(page.getByText('FORCED', { exact: true })).toBeVisible()
+  // **The flag is a disc reading F, and its accessible name is the whole word.**
+  // The pill wrapped to its own line at 390 and took the strip's height with it
+  // (2026-09-16). Asserted by accessible name rather than by the letter, because
+  // "F" on its own is what a screen reader must never be left with.
+  await expect(page.getByLabel('Forced')).toBeVisible()
+  await expect(page.getByLabel('Forced')).toHaveText('F')
   await expect(page.getByText('WATCH', { exact: true })).toHaveCount(0)
 })
 

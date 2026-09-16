@@ -161,13 +161,17 @@ describe('POST /api/runs', () => {
     await h.post()
     const [run] = h.stored
     expect(run?.calls.length).toBeGreaterThan(0)
-    // One proposal, then one line per call — even in mock mode, where each is a
-    // zero-cost record rather than an absence.
-    // The proposal, plus one reasoning call per call the manager can act on — a
-    // keep reading writes its own line and asks the model nothing (F4-AC-01).
-    const decidable = (run?.calls ?? []).filter((c) => (c as { isReading: boolean }).isReading !== true)
-    // One proposal, one line per decidable call, and one editorial (F8-AC-08).
-    expect(run?.modelCalls.length).toBe(decidable.length + 2)
+    /**
+     * The proposal, one line per call the model is **asked** about, and one
+     * editorial (F8-AC-08). Two kinds of call ask nothing: a keep writes its
+     * own line (F4-AC-01), and since 2026-09-16 so does a forced call, whose
+     * reason is structural rather than a comparison (STE-143). Even in mock
+     * mode each is a zero-cost record rather than an absence.
+     */
+    const asked = (run?.calls ?? []).filter(
+      (c) => (c as { isReading: boolean }).isReading !== true && (c as { isForced: boolean }).isForced !== true,
+    )
+    expect(run?.modelCalls.length).toBe(asked.length + 2)
   })
 
   it('a run that fails is marked failed, and stores no calls — the previous advice stands', async () => {

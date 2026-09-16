@@ -27,7 +27,7 @@ import {
 } from '@fpl/engine'
 import { type PlanInput, type PlanPlayer, type PlannedCall, isDecidable, planWeek } from '../calls/plan.js'
 import type { EditorialInput, ModelCallRecord, ModelPort, ShortPlayer } from '../model/client.js'
-import { keepLine } from '../calls/keep-line.js'
+import { forcedLine, keepLine } from '../calls/keep-line.js'
 import { finalEditorial } from '../model/editorial.js'
 import { finalReasoning } from '../model/reasoning.js'
 
@@ -168,10 +168,25 @@ export async function generateWeek(input: {
         }
       }
 
+      const kind = KIND[call.outcome.type]
+
+      /**
+       * **A forced call is not asked for either, and for the same reason as a
+       * keep** (STE-143). Its reason is structural — the holder cannot fill the
+       * role — and the model is given only the two players' figures, so it can
+       * build nothing but a comparative case. On a forced call the comparison
+       * usually runs the other way, and the card then argues against the row
+       * printed directly above it.
+       *
+       * It also saves a model call on every forced call (NFR Cost control).
+       */
+      if (call.outcome.isForced) {
+        return { text: forcedLine(kind, rows, out.name, into.name), source: 'template' as const, record: null }
+      }
+
       // A call that moves no money may not be explained in money (F4-AC-09,
       // F3-AC-28) — on such a call a sentence about freeing up funds is not a
       // weak argument, it is a false one.
-      const kind = KIND[call.outcome.type]
       const written = await input.model.writeReasoning({
         outName: out.name,
         inName: into.name,
