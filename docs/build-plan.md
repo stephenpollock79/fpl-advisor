@@ -1,6 +1,6 @@
 <!-- DERIVED FILE - DO NOT EDIT. Regenerate with extract-build-plan.py in the vault. -->
 <!-- source: Build Plan - The FPL Advisor.md -->
-<!-- source-sha256: 7579f75dc7bf1d0f -->
+<!-- source-sha256: 708102d9769c78e6 -->
 
 # Build order and schedule
 
@@ -34,7 +34,7 @@ from the features under discussion rather than from the feature list.
 | 12  | F9 Chip proposal         | Could  | STE-71         | —         |
 
 Alongside these: **STE-53** (FFIQ attribution, ships with slice 3), **STE-54** (evaluate `predicted_starter` before the
-engine slice opens), **STE-59** (set the cut trigger), **STE-69** (decide error monitoring). Deploy and
+engine slice opens), **STE-59** (set the cut trigger). Deploy and
 database setup are **STE-25**, **STE-29** and **STE-30**; context and skills are **STE-26** and **STE-28**.
 Slices 2, 6, 7, 8, 9 and the two below the line carry their manual checklist inside the build ticket rather
 than as a separate one.
@@ -61,9 +61,9 @@ status from Linear — never restate one in another.
 | **Fri 11**    | 5 · F3 (STE-62, STE-63)                             | —                                                                              | The calls                                           |
 | **Mon 14**    | 6 · F4 (STE-64) · 7 · F6 (STE-65)                   | STE-77, STE-111, STE-128, STE-129, STE-130, STE-131, STE-132                   | Captaincy and refresh                               |
 | **Tue 15**    | 8 · F8 + F7-surface (STE-66) · 9 · F2 (STE-67)      | STE-33                                                                         | The surface, then **call the MVP**                  |
-| **Wed 16**    | 10 · F7 hardening (STE-68)                          | STE-38, STE-69, STE-79, STE-80                                                 | E2E week opens                                      |
-| **Thu 17**    | —                                                   | STE-35, STE-37                                                                 | Instrumentation; the eval-grading decision          |
-| **Fri 18**    | —                                                   | STE-39, STE-36, STE-40                                                         | **Launch — live run at the GW5 deadline, 18:30 UK** |
+| **Wed 16**    | 10 · F7 hardening (STE-68)                          | STE-38, STE-79, STE-80                                                         | E2E week opens                                      |
+| **Thu 17**    | —                                                   | STE-37                                                                         | The eval-grading decision                           |
+| **Fri 18**    | —                                                   | STE-39, STE-40                                                                 | **Launch — live run at the GW5 deadline, 18:30 UK** |
 | not committed | 11 · F5 (STE-70) · 12 · F9 (STE-71)                 | —                                                                              | Below the cut line                                  |
 
 **Four ordering constraints that are not obvious from the dates.**
