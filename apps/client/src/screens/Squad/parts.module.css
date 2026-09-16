@@ -169,3 +169,25 @@
    as one block ending in a colour; rounded and inset it reads as the opponent
    being a separate fact about the player, which is what it is. */
 .card .pill { margin: 1px 4px 0; }
+
+/* ---------------------------------------------------------------------------
+   The card, on a short viewport.
+   ---------------------------------------------------------------------------
+   **A browser never gives you the whole phone.** Chrome on iOS keeps roughly
+   180px of an 844pt screen for its address bar and toolbar, and the card is
+   taller than the bare shirt it replaced — so at the height a real browser
+   leaves, the fourth row fell off the pitch. It clipped the forwards on
+   Stephen's phone, which is the same failure `SquadScreen.module.css` already
+   carries a comment about from the first time it happened.
+
+   So the card pays for its own height where there is none to spare, and keeps it
+   where there is — added to the home screen, or in any browser with a shorter
+   toolbar, the roomier version above applies unchanged. */
+@media (max-height: 760px) {
+  .card { gap: 1px; padding-bottom: 3px; }
+  .card .cardTop { padding: 1px 0 2px; font-size: 10px; }
+  .card .cardTop span { font-size: 6px; }
+  .card .kit { margin-top: 4px; width: 29px; height: 25px; }
+  .card .surname { font-size: 9px; }
+  .card .pill { font-size: 8px; padding: 1px 4px; margin-top: 0; }
+}

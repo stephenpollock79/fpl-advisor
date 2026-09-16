@@ -287,3 +287,19 @@
 /* The avatar became the account sheet's route on 2026-09-15 (F7-AC-21), so it
    is a button — with no chrome of its own, because it is still the portrait. */
 .avatarButton { flex: none; padding: 0; border: 0; background: none; line-height: 0; cursor: pointer; }
+
+
+/* The pitch itself gives ground too, on the same reasoning as the card (STE-164).
+   Padding and row gaps are the cheapest height in the layout: nobody reads them,
+   and the alternative is a row nobody can see. */
+@media (max-height: 760px) {
+  .pitch { padding: 10px 4px 4px; }
+  .row { gap: 3px; }
+  /* The chips and the Pitch/Stat toggle are the two tallest things above the
+     grass and neither carries text that needs the room. Six pixels off each is
+     invisible; a forwards line nobody can see is not. */
+  .chip { width: 32px; height: 32px; }
+  .modeOn,
+  .modeOff { height: 30px; }
+  .screen { gap: 6px; }
+}

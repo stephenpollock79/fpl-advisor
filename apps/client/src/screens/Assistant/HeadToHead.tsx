@@ -119,19 +119,19 @@ export function HeadToHead({
 
         <div className={styles.strip}>
           <span className={styles.stripCell}>
-            <span className={styles.stripLabel}>NET</span>
+            <span className={styles.cardFigLabel}>NET</span>
             <span data-testid="net" className={styles.stripValue}>
               {formatNet(figures.net)}
             </span>
           </span>
           <span className={styles.stripCell}>
-            <span className={styles.stripLabel}>COST</span>
+            <span className={styles.cardFigLabel}>COST</span>
             <span data-testid="cost" className={styles.stripValue}>
               {formatCost(figures.costTenths)}
             </span>
           </span>
           <span className={styles.stripCell}>
-            <span className={styles.stripLabel}>STRENGTH</span>
+            <span className={styles.cardFigLabel}>STRENGTH</span>
             {figures.reading === 'call' ? (
               <span data-testid="strength" className={`${styles.strength} ${styles[figures.band] ?? ''}`}>
                 {figures.conviction} · {figures.band}

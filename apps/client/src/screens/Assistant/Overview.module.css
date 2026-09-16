@@ -6,7 +6,14 @@
    instead of the column scrolling — and the editorial, which clips its own
    overflow, collapsed to a hairline. That is exactly what shipped on 2026-09-15
    and why the card was missing from the screen rather than merely short. */
-.column { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 0 10px 20px; overflow-y: auto; }
+/* **No horizontal padding** (STE-167). `.screen` already sets the 12px side
+   margin every Assistant screen shares, and this column was adding 10px more —
+   so everything below the last-run line sat at 22px while the header, tabs and
+   balance strip sat at 12px, and the Overview was the only screen whose cards
+   did not line up with what was above them. It was never a decision: the column
+   needed padding to scroll and took the side margins along with it. The bottom
+   stays, so the scroll still has somewhere to end. */
+.column { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 0 0 20px; overflow-y: auto; }
 .column > * { flex: none; }
 
 /* ── Editorial ─────────────────────────────────────────────────────────── */

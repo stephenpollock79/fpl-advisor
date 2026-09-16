@@ -21,6 +21,23 @@ import { test } from '@playwright/test'
 import { CAPTAIN, T1, bench, open, player, squad, world } from './fixture'
 
 const OUT = process.env['SHOT_DIR'] ?? 'polish-shots'
+
+/**
+ * **844 is the whole phone, and no browser ever gives you that.**
+ *
+ * The suite's viewport is 390×844 — the device, not the visible page. In Chrome
+ * on iOS the address bar and toolbar take roughly 180px of it, and `SquadScreen`
+ * already carries a comment about this exact trap: *"on a real handset the
+ * visible viewport falls far short of 844 … a fixed cap plus everything else
+ * then overflowed and clipped the forwards."*
+ *
+ * It clipped the forwards again on 2026-09-16, on Stephen's phone, from work
+ * verified at 844. So these run at the height a real browser leaves unless told
+ * otherwise, and 844 is the exception you ask for rather than the default you
+ * get.
+ */
+const HEIGHT = Number(process.env['SHOT_H'] ?? 660)
+test.use({ viewport: { width: 390, height: HEIGHT } })
 const shot = async (page: import('@playwright/test').Page, name: string) => {
   await page.waitForTimeout(450)
   await page.screenshot({ path: `${OUT}/${name}.png` })
