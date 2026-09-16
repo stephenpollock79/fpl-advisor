@@ -49,6 +49,35 @@ let boundPort: number | null = null
 
 const app = new Hono()
 
+/**
+ * Headers every response carries (STE-38).
+ *
+ * The red-team pass found the deployed app sending **none** of these. Each one
+ * below is a tightening with no plausible way to break this app, so it is taken
+ * rather than asked about (P13) — they restrict what a *browser* will do with a
+ * response we already control, and none of them changes what the app serves.
+ *
+ * **Two deliberately absent, because both can lock the app away and neither is
+ * mine to choose.** `Strict-Transport-Security` makes a browser refuse plain
+ * http for as long as its max-age says, so a certificate problem becomes an
+ * unreachable site rather than a warning. A `Content-Security-Policy` tight
+ * enough to be worth having can break the page in a real browser in ways no test
+ * here would see. Both are on STE-161 with what they would cost.
+ */
+app.use('/*', async (c, next) => {
+  await next()
+  // The app is never framed. Without this, anyone can put gaffercalls.com in an
+  // invisible iframe over their own page and collect the taps.
+  c.header('X-Frame-Options', 'DENY')
+  // Stops a browser second-guessing a Content-Type and executing something we
+  // served as data.
+  c.header('X-Content-Type-Options', 'nosniff')
+  // Full URLs stop travelling to other origins. Nothing here puts anything
+  // sensitive in a path today, and this is what keeps that true by accident
+  // rather than by vigilance.
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
+})
+
 app.get('/api/health', (c) =>
   c.json({
     status: 'ok',
