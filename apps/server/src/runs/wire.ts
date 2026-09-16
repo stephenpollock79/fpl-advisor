@@ -114,6 +114,14 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
           pointsHit: c['points_hit'] as number,
           costTenths: c['cost_tenths'] as number,
           isForced: c['is_forced'] === true,
+          /**
+           * **Only what the row can tell us.** A forced call always had to
+           * happen, so this is a true lower bound. The other case — the vice
+           * armband on a player being made captain — is not stored, because it
+           * is derived wherever both calls are visible (STE-144), and this
+           * reader has them: `materiallyMoved` works it out for itself.
+           */
+          mustChange: c['is_forced'] === true,
           isReading: c['is_reading'] === true,
           readingReason: (c['reading_reason'] as StoredCall['readingReason']) ?? null,
           watch: c['watch_flag'] === true,

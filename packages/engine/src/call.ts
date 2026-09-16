@@ -85,6 +85,7 @@ export const evaluateCall = (input: CallInput): CallOutcome => {
       pointsHit,
       costTenths: costOf(type, input.money),
       isForced,
+      mustChange,
       recommendsPlayerId: input.challenger.playerId,
     }
   }

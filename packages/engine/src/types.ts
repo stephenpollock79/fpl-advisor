@@ -134,6 +134,19 @@ export type CallReading = Totals & {
   readonly pointsHit: number
   readonly costTenths: number
   readonly isForced: boolean
+  /**
+   * **The change has to happen, whether or not it is forced** (STE-150).
+   *
+   * True when the incumbent cannot play — every forced call — and also when he
+   * can play but cannot hold the role, which is the vice armband on a player
+   * being made captain. `isForced` covers only the first, because `F4-AC-07`
+   * says so.
+   *
+   * **Both need the same treatment downstream**, and keying that treatment on
+   * `isForced` alone is how a code-written explanation silently stopped
+   * applying the moment the flag was correctly removed.
+   */
+  readonly mustChange: boolean
   readonly recommendsPlayerId: number
 }
 

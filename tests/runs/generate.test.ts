@@ -139,7 +139,7 @@ describe('One run, end to end', () => {
     // neither a keep nor forced. Both of those are written in code because the
     // comparison misleads there — a keep's fallback recommends the wrong
     // player, and a forced call's reason is not a comparison at all (STE-143).
-    const asked = calls.filter((c) => !c.isReading && !c.isForced)
+    const asked = calls.filter((c) => !c.isReading && !c.mustChange)
     expect(asked.length).toBeGreaterThan(0)
     expect(asked.every((c) => c.reasoningSource === 'model')).toBe(true)
   })
@@ -155,7 +155,7 @@ describe('One run, end to end', () => {
       model: scriptedModel([], '{in} projects higher this week and has the easier fixture.'),
     })
 
-    const forced = calls.filter((c) => c.isForced && !c.isReading)
+    const forced = calls.filter((c) => c.mustChange && !c.isReading)
     expect(forced.length).toBeGreaterThan(0)
     for (const call of forced) {
       expect(call.reasoningSource).toBe('template')
@@ -187,11 +187,12 @@ describe('One run, end to end', () => {
      * its reason is structural and the model can only build a comparison
      * (STE-143). Both save a call, which is the point of counting them here.
      */
-    const asked = calls.filter((c) => !c.isReading && !c.isForced)
+    const asked = calls.filter((c) => !c.isReading && !c.mustChange)
     expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(asked.length)
     expect(calls.every((c) => !c.isReading)).toBe(true)
-    // The fixture must still contain a forced call, or this asserts nothing.
-    expect(calls.some((c) => c.isForced)).toBe(true)
+    // The fixture must still contain a call the model is not asked about, or
+    // this asserts nothing.
+    expect(calls.some((c) => c.mustChange)).toBe(true)
   })
 
   it('F8-AC-01, F8-AC-06: the editorial counts the whole week, carried calls included', async () => {
@@ -318,5 +319,40 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
       expect(call.reasoning.length).toBeGreaterThan(0)
     }
     expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.length - 2)
+  })
+})
+
+describe('A call that has to happen is explained in code, forced or not (STE-150)', () => {
+  /**
+   * **The regression this exists to stop.** PR #121 routed *forced* calls to a
+   * code-written line, because the model can only build a comparison and on such
+   * a call the comparison runs the other way. PR #122 then correctly stopped the
+   * vice call being forced — `F4-AC-07` allows that word only where the holder
+   * cannot score.
+   *
+   * **The explanation silently stopped applying.** The model was asked again and
+   * rebuilt the same false case: *"Rogers' superior form and season points
+   * outweigh Calvert-Lewin's slight xPts edge"*, printed above a row reading 7.9
+   * against 6.7.
+   *
+   * A behaviour keyed to a flag ends the moment that flag is corrected. This
+   * asserts it is keyed to the obligation, which is what it was always about.
+   */
+  it('a vice call whose holder is taking the captaincy is never argued by the model', async () => {
+    const { plan, cards } = build()
+    const { calls } = await generateWeek({
+      plan,
+      cards,
+      // A line that passes every check and is still false on this call.
+      model: scriptedModel([], '{in} projects higher this week and has the easier fixture.'),
+    })
+
+    const vice = calls.find((c) => c.shape === 'vice' && !c.isReading)
+    expect(vice).toBeDefined()
+    // Not forced — the holder can play — and still not the model's to argue.
+    expect(vice?.isForced).toBe(false)
+    expect(vice?.mustChange).toBe(true)
+    expect(vice?.reasoningSource).toBe('template')
+    expect(vice?.reasoning).toMatch(/cannot hold this armband/)
   })
 })

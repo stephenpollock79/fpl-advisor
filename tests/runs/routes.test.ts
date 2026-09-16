@@ -99,6 +99,7 @@ const storedCall = (extra: Partial<StoredCall> = {}): StoredCall => ({
   pointsHit: 0,
   costTenths: 0,
   isForced: false,
+  mustChange: false,
   watch: false,
   watchReason: null,
   reasoning: 'Already written, already paid for.',
@@ -169,7 +170,8 @@ describe('POST /api/runs', () => {
      * mode each is a zero-cost record rather than an absence.
      */
     const asked = (run?.calls ?? []).filter(
-      (c) => (c as { isReading: boolean }).isReading !== true && (c as { isForced: boolean }).isForced !== true,
+      (c) =>
+        (c as { isReading: boolean }).isReading !== true && (c as { mustChange: boolean }).mustChange !== true,
     )
     expect(run?.modelCalls.length).toBe(asked.length + 2)
   })

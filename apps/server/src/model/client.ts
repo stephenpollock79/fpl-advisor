@@ -392,6 +392,9 @@ export const EDITORIAL_SYSTEM = [
   'vice armband as well, say it as one thing: who takes the armband, and who takes the vice.',
   '**Group what is alike rather than listing it.** "A couple of substitutions worth a look" beats three',
   'sentences naming each one; the tabs already name them.',
+  '**Lead with the strongest and leave the weakest until last, if it earns a mention at all.** The list',
+  'is given strongest first. Opening on the marginal one buries what the manager should act on and',
+  'reads as though the week is thin when it is not.',
   '**Say what kind of move each one is.** Every call is given with its kind beside it — a transfer, a',
   'substitution, a captaincy change. Two names and an arrow could be any of them, and a run of them',
   'reads as one long list of swaps. A captaincy change must never be listed alongside transfers as',
@@ -602,7 +605,7 @@ export function editorialPrompt(input: EditorialInput): string {
      */
     input.calls.length === 0
       ? 'The week produced no calls at all. Say why that is a decision rather than an empty screen.'
-      : 'This week, in no particular order:',
+      : 'This week, strongest first:',
     ...input.calls.map(
       (c) =>
         `${c.title} \u00b7 ${c.kind} \u00b7 net ${c.net >= 0 ? '+' : '-'}${Math.abs(c.net).toFixed(2)}` +
