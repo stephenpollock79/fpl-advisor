@@ -188,6 +188,13 @@
   .card .cardTop { padding: 1px 0 2px; font-size: 10px; }
   .card .cardTop span { font-size: 6px; }
   .card .kit { margin-top: 4px; width: 29px; height: 25px; }
+  /* **The badges move, not the kit.** They overhang the shirt by 5px, and the
+     margin above is only 4px here — so the armband and the doubt pill sat on
+     the green cap, a white disc half on a dark band. Giving the kit its 7px
+     back would cost the pitch a row; moving the badges down three costs
+     nothing, because they are positioned rather than laid out (STE-169). */
+  .card .armband,
+  .card .marker { top: -2px; }
   .card .surname { font-size: 9px; }
   .card .pill { font-size: 8px; padding: 1px 4px; margin-top: 0; }
 }
