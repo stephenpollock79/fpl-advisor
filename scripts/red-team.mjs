@@ -79,7 +79,17 @@ console.log(`\nRed-team probes against ${BASE}\n`)
   check('HTTPS enforced for future visits (HSTS)', Boolean(hsts), hsts ?? 'absent')
   check('the page cannot be framed by another site', Boolean(frame) || Boolean(csp?.includes('frame-ancestors')), frame ?? csp ?? 'absent — clickjacking is not prevented')
   check('content types are not sniffed', nosniff === 'nosniff', nosniff ?? 'absent')
-  check('a content security policy is stated', Boolean(csp ?? reportOnly), 'absent')
+  // **The evidence is the directive the policy's value rests on**, not the whole
+  // string — it is ~340 characters and would swamp the line, and a line nobody
+  // reads is the same as no line. `script-src` is what would show if the policy
+  // ever gained an inline allowance on the live app.
+  const policy = csp ?? reportOnly
+  const scriptSrc = policy ? (/script-src [^;]+/.exec(policy)?.[0] ?? 'no script-src') : null
+  check(
+    'a content security policy is stated',
+    Boolean(policy),
+    policy ? `${String(policy.split(';').length)} directives, ${scriptSrc}` : 'absent',
+  )
   check('referrer policy', referrer === 'strict-origin-when-cross-origin', referrer ?? 'absent — full URLs may travel to third parties')
 
   // **Which mode the policy is in is the finding, not a pass or a fail.** It is
