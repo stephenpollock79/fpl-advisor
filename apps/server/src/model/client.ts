@@ -355,11 +355,15 @@ const reasoningPrompt = (input: ReasoningInput): string =>
  * (F8-AC-08). It is the week in one read, so it gets a paragraph; it still takes
  * a position and does not hedge.
  */
-const EDITORIAL_SYSTEM = [
+export const EDITORIAL_SYSTEM = [
   "You are the assistant opening one Fantasy Premier League manager's week.",
   'Synthesise what the week asks of him across the calls listed. Take a position; do not hedge.',
   'Plain English, no jargon, no bullet points, no headings, at most five sentences.',
   'Use only the figures given. Never call the strength figure a chance, a likelihood or a confidence.',
+  '**Never state how many calls there are, and never count anything** — not the calls, not the forced',
+  'ones, not the categories. Say "the forced one" or "most of this week\'s calls", never a number of',
+  'them. The screen counts them live and your sentence cannot; a number written here is wrong the',
+  'moment anything moves.',
   'A lead sentence and a line naming where the squad came from are shown above your paragraph.',
   'Do not write either of those yourself and do not repeat them.',
 ].join(' ')
@@ -534,9 +538,26 @@ export const PARSE_SCHEMA = {
 
 export function editorialPrompt(input: EditorialInput): string {
   const lines = [
+    /**
+     * **No total, because a count in prose cannot follow the data** (STE-142).
+     *
+     * This read `${n} calls this week:` and the model dutifully repeated the
+     * number. The prose is then frozen on the run row, while every figure on
+     * the screen is re-derived on every world read — so a call that goes off
+     * between the run and the next open leaves the editorial claiming four
+     * above a screen showing three. That is what happened on 2026-09-16: a
+     * vice call stored at conviction 5, band *thin*, re-derived at net −1.20
+     * once the projections behind it were refreshed.
+     *
+     * `CLAUDE.md` already rules this out — **code computes every figure
+     * shown** — and a count inside model prose is a figure the model computed.
+     * Slice 8 hit the same sentence saying "3 calls this week" above six, and
+     * the fix then changed which list was counted, which treated the symptom.
+     * The list is still given; the arithmetic over it is not.
+     */
     input.calls.length === 0
       ? 'The week produced no calls at all. Say why that is a decision rather than an empty screen.'
-      : `${String(input.calls.length)} calls this week:`,
+      : 'This week, in no particular order:',
     ...input.calls.map(
       (c) =>
         `${c.title} \u00b7 net ${c.net >= 0 ? '+' : '-'}${Math.abs(c.net).toFixed(2)}` +
