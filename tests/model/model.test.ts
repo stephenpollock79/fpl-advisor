@@ -405,5 +405,18 @@ describe('The editorial is given the week, never the arithmetic over it (STE-142
     // pointed at a call that only existed if he took the captaincy change first
     // (STE-144).
     expect(EDITORIAL_SYSTEM).toMatch(/name any call you point at/i)
+    /**
+     * **Five lines is the criterion; five sentences was the instruction**
+     * (F8-AC-08, STE-145). At any real density those are not the same length,
+     * and MORE became the normal way to read the editorial rather than the
+     * exception.
+     */
+    expect(EDITORIAL_SYSTEM).toMatch(/at most three short sentences/i)
+    expect(EDITORIAL_SYSTEM).toMatch(/inside five lines/i)
+    expect(EDITORIAL_SYSTEM).not.toMatch(/at most five sentences/i)
+    // The armband pair is one decision shown on two cards, and reads as two
+    // separate recommendations unless it is said as one.
+    expect(EDITORIAL_SYSTEM).toMatch(/one decision, not two/i)
+    expect(EDITORIAL_SYSTEM).toMatch(/say each thing once/i)
   })
 })
