@@ -242,6 +242,41 @@ console.log(`\nLive RLS check against ${ref} (${target})\n`)
 console.log(`  user-posture tables found in the migrations: ${userTables.join(', ')}\n`)
 
 try {
+  /**
+   * **First, before anything is graded: is this project actually up to date?**
+   *
+   * Every check below reads the posture comments out of the migration files on
+   * disk and then asks the live project about those tables. That is only
+   * meaningful if the project has the migrations applied — and on 2026-09-16 dev
+   * turned out to be **five behind** prod, having drifted since 14 September.
+   * `pnpm check:rls-live` had been run against it repeatedly over those two days
+   * and passed 51/51 every time. Those passes were real and narrower than they
+   * read: the five were column additions to tables that already existed, so the
+   * script cheerfully checked policies on a schema that was missing columns.
+   *
+   * Had one of them created a user table, the recipe check below would have
+   * fired. Because they only altered tables, nothing did. **A check that grades a
+   * database nobody confirmed is current is reporting on a state it never
+   * established** — the same shape as STE-108, where this script covered
+   * `manager` alone and reported a clean 11/11. STE-160.
+   *
+   * Asked of the project rather than assumed, and it stops the run rather than
+   * warning: a stale pass is the outcome worth preventing, and a warning at the
+   * top of fifty green lines is a stale pass with extra steps.
+   */
+  const applied = migrationVersions()
+  const behind = applied.pending
+  check(
+    'the project has every migration applied, so these checks grade the current schema',
+    behind.length === 0,
+    behind.length
+      ? `${behind.length} not applied: ${behind.join(', ')} — run supabase db push --project-ref ${ref}`
+      : `${applied.total} migration(s), all applied`,
+  )
+  if (behind.length) {
+    throw new Error('refusing to grade a database that is behind its migrations')
+  }
+
   // A user table nobody taught this script about is a failure, not a skip. The
   // whole of STE-108 is that a check which quietly covers less than it claims is
   // worse than no check, because the pass stops anyone looking.
@@ -439,6 +474,45 @@ try {
 const failed = results.filter((r) => !r.pass)
 console.log(`\n${results.length - failed.length}/${results.length} checks passed\n`)
 process.exitCode = failed.length ? 1 : 0
+
+/**
+ * Which migrations this project has applied, against what is on disk.
+ *
+ * Read through the Supabase CLI rather than over PostgREST: the
+ * `supabase_migrations.schema_migrations` table lives outside the exposed
+ * schemas and no API key reaches it, which is correct and is why this shells out.
+ *
+ * A CLI that cannot answer is **not** a pass. It returns every local migration as
+ * pending, so the run stops and says so — the alternative is a green run against
+ * a project whose state was never established, which is the whole defect this
+ * function exists for.
+ */
+function migrationVersions() {
+  const local = readdirSync(MIGRATIONS)
+    .filter((f) => f.endsWith('.sql'))
+    .map((f) => f.slice(0, 14))
+    .sort()
+
+  let remote = []
+  try {
+    // **No `-o json`, deliberately.** That flag formats *status variables* and
+    // makes this command print its human table instead; the bare command already
+    // emits JSON on stdout with its progress lines on stderr. Cost a debug cycle
+    // on 2026-09-16 — the flag looks like the right one and does the opposite.
+    const out = execFileSync('supabase', ['migration', 'list', '--project-ref', ref], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` },
+    })
+    const line = out.split('\n').find((l) => l.trim().startsWith('{'))
+    remote = JSON.parse(line).migrations.filter((m) => m.remote).map((m) => m.remote)
+  } catch (cause) {
+    console.log(`  (could not read applied migrations: ${cause.message.split('\n')[0]})`)
+    return { total: local.length, pending: local }
+  }
+
+  return { total: local.length, pending: local.filter((v) => !remote.includes(v)) }
+}
 
 // --- account helpers, hoisted so the run above reads top to bottom ----------
 
