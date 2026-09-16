@@ -106,6 +106,23 @@ test('F8-AC-13, F8-AC-15, F8-AC-18, F8-AC-19: moved evidence raises the token an
   await expect(page.getByTestId('news-tooltip')).toContainText('expected to start at 75%')
   await expect(page.getByTestId('news-refresh')).toBeVisible()
   await expect(page.getByRole('dialog', { name: /Refresh/ })).toHaveCount(0)
+
+  /**
+   * **And all of it is on the screen.** `toBeVisible` is not this check:
+   * Playwright counts an element visible when it has a box and is not hidden,
+   * so a panel hanging 77px off the left edge — which is what this was on
+   * Stephen's phone on 2026-09-16 — passes every assertion above while the
+   * start of every line is unreachable.
+   *
+   * It asserts geometry rather than a class name because the fault was
+   * geometry: the panel was anchored to the badge's right edge and opened
+   * leftward, and the badge sits near the left of the header.
+   */
+  const panel = await page.getByTestId('news-tooltip').boundingBox()
+  const width = page.viewportSize()?.width ?? 0
+  expect(panel).not.toBeNull()
+  expect(panel?.x, 'the news panel starts off the left of the screen').toBeGreaterThanOrEqual(0)
+  expect((panel?.x ?? 0) + (panel?.width ?? 0), 'the news panel runs off the right of the screen').toBeLessThanOrEqual(width)
 })
 
 test('F8-AC-16, F6-AC-09: the token’s own refresh runs at every scope, from whichever tab it is tapped on', async ({ page }) => {
