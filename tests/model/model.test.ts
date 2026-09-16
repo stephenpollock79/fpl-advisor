@@ -13,7 +13,15 @@
 
 import { describe, expect, it } from 'vitest'
 import { evaluationRows, type CardPlayer } from '../../packages/engine/src/index.js'
-import { PARSE_SCHEMA, PINNED, PROPOSAL_SCHEMA, liveModel, mockModel } from '../../apps/server/src/model/client.js'
+import {
+  EDITORIAL_SYSTEM,
+  PARSE_SCHEMA,
+  PINNED,
+  PROPOSAL_SCHEMA,
+  editorialPrompt,
+  liveModel,
+  mockModel,
+} from '../../apps/server/src/model/client.js'
 import { finalReasoning, reasoningIsAcceptable } from '../../apps/server/src/model/reasoning.js'
 
 const player = (projection: number, form: number): CardPlayer => ({
@@ -354,5 +362,44 @@ describe('F4-AC-09, ENGINE step 3 · a line that contradicts its own card is ref
     expect(asked).toContain("vice-captain's armband moves")
     expect(asked).toContain('no money moves')
     expect(asked).not.toContain('Haaland out, Junqueira in')
+  })
+})
+
+describe('The editorial is given the week, never the arithmetic over it (STE-142)', () => {
+  /**
+   * **A count written into prose cannot follow the data.** The editorial is
+   * frozen on the run row; every figure on the screen is re-derived on every
+   * world read. So a call that goes off between the run and the next open left
+   * the editorial claiming four above a screen showing three — which is what
+   * happened on 2026-09-16, when a vice call stored at conviction 5 and band
+   * *thin* came back at net −1.20 once its projections were refreshed.
+   *
+   * `CLAUDE.md` already rules it out: **code computes every figure shown**, and
+   * a count inside model prose is a figure the model computed.
+   *
+   * The trigger is building the prompt from a set of calls and looking for the
+   * total. Asserting the model's output would be asserting the model.
+   */
+  const call = (title: string, forced: boolean) => ({ title, net: 1.2, band: 'thin' as const, forced })
+
+  it('the prompt hands over the calls and never their total', () => {
+    const prompt = editorialPrompt({
+      calls: [call('A → B', true), call('C → D', false), call('E → F', false), call('G → H', false)],
+      exception: null,
+      squadSource: 'screenshot',
+    })
+
+    // Every call is there to write about.
+    for (const title of ['A → B', 'C → D', 'E → F', 'G → H']) expect(prompt).toContain(title)
+    // The number of them is not. `4 calls` is the exact string that shipped.
+    expect(prompt).not.toContain('4 calls')
+    expect(prompt).not.toMatch(/\d+ calls/)
+  })
+
+  it('and the instructions forbid counting, because the list is still countable', () => {
+    // Taking the total out of the prompt is not enough on its own: the model can
+    // count the lines it was given. Both halves are needed.
+    expect(EDITORIAL_SYSTEM).toMatch(/never state how many calls/i)
+    expect(EDITORIAL_SYSTEM).toMatch(/never count anything/i)
   })
 })
