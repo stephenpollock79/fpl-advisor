@@ -380,7 +380,7 @@ describe('The editorial is given the week, never the arithmetic over it (STE-142
    * The trigger is building the prompt from a set of calls and looking for the
    * total. Asserting the model's output would be asserting the model.
    */
-  const call = (title: string, forced: boolean) => ({ title, net: 1.2, band: 'thin' as const, forced })
+  const call = (title: string, forced: boolean) => ({ title, kind: 'transfer', net: 1.2, band: 'thin' as const, forced })
 
   it('the prompt hands over the calls and never their total', () => {
     const prompt = editorialPrompt({
@@ -439,6 +439,7 @@ describe('The editorial is never left to invent a cause (STE-146)', () => {
    */
   const call = (title: string, because?: string) => ({
     title,
+    kind: 'vice-captaincy change',
     net: 0,
     band: 'thin' as const,
     forced: false,
@@ -461,5 +462,37 @@ describe('The editorial is never left to invent a cause (STE-146)', () => {
     expect(EDITORIAL_SYSTEM).toMatch(/never give a reason you were not given/i)
     // The specific invention, named, because it is the one it reached for.
     expect(EDITORIAL_SYSTEM).toMatch(/injured, doubtful, out, unavailable or rotated/i)
+  })
+})
+
+describe('The editorial is told what kind of move each call is (STE-149)', () => {
+  /**
+   * **Two names and an arrow could be anything.** The prompt gave exactly that
+   * and nothing else, so a captaincy change read as one more swap in a list of
+   * them: *"Calafiori to De Cuyper, Semenyo to Groß, and Haaland to
+   * Calvert-Lewin"* — two substitutions and an armband, indistinguishable.
+   *
+   * The model could not have said which was which. It was never told, which is
+   * the same shape as the invented injury a step earlier (STE-146): a fact
+   * handed over without the attribute needed to describe it.
+   */
+  it('each call carries its kind, so a captaincy change cannot read as a transfer', () => {
+    const prompt = editorialPrompt({
+      calls: [
+        { title: 'Calafiori → De Cuyper', kind: 'substitution', net: 4.1, band: 'strong', forced: false },
+        { title: 'Haaland → Calvert-Lewin', kind: 'captaincy change', net: 3.1, band: 'strong', forced: false },
+      ],
+      exception: null,
+      squadSource: 'screenshot',
+    })
+
+    expect(prompt).toContain('Calafiori → De Cuyper · substitution')
+    expect(prompt).toContain('Haaland → Calvert-Lewin · captaincy change')
+  })
+
+  it('and it is told to use them, because knowing is not saying', () => {
+    expect(EDITORIAL_SYSTEM).toMatch(/say what kind of move each one is/i)
+    // The specific confusion: an armband listed among transfers.
+    expect(EDITORIAL_SYSTEM).toMatch(/never be listed alongside transfers/i)
   })
 })

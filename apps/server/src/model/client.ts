@@ -166,7 +166,7 @@ export type EditorialInput = {
    * `because` is code's sentence, never the model's, and it is the difference
    * between handing over a fact and handing over a fact with its reason.
    */
-  calls: { title: string; net: number; band: string | null; forced: boolean; because?: string }[]
+  calls: { title: string; kind: string; net: number; band: string | null; forced: boolean; because?: string }[]
   /** A lead sentence about this is shown above the paragraph (F8-AC-07). */
   exception: 'blank' | 'double' | null
   squadSource: 'deadline' | 'screenshot'
@@ -392,6 +392,10 @@ export const EDITORIAL_SYSTEM = [
   'vice armband as well, say it as one thing: who takes the armband, and who takes the vice.',
   '**Group what is alike rather than listing it.** "A couple of substitutions worth a look" beats three',
   'sentences naming each one; the tabs already name them.',
+  '**Say what kind of move each one is.** Every call is given with its kind beside it — a transfer, a',
+  'substitution, a captaincy change. Two names and an arrow could be any of them, and a run of them',
+  'reads as one long list of swaps. A captaincy change must never be listed alongside transfers as',
+  'though it were one; it buys no player and costs nothing.',
   'Use only the figures given. Never call the strength figure a chance, a likelihood or a confidence.',
   '**Never give a reason you were not given.** Where a call says why it is on the list, use that reason',
   'and no other. Where it does not, say what the call is and stop — do not reach for a cause.',
@@ -601,7 +605,7 @@ export function editorialPrompt(input: EditorialInput): string {
       : 'This week, in no particular order:',
     ...input.calls.map(
       (c) =>
-        `${c.title} \u00b7 net ${c.net >= 0 ? '+' : '-'}${Math.abs(c.net).toFixed(2)}` +
+        `${c.title} \u00b7 ${c.kind} \u00b7 net ${c.net >= 0 ? '+' : '-'}${Math.abs(c.net).toFixed(2)}` +
         `${c.forced ? ' \u00b7 forced' : c.band ? ` \u00b7 ${c.band}` : ''}` +
         `${c.because === undefined ? '' : ` \u00b7 ${c.because}`}`,
     ),
