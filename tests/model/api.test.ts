@@ -168,6 +168,38 @@ describe('ADR 0009, revisited · the screenshot read has its own pin and its own
     expect(captured[0]?.['model']).toBe('claude-haiku-4-5')
   })
 
+  it('a reply cut off at the ceiling says so, instead of looking like no answer at all', async () => {
+    // **The live failure, 2026-09-16.** Sonnet thinks by default and Haiku does
+    // not, so the budget written for Haiku was spent before the JSON finished.
+    // The API answered, nothing threw, and the screen said "the reader did not
+    // answer" — the same words a refusal or a wrong schema would have produced.
+    const cut = { ...answer('claude-sonnet-5', '{"team":{"players":[{"playerId":1,'), stop_reason: 'max_tokens' }
+    const { raw, because } = await apiModel({ client: fakeClient(cut), env: {} }).readSquadScreenshots(shot)
+
+    expect(raw).toBeNull()
+    expect(because).toContain('max_tokens')
+    expect(because).toContain('50 output tokens')
+  })
+
+  it('and a usable answer carries no reason, so the field never explains a success', async () => {
+    const { raw, because } = await apiModel({
+      client: fakeClient(answer('claude-sonnet-5', '{"team":{"players":[]}}')),
+      env: {},
+    }).readSquadScreenshots(shot)
+
+    expect(raw).toEqual({ team: { players: [] } })
+    expect(because).toBeUndefined()
+  })
+
+  it('the reader is given room to think and still answer', async () => {
+    // 2048 was Haiku's budget. Pinned because the failure it caused was silent:
+    // no error, no refusal, and a screen saying the reader did not answer.
+    const captured: Params[] = []
+    await apiModel({ client: fakeClient(answer('claude-sonnet-5', '{}'), captured), env: {} }).readSquadScreenshots(shot)
+
+    expect(captured[0]?.['max_tokens']).toBe(16000)
+  })
+
   it('its own override reaches it, and nothing else does', async () => {
     const captured: Params[] = []
     await apiModel({
