@@ -83,7 +83,17 @@ F7-AC-01 exists to prevent, and it would draw on the same £50.
 
 **So F7-UP-05 must not be read as met**, and no test may name it. It closes the
 day a second person is actually given access — which the criterion itself calls
-"a decision rather than a formality". *Home: STE-68.*
+"a decision rather than a formality".
+
+**Ruled by Stephen 2026-09-16: skipped, because there is no second person.** That
+is the right call and it is not a shortfall — the criterion describes a state of
+the world, not work anyone can do. **F7 therefore reads 30/31 at launch and that
+is the honest figure**, not a gap to be closed before Friday.
+
+*Home: STE-33*, where the MVP is called. Deliberately not STE-68, which closes
+with slice 10: a gaps entry naming a closed ticket is a pointer that looks
+checkable and is not, which is the failure `CLAUDE.md` warns about and P14
+repeats.
 
 **F7-AC-02, F7-AC-05, F7-AC-07, F7-UP-01 — closed 2026-09-16 by slice 10
 (STE-68).** The send is started and never awaited, and all three limits plus the
