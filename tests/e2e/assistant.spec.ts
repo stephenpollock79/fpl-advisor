@@ -256,23 +256,22 @@ test('F4-UP-02: rejecting the captain change holds the vice call rather than lea
 })
 
 /**
- * **The scoping criterion is deliberately not named here, not even to say it is
- * unmet** (STE-158) — `scripts/criteria-coverage.mjs` reads whole files, so
- * writing the identifier in this comment would count as covering it. That trap
- * has been sprung four times in this repo now, once this morning inside a
- * sentence claiming it named nothing.
+ * **The criterion this names was rewritten on 2026-09-16, and this test is why
+ * it is now true** (STE-158).
  *
- * This test used to assert the control named *transfers* on the Transfer tab and
+ * It used to assert the control named *transfers* on the Transfer tab and
  * *substitutions* on the Sub tab — which it did, and which was untrue of the run
- * behind it. Every run rewrites everything. Stephen ruled on 2026-09-16 that the
- * run keeps doing everything and the wording changes to match, so the criterion
- * asking for a per-screen scope is unmet until the PRD catches up, and must read
- * uncovered rather than green. It is in `docs/coverage-gaps.md` with why.
+ * behind it: every run rewrites everything and `run.scope` has never been set by
+ * anything. So the test passed while the criterion was false, which is the
+ * failure shape this repo keeps finding.
  *
- * `F6-AC-10` stays: asking before a run is genuinely met, and is what the rest
- * of this test proves.
+ * Stephen ruled the run keeps doing everything and the wording changes to match.
+ * The PRD now says the control **always rewrites the whole week, whichever
+ * screen it was tapped from** — so the assertion below is the criterion rather
+ * than a description of the build, and walking two tabs is what makes
+ * *whichever screen* a trigger this test causes rather than assumes.
  */
-test('F6-AC-10: the refresh control says what it rewrites, and asks before it runs', async ({ page }) => {
+test('F6-AC-07, F6-AC-10: the refresh control rewrites the whole week from any tab, and asks first', async ({ page }) => {
   await open(page)
 
   // A fixed square symbol, so its width cannot change with the tab and take the

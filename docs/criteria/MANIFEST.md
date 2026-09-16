@@ -1,6 +1,6 @@
 <!-- DERIVED FILE — DO NOT EDIT. Regenerate with extract-criteria.py. -->
 <!-- source: PRD - The FPL Advisor.md -->
-<!-- source-sha256: bc231076b22bf62b -->
+<!-- source-sha256: f5e1d5cf84fabce6 -->
 
 # Criteria files
 
@@ -15,9 +15,9 @@ Per-feature extracts of PRD section 3.2. A ticket cites a criterion by identifie
 | `F4.criteria.md` | F4 · Captain and vice-captain calls | 764 | 14 |
 | `F5.criteria.md` | F5 · Chip season plan | 658 | 15 |
 | `F9.criteria.md` | F9 · Chip proposal — Wildcard and Free Hit | 1066 | 26 |
-| `F6.criteria.md` | F6 · Refresh and regeneration | 1634 | 34 |
+| `F6.criteria.md` | F6 · Refresh and regeneration | 1643 | 34 |
 | `F7.criteria.md` | F7 · Account, access and session | 1515 | 31 |
 | `F8.criteria.md` | F8 · Assistant Overview — the week in one read | 1563 | 38 |
 | `NFR.criteria.md` | Non-functional requirements | 837 | 0 |
 
-Full PRD for comparison: 24,758 words.
+Full PRD for comparison: 24,767 words.
