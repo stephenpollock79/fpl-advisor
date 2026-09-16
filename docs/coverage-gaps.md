@@ -75,20 +75,27 @@ the criterion is what it costs.
 **So `F7-AC-16` may not be read as met from the coverage figure.** It closes with
 F5, when the design's own fifth claim comes back. *Home: STE-70.*
 
-**F8-AC-12 — the control is not where the criterion puts it.** The criterion
-says the refresh "sits in the Assistant status bar (3.1) and is scoped to every
-category at once, **labelled ALL**". Slice 8 built exactly that, and it was
-changed on Stephen's instruction the same evening: it is in the header, as a
-bare symbol, matching every other screen.
+**F8-AC-12 — the divergence is settled; what is left is a missing test and a
+contradiction elsewhere.**
 
-**What is still true:** there is one control, it is all-scope, and the scope is
-named — in its accessible name and on the confirmation sheet, which is the
-screen that has to say so. **What is not:** the position and the visible label.
+The criterion said the refresh control sits in the Assistant status bar labelled
+ALL. Slice 8 built exactly that and Stephen moved it the same evening — header,
+bare symbol, matching every other screen. **The PRD caught up on 2026-09-16**, so
+the criterion and the build now agree and this is no longer a divergence.
 
-**No test names `F8-AC-12`**, and it will read uncovered in the report until this
-is settled. Two ways to settle it, and both are Stephen's: move the control back
-and take the header's height with it, or amend the criterion in the PRD so the
-label lives where the confirmation already puts it. *Home: STE-66.*
+**Two things remain.** No test names `F8-AC-12`, so it reads uncovered in the
+report — the position of a control and the absence of a visible label are exactly
+what `CLAUDE.md` says to put on a human checklist rather than fake with a
+class-name assertion.
+
+**And `F6-AC-07` was not amended with it.** It still reads *"One refresh control,
+in the Assistant status bar (3.1), scoped to the screen it is on and naming that
+scope on itself"* — which now contradicts `F8-AC-12` outright, and contradicts the
+app. Section 3.1 and `F5-AC-06` say the same. **So the PRD currently puts the
+control in two places at once**, and a regeneration carries both.
+
+That is `G18`'s first bullet — two documents contradicting each other — and it is
+recorded rather than resolved here. *Home: STE-156.*
 
 **F7-AC-15 — closed 2026-09-15 by slice 8 (STE-66).** Confirming the team now
 goes straight into the first advice run, which is the Thinking state every other
@@ -391,39 +398,6 @@ refresh, and see the card still there reading *selected · locked*.
 **What would close it:** an end-to-end spec that decides a call, runs a refresh,
 and asserts the card survives it. *Home: STE-133.*
 
-**F2-AC-06 and F2-AC-07 — overruled by Stephen on 2026-09-16, and the PRD has
-not caught up.** Both describe a correction that *reconciles*: `F2-AC-06` says
-selected calls survive an upload and rejected ones stay suppressed, and
-`F2-AC-07` is the entire lock-breaking mechanism for the one exception.
-
-**The build now clears every decision for the gameweek on an upload**, rejections
-included. The reason is that reconciliation leaks: the mechanism knew two shapes
-of contradiction, and three holes were named in one evening — the bank moves
-with an upload and nothing checked affordability, the free-transfer count moves
-and nothing checked that either, and a captaincy or substitution call was
-excluded from contradiction altogether, so one naming a player the upload
-removed passed straight through. Each hole produces confident wrong advice,
-which is worse than a cleared board. And a decision taken before an upload was
-taken about a different squad.
-
-**So neither may be read as met from the coverage figure.**
-
-- `F2-AC-07` is **named by no test**, and reads uncovered. Nothing in the build
-  implements it any more.
-- `F2-AC-06` is still named by `tests/e2e/upload.spec.ts`, which covers its first
-  sentence — the correction runs through F6's regeneration rather than a path of
-  its own, and that is still true and still tested. **Its second sentence is
-  false by decision.**
-
-The behaviour that replaced them is tested — `an upload clears every decision,
-and the manager is told rather than left to notice` — and that test deliberately
-names no criterion, because naming one would report a criterion covered by a
-test asserting the opposite of what it says.
-
-*Home: STE-139*, which carries the Cowork prompt for the PRD edit. This entry is
-deleted when the criteria are regenerated, not before. Same shape as `F8-AC-12`:
-built as specified, changed on Stephen's instruction the same evening, recorded
-until the source catches up.
 
 
 
