@@ -85,6 +85,11 @@ export type RefreshInputs = {
    */
   calls: StoredCall[]
   decisions: Record<string, DecisionState>
+  /**
+   * **The squad that run was built on.** Null where there has never been a
+   * successful run — and null means everything is new, the safe direction.
+   */
+  fromSnapshotId: string | null
 }
 
 export type RunDeps = {
@@ -302,7 +307,26 @@ export function runRoutes(deps: RunDeps) {
          * A reuse writes no run at all: a succeeded run with no calls does not
          * reuse the week's advice, it replaces it with nothing.
          */
-        if (evidence && !evidence.worthPaying && moved.size === 0 && refresh.calls.length > 0) {
+        /**
+         * **A new squad is new evidence, and the gate could not see it**
+         * (found live 2026-09-16, STE-140; `F6-RS-06`).
+         *
+         * Both halves above look at the *feed*: FPL's player records, and the
+         * figures each stored call was made at. **Neither notices that the
+         * squad underneath every one of those calls has been replaced.** So an
+         * upload landed, nothing in the feed had moved, the week was reused —
+         * and reuse writes no run at all. The last-run time stayed at the
+         * morning's run, and the morning's calls stayed on screen, one of them
+         * offering to buy a player the new squad already held.
+         *
+         * The snapshot the last run was built on is recorded on the run row and
+         * was simply never read back. Comparing it is free and exact: a
+         * correction, a gameweek rollover, any re-capture at all produces a new
+         * snapshot id, and none of them may be answered with last week's advice.
+         */
+        const sameSquad = refresh.fromSnapshotId === week.snapshotId
+
+        if (sameSquad && evidence && !evidence.worthPaying && moved.size === 0 && refresh.calls.length > 0) {
           await send('done', { runId: null, calls: [], reused: true, changed: evidence.changed.length })
           return
         }
