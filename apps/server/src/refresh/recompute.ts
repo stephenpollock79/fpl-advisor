@@ -32,6 +32,23 @@ export type StoredFigure = {
   band: Band | null
   isReading: boolean
   pointsHit: number
+  /**
+   * **Why the run forced this call, carried so the re-derivation cannot lose
+   * it** (found live 2026-09-16, STE-143).
+   *
+   * A forced call is one the holder cannot answer — no fixture, excluded by the
+   * gate, or holding a role he is about to vacate. The first of those is
+   * visible here; **the others are not, and re-deriving without them silently
+   * overrules the plan.**
+   *
+   * That is what happened. The captain call proposed moving the armband onto
+   * the current vice, so the plan forced the vice call — a player cannot wear
+   * both. The world read re-derived it knowing only the fixture, found nobody
+   * projecting higher than the holder, and demoted it to *he keeps the vice
+   * armband*. The screen then advised promoting him to captain **and** keeping
+   * him as vice, which cannot be done.
+   */
+  isForced: boolean
 }
 
 export type Recomputed = {
@@ -156,7 +173,13 @@ export function recomputeCall(call: StoredFigure, sides: Map<number, SideNow>): 
     incumbent: side(out, weeks),
     challenger: side(into, weeks),
     pointsHit: call.pointsHit,
-    incumbentUnplayable: !out.hasFixture,
+    /**
+     * **A call the run forced stays forced.** `hasFixture` is only one of the
+     * reasons a holder cannot answer, and it is the only one visible from here
+     * — so re-deriving on it alone quietly reverses the plan's own reason for
+     * the call (STE-143).
+     */
+    incumbentUnplayable: !out.hasFixture || call.isForced,
     ...(isTransfer
       ? { money: { incomingPriceTenths: into.priceTenths, outgoingSellingPriceTenths: out.sellingPriceTenths ?? 0 } }
       : {}),

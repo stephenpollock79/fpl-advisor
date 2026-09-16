@@ -32,6 +32,7 @@ const call = (extra: Partial<StoredFigure> = {}): StoredFigure => ({
   band: 'certain',
   isReading: false,
   pointsHit: 0,
+  isForced: false,
   ...extra,
 })
 
@@ -127,6 +128,7 @@ describe('a transfer is re-derived too, and that is not a detail', () => {
     band: 'lean',
     isReading: false,
     pointsHit: 0,
+    isForced: false,
     ...extra,
   })
 
@@ -179,6 +181,7 @@ describe('a transfer is re-derived too, and that is not a detail', () => {
       band: 'lean',
       isReading: false,
       pointsHit: 0,
+      isForced: false,
     }
     const sides = world(side(1, 2.4, { inSquad: true }), side(2, 7.0, { inSquad: true }))
 
@@ -202,5 +205,49 @@ describe('a transfer is re-derived too, and that is not a detail', () => {
     expect(all).toHaveLength(1)
     expect(all[0]?.conviction).toBe(68)
     expect(all[0]?.band).toBe('lean')
+  })
+})
+
+describe('A call the run forced stays forced when it is re-derived (STE-143)', () => {
+  /**
+   * **The live defect, 2026-09-16.** The captain call proposed moving the
+   * armband onto the current vice, so the plan forced the vice call — a player
+   * cannot wear both. The world read re-derived it knowing only the fixture,
+   * found nobody projecting higher than the holder, and demoted it to *he keeps
+   * the vice armband*.
+   *
+   * The screen then advised promoting him to captain **and** keeping him as
+   * vice, which cannot be done, and the reasoning paragraph still argued for
+   * the change the card had stopped proposing.
+   *
+   * **The trigger is a forced call whose holder outprojects the challenger** —
+   * the only circumstance where the two paths can disagree, and the one the
+   * re-derivation had no way to see.
+   */
+  const viceCall = (isForced: boolean): StoredFigure => ({
+    key: 'captaincy:vice:from=1:to=2',
+    identity: { type: 'vice', fromPlayerId: 1, toPlayerId: 2 },
+    outPlayerId: 1,
+    inPlayerId: 2,
+    conviction: 5,
+    band: 'thin',
+    isReading: false,
+    pointsHit: 0,
+    isForced,
+  })
+
+  // The holder projects far better than the challenger, so on the arithmetic
+  // alone this is plainly a keep. The plan forced it anyway, and the reason is
+  // not in these numbers.
+  const sides = () => world(side(1, 7.9), side(2, 5.0))
+
+  it('the holder outprojecting the challenger no longer overrules the reason the call exists', () => {
+    expect(recomputeCall(viceCall(true), sides()).isReading).toBe(false)
+  })
+
+  it('and an unforced call in the same shape is still read as a keep, so nothing is forced through', () => {
+    // The guard must not make every call survive re-derivation — only the ones
+    // the run had a reason for.
+    expect(recomputeCall(viceCall(false), sides()).isReading).toBe(true)
   })
 })
