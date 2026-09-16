@@ -9,7 +9,7 @@
 .screen {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   padding:
     calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
     calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
@@ -19,7 +19,7 @@
   overflow: hidden;
 }
 
-.header { display: flex; flex-direction: column; gap: 8px; }
+.header { display: flex; flex-direction: column; gap: 6px; }
 
 .brandRow { display: flex; align-items: center; gap: 8px; }
 
@@ -60,7 +60,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -77,8 +77,8 @@
 }
 
 /* The deadline is the one figure with a clock on it, and it reads warm. */
-.deadline { font-size: 14px; font-weight: 800; color: #b4791a; }
-.figure { font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--ink); }
+.deadline { font-size: 13px; line-height: 1.2; font-weight: 800; color: #b4791a; }
+.figure { font-family: var(--font-mono); font-size: 12px; line-height: 1.2; font-weight: 700; color: var(--ink); }
 .balance { color: var(--green-dark); }
 
 .chips { display: flex; align-items: center; gap: 8px; }
@@ -86,8 +86,8 @@
 /* Poker chips: blue, with a segmented edge. Spent ones go flat grey. */
 .chip {
   position: relative;
-  width: 37px;
-  height: 37px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -137,7 +137,7 @@
 .modeOn,
 .modeOff {
   flex: 1;
-  height: 36px;
+  height: 30px;
   border-radius: var(--radius-field);
   border: 1px solid transparent;
   font-family: inherit;
@@ -164,7 +164,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  padding: 22px 4px 14px;
+  padding: 10px 4px 4px;
   border-radius: var(--radius-card);
   overflow: hidden;
   background:
@@ -232,7 +232,7 @@
   display: flex;
   justify-content: space-evenly;
   align-items: flex-start;
-  gap: 4px;
+  gap: 3px;
   padding: 0 4px;
 }
 
@@ -242,7 +242,7 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-card);
   background: var(--card);
-  padding: 5px 6px 6px;
+  padding: 4px 6px 5px;
 }
 
 .benchRow { display: flex; gap: 5px; }
@@ -266,25 +266,13 @@
 .avatarButton { flex: none; padding: 0; border: 0; background: none; line-height: 0; cursor: pointer; }
 
 
-/* The pitch itself gives ground too, on the same reasoning as the card (STE-164).
-   Padding and row gaps are the cheapest height in the layout: nobody reads them,
-   and the alternative is a row nobody can see. */
-@media (max-height: 760px) {
-  .pitch { padding: 10px 4px 4px; }
-  .row { gap: 3px; }
-  /* The values shrink, never the labels. **The eyebrows stay at 10px**: that is
-     the type floor STE-79 raised them to this morning, and taking it back here
-     would undo an accessibility change to buy four pixels. */
-  .deadline { font-size: 13px; line-height: 1.2; }
-  .figure { font-size: 12px; line-height: 1.2; }
-  .facts { padding-bottom: 4px; }
-  .header { gap: 6px; }
-  .bench { padding: 4px 6px 5px; }
-  /* The chips and the Pitch/Stat toggle are the two tallest things above the
-     grass and neither carries text that needs the room. Six pixels off each is
-     invisible; a forwards line nobody can see is not. */
-  .chip { width: 32px; height: 32px; }
-  .modeOn,
-  .modeOff { height: 30px; }
-  .screen { gap: 6px; }
-}
+/* **One layout, at every height** (2026-09-16). These values were a
+   `max-height: 760px` override until the day an app added to the home screen
+   showed why that was the wrong test: a media query reads the *viewport*, which
+   is 844 there, while the height actually left after the status bar and the home
+   indicator is about 735 — tighter than any browser case the override was
+   written for. The screen with the most chrome got the layout for the screen
+   with the least.
+
+   Padding and row gaps are the cheapest height in the layout anyway: nobody
+   reads them, and the alternative is a row nobody can see (STE-171). */
