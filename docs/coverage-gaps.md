@@ -75,27 +75,21 @@ the criterion is what it costs.
 **So `F7-AC-16` may not be read as met from the coverage figure.** It closes with
 F5, when the design's own fifth claim comes back. *Home: STE-70.*
 
-**F8-AC-12 — the divergence is settled; what is left is a missing test and a
-contradiction elsewhere.**
+**F8-AC-12 — settled everywhere; what is left is a missing test.**
 
 The criterion said the refresh control sits in the Assistant status bar labelled
 ALL. Slice 8 built exactly that and Stephen moved it the same evening — header,
-bare symbol, matching every other screen. **The PRD caught up on 2026-09-16**, so
-the criterion and the build now agree and this is no longer a divergence.
+bare symbol, matching every other screen. **The PRD caught up on 2026-09-16**,
+and `F6-AC-07`, section 3.1 and `F5-AC-06` followed it there the same day
+(STE-156), so every statement about the control now agrees with the app and with
+each other. The divergence and the contradiction are both gone.
 
-**Two things remain.** No test names `F8-AC-12`, so it reads uncovered in the
-report — the position of a control and the absence of a visible label are exactly
-what `CLAUDE.md` says to put on a human checklist rather than fake with a
-class-name assertion.
-
-**And `F6-AC-07` was not amended with it.** It still reads *"One refresh control,
-in the Assistant status bar (3.1), scoped to the screen it is on and naming that
-scope on itself"* — which now contradicts `F8-AC-12` outright, and contradicts the
-app. Section 3.1 and `F5-AC-06` say the same. **So the PRD currently puts the
-control in two places at once**, and a regeneration carries both.
-
-That is `G18`'s first bullet — two documents contradicting each other — and it is
-recorded rather than resolved here. *Home: STE-156.*
+**What remains is a test that does not exist.** No test names `F8-AC-12`, so it
+reads uncovered in the report — and it should stay that way. The position of a
+control and the *absence* of a visible label are exactly what `CLAUDE.md` says to
+put on a human checklist rather than fake with a class-name assertion. It needs a
+row in `docs/manual-coverage.md` written from a real pass on the phone, not a
+test. *Home: STE-133.*
 
 **F7-AC-15 — closed 2026-09-15 by slice 8 (STE-66).** Confirming the team now
 goes straight into the first advice run, which is the Thinking state every other
