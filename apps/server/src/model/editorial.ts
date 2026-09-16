@@ -28,6 +28,28 @@ const BLOCKLIST: readonly RegExp[] = [
   /\bconfiden\w*/i,
   /\bodds\b/i,
   /\bchance of being\b/i,
+  /**
+   * **Nothing about fitness, because nothing about fitness is ever given**
+   * (STE-146, made a mechanism 2026-09-16 on STE-148).
+   *
+   * The editorial receives a title, a kind, a net, a band and sometimes a
+   * reason. It has no availability data, no news, no minutes. Asked to explain a
+   * call worth +0.00 on a *thin* band it invented one: *"Injury forces
+   * Calvert-Lewin out"*, about a fit player it recommended for the captaincy two
+   * clauses later.
+   *
+   * **The instruction forbidding that is a convention; this is the mechanism.**
+   * A paragraph reaching for a cause it cannot know is replaced by the template
+   * rather than shown, the same way a card's reasoning line already is.
+   */
+  /\binjur\w*/i,
+  /\bdoubtful\b/i,
+  /\bunavailable\b/i,
+  /\bsuspend\w*|\bsuspension\b/i,
+  /\bfit(ness)?\b/i,
+  /\brotat\w*/i,
+  /\bminutes\b/i,
+  /\bknock\b/i,
   // Structure the card cannot render: it is a paragraph with a five-line clamp.
   /^\s*[-*•]\s/m,
   /^#{1,6}\s/m,
@@ -52,16 +74,35 @@ export function templateEditorial(input: EditorialInput): string {
     return 'Nothing in your fifteen is worth changing this week. That is a decision, not an empty screen — hold what you have.'
   }
 
-  const forced = input.calls.filter((c) => c.forced).length
+  /**
+   * **The fallback obeys every rule the model obeys** (STE-148).
+   *
+   * It did not, and that is how the complaint that opened STE-142 survived its
+   * own fix. This read *"1 of this week's 4 calls are forced, so start there"* —
+   * the exact sentence on Stephen's screen at 01:58 — and the fix removed the
+   * count from the **prompt**, never touching the template that was actually
+   * writing it. A rule applied to the model and not to the code standing in for
+   * it is not a rule; it is a rule with a hole the shape of its fallback.
+   *
+   * So: **no counts** (a number in frozen prose cannot follow the data,
+   * STE-142), **name what it points at** (STE-144), and **never point at a call
+   * that is only real if another is taken first** — which is why the forced call
+   * is described rather than made the starting place.
+   */
   const best = [...input.calls].sort((a, b) => b.net - a.net)[0]
-  const opening =
-    forced > 0
-      ? `${String(forced)} of this week's ${String(input.calls.length)} calls are forced, so start there.`
-      : `${String(input.calls.length)} call${input.calls.length === 1 ? '' : 's'} to weigh this week, none of them forced.`
+  const forced = input.calls.find((c) => c.forced)
+
+  if (forced) {
+    return `${forced.title} is forced — ${forced.kind}, and not a choice. ${
+      best && best.title !== forced.title
+        ? `The biggest gain elsewhere is ${best.title}.`
+        : 'The rest of the week is yours to weigh.'
+    }`
+  }
 
   return best
-    ? `${opening} The biggest gain on the table is ${best.title}, at ${best.net >= 0 ? '+' : '−'}${Math.abs(best.net).toFixed(2)} projected points.`
-    : opening
+    ? `The biggest gain on the table is ${best.title} — ${best.kind}, at ${best.net >= 0 ? '+' : '−'}${Math.abs(best.net).toFixed(2)} projected points. The rest are worth weighing against it.`
+    : 'Nothing this week stands out. Weigh what is there and hold the rest.'
 }
 
 /** The paragraph the card shows, and where it came from. */
