@@ -1,6 +1,6 @@
 <!-- DERIVED FILE - DO NOT EDIT. Regenerate with extract-build-plan.py in the vault. -->
 <!-- source: Build Plan - The FPL Advisor.md -->
-<!-- source-sha256: 1b0371102b931048 -->
+<!-- source-sha256: 0c39c9dfa94993c6 -->
 
 # Build order and schedule
 
@@ -61,11 +61,11 @@ status from Linear — never restate one in another.
 | **Fri 11**    | 5 · F3 (STE-62, STE-63)                             | —                                                                              | The calls                                           |
 | **Mon 14**    | 6 · F4 (STE-64) · 7 · F6 (STE-65)                   | STE-77, STE-111, STE-128, STE-129, STE-130, STE-131, STE-132                   | Captaincy and refresh                               |
 | **Tue 15**    | 8 · F8 + F7-surface (STE-66) · 9 · F2 (STE-67)      | —                                                                              | The surface                                         |
-| **Wed 16**    | 10 · F7 hardening (STE-68)                          | STE-38, STE-79, STE-80, STE-119, STE-122, STE-125, STE-139, STE-152            | E2E week opens                                      |
-| **Thu 17**    | —                                                   | STE-37, STE-133                                                                | The eval-grading decision, and the orphaned gaps    |
-| **Fri 18**    | —                                                   | STE-39, STE-40, STE-154                                                        | **Launch — live run at the GW5 deadline, 18:30 UK** |
+| **Wed 16**    | 10 · F7 hardening (STE-68)                          | STE-38, STE-80, STE-119, STE-122, STE-125, STE-139, STE-152 · and the queue the day opened and closed behind them — security (STE-161, STE-174), visual polish (STE-79, STE-164–STE-169, STE-171), the open screen (STE-170), the spec word budget (STE-172) · STE-39 and STE-133 closed here too | E2E week opens, and clears                          |
+| **Thu 17**    | —                                                   | STE-40                                                                         | The retro, the shipped entry, and **the MVP cut**   |
+| **Fri 18**    | —                                                   | STE-154                                                                        | **Launch — the deadline stop, just after 18:30 UK** |
 | **Sat 19 – Sun 20** | —                                             | —                                                                              | No work. GW5 plays out                              |
-| **Mon 21**    | —                                                   | STE-155, STE-33                                                                | The settled-data check, and **call the MVP**        |
+| **Mon 21**    | —                                                   | STE-155                                                                        | The settled-data check                              |
 | not committed | 11 · F5 (STE-70) · 12 · F9 (STE-71)                 | —                                                                              | Below the cut line                                  |
 
 **The three days after launch are verification, not build days, and the launch date has not moved.** GW5's
@@ -74,8 +74,13 @@ checks can be run at all: `STE-154` wants the deadline stop observed *just after
 last gameweek's points read *after* bonus has settled on the Monday. Neither can be brought forward and
 neither is code — they are the first weekend the app has ever been live across a deadline.
 
-**`STE-33` moves to Monday 21 with them.** The MVP cut is called against what the live run and the settled-data
-check actually showed, rather than the day before either of them happens.
+**The MVP cut was held to Monday 21 with them, and has since moved to Thursday 17.** The reason for the hold
+stands on its own terms: the cut should be called against what was seen working rather than what was built,
+which meant waiting for the first live run. **That run landed early.** The loop ran against the real GW5
+deadline through the week, with the moves made on Wednesday 16th — which is the evidence the hold was waiting
+for. So the cut moves to Thursday and is called with the retro; `STE-33` is merged into `STE-40` rather than
+run separately. `STE-154` and `STE-155` stay where they are: each verifies one narrow behaviour, and neither
+is evidence about scope.
 
 **Four ordering constraints that are not obvious from the dates.**
 
