@@ -162,12 +162,12 @@ and `F6-AC-07`, section 3.1 and `F5-AC-06` followed it there the same day
 (STE-156), so every statement about the control now agrees with the app and with
 each other. The divergence and the contradiction are both gone.
 
-**What remains is a test that does not exist.** No test names `F8-AC-12`, so it
-reads uncovered in the report — and it should stay that way. The position of a
-control and the *absence* of a visible label are exactly what `CLAUDE.md` says to
-put on a human checklist rather than fake with a class-name assertion. It needs a
-row in `docs/manual-coverage.md` written from a real pass on the phone, not a
-test. *Home: STE-178.*
+**Closed 2026-09-16 (STE-178), and not by a test.** No test names `F8-AC-12` and
+none should: the position of a control and the *absence* of a visible label are
+exactly what `CLAUDE.md` says to put on a human checklist rather than fake with a
+class-name assertion. Stephen confirmed it on the live app and it has a row in
+`docs/manual-coverage.md` written from that pass — which is why the criterion
+moves in the report without a line of test code being written.
 
 **F7-AC-15 — closed 2026-09-15 by slice 8 (STE-66).** Confirming the team now
 goes straight into the first advice run, which is the Thinking state every other
@@ -326,8 +326,9 @@ Deliberately **not** entered in `docs/manual-coverage.md`: that register holds
 criteria that have been verified, and an entry made in advance would turn the
 coverage figure into a claim about the future.
 
-*Home: STE-178*, as the first slice that puts the figure in front of
-anyone.
+**Closed 2026-09-16 (STE-178).** Stephen confirmed across a week of real use
+that the percentage lands as the strength of the call rather than as a chance of
+being right, and the register carries the row.
 
 *Automated half closed 2026-09-11 (slice 5).* The figure is labelled *strength*,
 and `tests/client/surface-rules.test.ts` fails on probability vocabulary in any
@@ -456,7 +457,7 @@ half the criterion is about, because a cancel recorded as `failed` is a failure
 put in front of him for something he chose to do.
 
 **What would close it:** read the `run` row after cancelling a real run and
-confirm its status is `cancelled`. *Home: STE-178.*
+confirm its status is `cancelled`. *Home: STE-180.*
 
 **F6-UP-03's stop has been run against real data once, and only in the direction
 that proves nothing.** On 2026-09-14, on `97bc6c7`, opening the app with gameweek
