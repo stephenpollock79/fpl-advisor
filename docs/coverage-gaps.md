@@ -339,11 +339,23 @@ by slice 8 (STE-66).** Each was counted covered off a test proving one half.
 - `F3-UP-05` — **closed.** A world whose run produced no calls now reaches the
   editorial's "why", a call count reading none, an empty tally and identical
   Before and After.
-- `F3-AC-17` — **still open.** *Forced* is built and tested. *Watch*'s **price**
-  trigger is built (2026-09-11), from FPL's own forecast in `bootstrap-static`:
-  set on a transfer when either player is at FPL's strongest likelihood of a
-  change tonight and not locked. The **press-conference** trigger has no data
-  source. *Home: STE-117.*
+- `F3-AC-17` — **still open, and down to one trigger.** *Forced* is built and
+  tested. *Watch*'s **price** trigger is built (2026-09-11), from FPL's own
+  forecast in `bootstrap-static`: set on a transfer when either player is at
+  FPL's strongest likelihood of a change tonight and not locked.
+
+  **That half was thought impossible and was not.** The ticket holding it said
+  FPL publishes realised price changes and never predicted ones, so a trigger
+  would need a price-prediction model — which `CLAUDE.md` forbids. The forecast
+  was in the payload the ingestion already read. Nothing had to be predicted;
+  it is FPL's own figure, consumed as the projections are. **Check the payload
+  before concluding a feed lacks something** — the absence was in the reading.
+
+  The **press-conference** trigger has no data source, and closing it is a
+  decision about whether to introduce scraping rather than a missing
+  implementation. *Home: STE-163* (Post MVP), split out on 2026-09-16 when
+  STE-117 closed with the half it had built — a gaps entry naming a closed
+  ticket is a pointer that looks checkable and is not.
 
 `F3-AC-17` may not be read as met from the coverage figure.
 
