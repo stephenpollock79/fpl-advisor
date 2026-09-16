@@ -384,3 +384,44 @@ test('F6-AC-16: the first run of a gameweek streams like any other, with a pipel
   await expect(thinking).toContainText('PIPELINE')
   await expect(thinking.getByRole('button', { name: /usually under a minute/i })).toBeEnabled()
 })
+
+test('F3-AC-12: a cleared category offers what is left elsewhere, and a way back to the overview', async ({ page }) => {
+  /**
+   * **The screen used to stop after the decided rows**, leaving about 55% of the
+   * phone blank — which on a phone reads as a page that failed to load rather
+   * than a job finished (STE-165). It is also the screen reached by *succeeding*
+   * at the thing the app is for, which is a poor moment to look broken.
+   *
+   * The counts come from the same list the tab strip counts, so the two cannot
+   * disagree about how much is left.
+   */
+  await open(page)
+
+  await page.getByRole('button', { name: /Select/ }).click()
+  await page.getByRole('button', { name: /Reject/ }).click()
+  await expect(page.getByText('Transfers decided')).toBeVisible()
+
+  await expect(page.getByText('Still to decide')).toBeVisible()
+  const subs = page.getByRole('button', { name: /Substitutions/ })
+  await expect(subs).toContainText('2 calls')
+
+  // Each one is a route, not a label.
+  await subs.click()
+  await expect(page.getByRole('tab', { name: /Sub/ })).toHaveAttribute('aria-selected', 'true')
+})
+
+test('F3-AC-12: with every call decided, the cleared screen says so rather than listing nothing', async ({ page }) => {
+  // The empty-outstanding branch: all six decided, so there is no next category
+  // to offer and the screen must not show an empty heading (STE-165).
+  await open(page, {
+    [T1]: 'selected',
+    [T2]: 'rejected',
+    'substitution:upgrade:out=557:in=40': 'selected',
+    'substitution:doubt:out=423:in=112': 'rejected',
+    [CAPTAIN]: 'selected',
+    [VICE]: 'rejected',
+  })
+
+  await expect(page.getByTestId('all-decided')).toHaveText('Every call this week is decided.')
+  await expect(page.getByText('Still to decide')).toHaveCount(0)
+})

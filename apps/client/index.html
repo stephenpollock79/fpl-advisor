@@ -6,6 +6,34 @@
     <title>The Gaffer</title>
     <meta name="theme-color" content="#faf8f3" />
     <!--
+      **Added to the home screen, this runs with no browser at all** (STE-166).
+
+      The theme colour above is honoured by Safari and ignored by Chrome on iOS,
+      so on Chrome the cream body sat as a band between two white bars. That is
+      one browser declining an instruction rather than a palette that fails to
+      blend, and repainting the app white to work around it would have been the
+      wrong fix for the wrong cause.
+
+      `display: standalone` in the manifest, plus the Apple meta below, removes
+      the browser instead: no address bar, no toolbar, cream to the edges in any
+      browser. **Only Safari can install it** — Apple does not let Chrome on iOS
+      add to the home screen — so the route is Safari, Share, Add to Home Screen.
+
+      The layouts already survive this. Every screen is sized with `100svh`, the
+      *small* viewport height, which is the conservative figure taken when chrome
+      is at its largest; with no chrome the screens gain room rather than lose
+      it. And `env(safe-area-inset-*)` is already honoured on each of them, which
+      is what stops content sliding under the notch once the browser is gone.
+    -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- `default` keeps the status bar legible on the cream ground. `black-translucent`
+         would draw the app under the clock and hand the header a second job. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="The Gaffer" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+    <!--
       The three faces the design system specifies. Preconnect first because this
       is on the one path of every cold open, and the Performance NFR budgets three
       seconds to a responsive screen.
