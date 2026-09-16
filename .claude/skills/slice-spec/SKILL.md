@@ -194,8 +194,20 @@ Two lists, split by mechanism. See the rules below.
 
 </spec-template>
 
-**Word budget.** Seams 250 · Modules 200 · Interfaces 400 · Criteria in scope 150 ·
-Verification 250. **1,250 words total.** Over budget means cut, never append.
+**Word budget.** Seams 300 · Modules 125 · Interfaces 450 · Criteria in scope 125 ·
+Verification 400. **1,400 words total.** Over budget means cut, never append.
+
+**Repriced 2026-09-16 (STE-172) — do not tidy it back.** The first budget was written
+before `P16` and `P17` existed, and both add words deliberately: `P17` makes *Interfaces*
+name every value rather than describe a behaviour, and `P16` makes each verification entry
+say what *causes* the criterion's trigger, so every line in that section is longer by
+design. Measured across the seven specs written under the old numbers, **Verification
+overran on five of seven and twice by roughly double** (213 · 250 · 314 · 317 · 381 · 481 ·
+501 against 250), while **Modules never once reached 125** (longest: 120) and *Criteria in
+scope* never reached 150. So the two sections that were over-funded pay for the two rules
+that were never priced. A budget that a rule guarantees you will exceed is not a budget; it
+is a rule nobody can follow, and the first thing to go is whichever one is cheaper to
+ignore.
 
 ### 6. The verification section
 
