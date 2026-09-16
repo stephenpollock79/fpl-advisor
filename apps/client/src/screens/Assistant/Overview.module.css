@@ -207,7 +207,41 @@
   padding: 9px 10px; border: 0; background: none; cursor: pointer; text-align: left; font-family: inherit;
 }
 
-.cardTop { display: flex; align-items: center; gap: 5px; min-width: 0; }
+/* ---------------------------------------------------------------------------
+   The call row's green header (STE-168).
+   ---------------------------------------------------------------------------
+   **These were the only cards in the app without one.** The editorial card, the
+   squad widget and the head-to-head card all open with a green cap; the call
+   rows opened with plain text on white, which is why they read as less finished
+   than everything around them.
+
+   It bleeds out of `.cardContent`'s padding so the bar reaches that panel's
+   edges — and stops there, at the seam. The decision column keeps its own cream
+   ground, because `F8-AC-28` wants those two panels to read as adjacent rather
+   than as one tappable card, and a header running the full width would join
+   them back together. */
+.cardTop {
+  display: flex; align-items: center; gap: 5px; min-width: 0;
+  margin: -9px -10px 0; padding: 7px 10px;
+  background: var(--green-dark); color: #fff;
+}
+
+.cardTop .cardTitle,
+.cardTop .chevron { color: #fff; }
+
+/* **A rejected header is a different treatment, not the same one dimmed.**
+   `.rejected` fades the whole card to 55%, and white on dark green survives that
+   at about 1.9:1 — the title would disappear on exactly the cards a manager is
+   re-reading because he is thinking about changing his mind. A pale ground with
+   dark ink comes through the same fade at about 3.1:1 and keeps the quieter
+   look the fade is for.
+
+   Same shape as the pitch's fixture chip: where a treatment works on one ground
+   and not another, the answer is a second treatment rather than the first one
+   turned down. */
+.rejected .cardTop { background: var(--green-tint); }
+.rejected .cardTop .cardTitle { color: var(--ink); }
+.rejected .cardTop .chevron { color: var(--muted); }
 
 .cardTitle { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 800; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 

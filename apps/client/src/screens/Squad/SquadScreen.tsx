@@ -32,9 +32,6 @@ const CHIPS: [string, string][] = [
   ['3xc', 'TC'],
 ]
 
-/** Bench slot labels: the substitute keeper, then outfield one, two, three. */
-const BENCH_SLOTS = ['GK', '1', '2', '3']
-
 export function SquadScreen({
   world,
   onAssistant,
@@ -218,8 +215,15 @@ function Pitch({ world }: { world: World }) {
         <PitchLines />
         <span className={styles.gwBadge}>GW{world.gameweek.id}</span>
         <span className={styles.formation}>{formationOf(world.players).split('-').join(' - ')}</span>
-        <span className={styles.xpts}>
-          xPts {totalProjected(world.players, { starters: true }).toFixed(1)}
+        {/* Starters and bench, side by side. **The bench total lives here now**
+            rather than over the bench itself: F1-AC-22 is about a bench total
+            existing and agreeing with its four players, and the label row it
+            used to sit in was costing the forwards their row (STE-164). */}
+        <span className={styles.totals}>
+          <span className={styles.xpts}>xPts {totalProjected(world.players, { starters: true }).toFixed(1)}</span>
+          <span className={styles.xpts}>
+            Bench {totalProjected(world.players, { starters: false }).toFixed(1)}
+          </span>
         </span>
 
         {/* The corner figure counting blanks and doubles (F1-UP-01, F1-UP-02). */}
@@ -240,19 +244,14 @@ function Pitch({ world }: { world: World }) {
 
       </div>
 
+      {/* **No heading and no slot labels.** Four cards on white below the grass
+          read as the bench without being told, and the order is the order
+          F1-AC-02 fixes — keeper first. The S / S1 / S2 / S3 badges F1-AC-18
+          asks for are the stat table's, and always were. */}
       <div className={styles.bench}>
-        <div className={styles.benchLabel}>
-          Bench
-          <span className={styles.benchPoints}>
-            xPts {totalProjected(world.players, { starters: false }).toFixed(1)}
-          </span>
-        </div>
         <div className={styles.benchRow}>
-          {bench.map((p, i) => (
+          {bench.map((p) => (
             <div key={p.playerId} className={styles.benchCard}>
-              <div className={styles.benchSlot}>
-                {BENCH_SLOTS[i]} · {p.position}
-              </div>
               <PlayerSlot player={p} tight card />
             </div>
           ))}

@@ -18,7 +18,7 @@
  */
 
 import { test } from '@playwright/test'
-import { CAPTAIN, T1, bench, open, player, squad, world } from './fixture'
+import { CAPTAIN, T1, T2, bench, open, player, squad, world } from './fixture'
 
 const OUT = process.env['SHOT_DIR'] ?? 'polish-shots'
 
@@ -207,4 +207,11 @@ test('widest — five in midfield (3-5-2)', async ({ page }) => {
   await open(page, {}, world.calls, { players: five }, null)
   await page.getByRole('tab', { name: 'Squad' }).click()
   await shot(page, '22-widest-five-mid')
+})
+
+/** The Overview's call rows, with one of each decision state on screen (STE-168). */
+test('overview — call rows, selected and rejected', async ({ page }) => {
+  await open(page, { [T1]: 'selected', [T2]: 'rejected' }, world.calls, {}, null)
+  await page.getByLabel('Transfers').evaluate((el) => { el.scrollIntoView({ block: 'start' }) })
+  await shot(page, '23-overview-call-rows')
 })

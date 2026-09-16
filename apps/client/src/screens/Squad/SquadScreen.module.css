@@ -113,9 +113,9 @@
 .update {
   margin-left: auto;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
+  justify-content: center;
+  gap: 5px;
   min-width: 58px;
   padding: 5px 9px;
   border-radius: var(--radius-field);
@@ -196,14 +196,17 @@
 
 /* Position only, below this line. */
 .gwBadge,
-.xpts,
+.totals,
 .formation {
   position: absolute;
 }
 
 .gwBadge { top: 7px; left: 8px; }
-.xpts { top: 7px; right: 8px; }
 .formation { top: 7px; left: 52px; }
+
+/* Starters and bench as two pills on one track, so neither needs to know how
+   wide the other is. */
+.totals { top: 7px; right: 8px; display: flex; gap: 5px; }
 
 .corner {
   position: absolute;
@@ -242,19 +245,6 @@
   padding: 5px 6px 6px;
 }
 
-.benchLabel {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 3px;
-}
-
-.benchPoints { color: var(--ink-3); }
 .benchRow { display: flex; gap: 5px; }
 
 .benchCard {
@@ -262,23 +252,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* One number, used twice: the label sits the same distance from the top of the
-     card as the shirt sits from the label. */
-  gap: 5px;
-  padding: 5px 2px 5px;
+  padding: 4px 2px;
   border-radius: 10px;
   background: var(--warm-2);
   border: 1px solid var(--border-light);
-}
-
-.benchSlot {
-  font-family: var(--font-mono);
-  line-height: 1.2;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 .attribution { font-size: 10px; color: var(--muted); text-align: center; }
@@ -295,6 +272,14 @@
 @media (max-height: 760px) {
   .pitch { padding: 10px 4px 4px; }
   .row { gap: 3px; }
+  /* The values shrink, never the labels. **The eyebrows stay at 10px**: that is
+     the type floor STE-79 raised them to this morning, and taking it back here
+     would undo an accessibility change to buy four pixels. */
+  .deadline { font-size: 13px; line-height: 1.2; }
+  .figure { font-size: 12px; line-height: 1.2; }
+  .facts { padding-bottom: 4px; }
+  .header { gap: 6px; }
+  .bench { padding: 4px 6px 5px; }
   /* The chips and the Pitch/Stat toggle are the two tallest things above the
      grass and neither carries text that needs the room. Six pixels off each is
      invisible; a forwards line nobody can see is not. */
