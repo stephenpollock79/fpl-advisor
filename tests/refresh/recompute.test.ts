@@ -147,7 +147,7 @@ describe('a transfer is re-derived too, and that is not a detail', () => {
 
   it('a transfer bringing in a player the squad already holds is unexecutable, because you cannot buy who you own', () => {
     /**
-     * **The live defect, 2026-09-16** (STE-140). A stored transfer keeps naming
+     * **The live defect, 2026-09-16** (STE-141). A stored transfer keeps naming
      * the same two players and the squad beneath it moves. An upload brought the
      * incoming side into the fifteen, and the Assistant went on offering
      * *Calafiori → De Cuyper* with De Cuyper already on the bench — drawing an

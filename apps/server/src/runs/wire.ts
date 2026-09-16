@@ -94,7 +94,7 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
 
       return {
         // **What squad that run was built on**, so a correction cannot be
-        // answered with advice about the squad it replaced (F6-RS-06, STE-140).
+        // answered with advice about the squad it replaced (F6-RS-06, STE-141).
         fromSnapshotId: lastRun?.squad_snapshot_id ?? null,
         before: await rows(lastRun?.feed_read_id ?? null),
         after: (await rows(feedReadId)) ?? [],

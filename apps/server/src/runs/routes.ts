@@ -309,7 +309,7 @@ export function runRoutes(deps: RunDeps) {
          */
         /**
          * **A new squad is new evidence, and the gate could not see it**
-         * (found live 2026-09-16, STE-140; `F6-RS-06`).
+         * (found live 2026-09-16, STE-141; `F6-RS-06`).
          *
          * Both halves above look at the *feed*: FPL's player records, and the
          * figures each stored call was made at. **Neither notices that the

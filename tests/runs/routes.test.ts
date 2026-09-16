@@ -227,7 +227,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
     expect(modelCalls).toBe(0)
   })
 
-  it('STE-140: a new squad is new evidence, even with every FPL record and every stored figure identical', async () => {
+  it('STE-141: a new squad is new evidence, even with every FPL record and every stored figure identical', async () => {
     /**
      * **The live defect, 2026-09-16.** Both halves of this gate look at the
      * feed — FPL's player records, and the figure each stored call was made at.
@@ -268,7 +268,7 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
     expect(modelCalls).toBeGreaterThan(0)
   })
 
-  it('STE-140: and a first run, which has no squad to compare against, is never skipped on a comparison it could not make', async () => {
+  it('STE-141: and a first run, which has no squad to compare against, is never skipped on a comparison it could not make', async () => {
     // Null is the safe direction, the same posture `before` already takes.
     const onFile = await onFileAsScoredNow()
     const { post } = harness({
