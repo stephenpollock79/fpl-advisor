@@ -479,9 +479,30 @@ would have made the app unusable and would have shown up immediately.
 seen the red card against a real passed deadline. The unit tests cover both
 directions with fabricated clocks; what is unobserved is the state on a phone.
 
-**It closes itself.** GW5's deadline is Friday 18 September at 18:30 UK. Opening
-the app after it, before GW6 becomes next, is the state — and it is the first
-weekend the app will ever have been live across a deadline. *Home: STE-154.*
+**It does not close itself, and why not is the useful part.** The plan was to open
+the app after GW5 locked on Friday 18 September and before GW6 became next, and
+watch the stop fire. **That interval never existed.** Checked against the live
+feed two hours after the deadline: FPL had already set `is_next` to GW6, and did
+so at the deadline itself.
+
+**So the stop can only fire on stale data of our own.** The app advises on
+`is_next`, and FPL points that at the next gameweek whose deadline has *not*
+passed — so the deadline being checked is in the future by construction. The only
+way `deadline_passed` fires is a stored copy that did not keep up: feeds
+unreachable across a deadline, or an ingest that failed. That is a real fault and
+the guard is right to exist; it is simply not a state normal operation reaches,
+because opening the app re-reads the feeds.
+
+**Which makes the fabricated-clock unit tests the verification, rather than a
+stand-in for a live check that was going to happen anyway.** The residual is
+narrow and worth stating: a deadline crossed inside the two-minute feed-coalescing
+window, or one crossed while the feeds are down — and in the second case the
+frozen-feeds strip is already on screen saying so.
+
+What *was* seen on 18 September, two hours after the deadline: the app on GW6
+with the right deadline and no run yet, rather than still advising on a week
+already locked. That is the outcome this criterion protects, reached by the feed
+being right rather than by the stop firing. *Home: STE-154.*
 
 **F6-AC-02 is asserted on a screen, never across a refresh — which is the only
 circumstance the criterion is about.** `tests/e2e/assistant.spec.ts` names it and
