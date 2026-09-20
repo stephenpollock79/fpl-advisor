@@ -19,7 +19,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { gameweekToAdviseOn, lastCompletedDeadline, lastScoredGameweek, toGameweekRows } from '../../apps/server/src/ingest/gameweeks.js'
+import { gameweekToAdviseOn, lastCompletedDeadline, toGameweekRows } from '../../apps/server/src/ingest/gameweeks.js'
 import { fixtureCountsByClub, reportFixtureAnomalies, toFixtureRows } from '../../apps/server/src/ingest/fixtures.js'
 import { effectiveProjection, toProjectionRows } from '../../apps/server/src/ingest/projections.js'
 
@@ -39,18 +39,6 @@ describe('which gameweek the app advises on', () => {
     const rows = toGameweekRows({ events })
 
     expect(gameweekToAdviseOn(rows).id).toBe(4)
-  })
-
-  it('reads last gameweek\'s points from data_checked, not finished', () => {
-    // Gameweek 3 above is finished but not data_checked — the real window between
-    // the last whistle and bonus points landing. Reading `finished` here would
-    // show a total that changes under the manager a few hours later.
-    expect(lastScoredGameweek(toGameweekRows({ events }))).toBeNull()
-
-    const settled = toGameweekRows({
-      events: [{ ...gw3, data_checked: true }, gw4],
-    })
-    expect(lastScoredGameweek(settled)?.id).toBe(3)
   })
 
   it('refuses to guess when the feed marks no gameweek next', () => {
@@ -191,15 +179,16 @@ describe('F1-AC-01 · which gameweek the squad is read from', () => {
     // The defect this was written after: reading picks on the points rule gave
     // gameweek 3, so the app showed a squad a whole gameweek out of date under a
     // correct deadline, with nothing on screen suggesting anything was wrong.
+    // Gameweek 3 is the settled one — `dataChecked` in the rows above — and the
+    // contrast is the point: the answer here must be 4, the deadline that has
+    // passed, not 3, the week whose points have landed.
     expect(lastCompletedDeadline(rows, monday)?.id).toBe(4)
-    expect(lastScoredGameweek(rows)?.id).toBe(3)
   })
 
   it('F1-AC-01: the two questions only diverge between a deadline and its data being checked', () => {
     // Before Saturday's deadline they agree; the gap is the two days after it.
     const friday = Date.parse('2026-09-11T12:00:00Z')
     expect(lastCompletedDeadline(rows, friday)?.id).toBe(3)
-    expect(lastScoredGameweek(rows)?.id).toBe(3)
   })
 
   it('F1-AC-01: a deadline in the future is not completed, however close it is', () => {

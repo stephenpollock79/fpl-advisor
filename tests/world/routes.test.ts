@@ -17,7 +17,6 @@ const ago = (ms: number) => new Date(NOW - ms).toISOString()
 const parts = (picksFrom: number | null = 4): WorldParts => ({
   picksFrom,
   gameweek: { id: 5, name: 'Gameweek 5', deadlineTime: '2026-09-18T17:30:00Z', isNext: true, isCurrent: false, finished: false, dataChecked: false },
-  lastScored: null,
   snapshot: { id: 's1', source: 'fpl_deadline', capturedAt: ago(0), bankTenths: 10, freeTransfers: 1, chipsRemaining: {} },
   squad: [],
   players: [],
