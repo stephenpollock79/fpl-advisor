@@ -317,18 +317,39 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     expect(rows.find((r) => r.isVicePick)?.because).toBeNull()
   })
 
-  it('STE-151: the side that is leaving is still barred, and the table says why', () => {
-    // The half of the old rule worth keeping: a player coming out of the eleven,
-    // or out of the squad, cannot be the man you hand the armband to.
+  it("a player another call names is not barred — the manager has not agreed to that call yet", () => {
+    /**
+     * **Presuming in both directions at once is not consistency.** The table
+     * greyed out five of the fifteen for substitutions and transfers the manager
+     * had not accepted, while the two picks at the top were there *because* of
+     * substitutions he had not accepted. Only the facts that hold whatever he
+     * decides may bar anyone.
+     */
     const w = world()
     const calls = planWeek(w)
-    const leaving = new Set(calls.filter((c) => c.category !== 'captaincy').map((c) => c.outPlayerId))
+    const named = new Set(
+      calls.filter((c) => c.category !== 'captaincy').flatMap((c) => [c.outPlayerId, c.inPlayerId]),
+    )
     const rows = calls.find((c) => c.shape === 'armband')?.armband?.rows ?? []
 
-    expect(leaving.size).toBeGreaterThan(0)
-    for (const id of leaving) {
-      expect(rows.find((r) => r.playerId === id)?.because).toBe('coming out of the side this week')
+    expect(named.size).toBeGreaterThan(0)
+    for (const id of named) {
+      const row = rows.find((r) => r.playerId === id)
+      if (row) expect(row.because).toBeNull()
     }
+  })
+
+  it('F4-AC-07: the two facts that hold whatever he decides do bar a player, and say so', () => {
+    const w = world()
+    const out = { eligible: false, reason: 'injured' } as const
+    const squad = w.squad.map((p) =>
+      p.name === 'MidA' ? { ...p, availability: out } : p.name === 'MidB' ? { ...p, hasFixture: false } : p,
+    )
+    const rows = armbandOf(w, squad)[0]?.armband?.rows ?? []
+    const name = byName(w)
+
+    expect(rows.find((r) => name(r.playerId) === 'MidA')?.because).toBe('injured')
+    expect(rows.find((r) => name(r.playerId) === 'MidB')?.because).toBe('no fixture this gameweek')
   })
 
   it('ENGINE-AC-06: the figure is the captain move, because the captain is what doubles', () => {
