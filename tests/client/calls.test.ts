@@ -246,7 +246,7 @@ describe('F3-AC-01, F3-AC-02, F3-AC-13, F3-AC-14, F3-AC-15 · decisions', () => 
   })
 })
 
-describe('F4-AC-02, F4-AC-05, F4-AC-12 · a keep reading, as the card holds it', () => {
+describe('F4-AC-01, F4-AC-05, F4-AC-13 · a keep reading, as the card holds it', () => {
   const armband = (extra: Partial<WorldCall> = {}) =>
     call('captaincy:captain:from=1:to=2', 'captaincy', 0, {
       isReading: true,
@@ -268,7 +268,7 @@ describe('F4-AC-02, F4-AC-05, F4-AC-12 · a keep reading, as the card holds it',
       ...extra,
     })
 
-  it('F4-AC-02: a stored keep reading reaches the card as a reading, carrying no figure at all', () => {
+  it('F4-AC-01: a stored keep reading reaches the card as a reading, carrying no figure at all', () => {
     const out = player(1, 'Haaland', 8)
     const into = player(2, 'Semenyo', 6.2)
     const figures = storedFigures(armband(), out, into, true)
@@ -279,7 +279,7 @@ describe('F4-AC-02, F4-AC-05, F4-AC-12 · a keep reading, as the card holds it',
     if (figures.reading === 'no_change') expect(readingLine(figures.because)).toBe('Already the stronger option')
   })
 
-  it('F4-AC-02: the two reasons a keep can have are told apart, never flattened into one', () => {
+  it('F4-AC-01: the two reasons a keep can have are told apart, never flattened into one', () => {
     const out = player(1, 'Haaland', 8)
     const into = player(2, 'Semenyo', 6.2)
     const close = storedFigures(armband({ readingReason: 'below_floor' }), out, into, true)
@@ -294,7 +294,7 @@ describe('F4-AC-02, F4-AC-05, F4-AC-12 · a keep reading, as the card holds it',
     expect(armbandNotes(armband()).join(' ')).not.toContain('only pays')
   })
 
-  it('F4-AC-12: the tie-break is said on the card only where it actually chose the challenger', () => {
+  it('F4-AC-13: the tie-break is said on the card only where it actually chose the challenger', () => {
     const plain = armband()
     expect(armbandNotes(plain)).toHaveLength(0)
 

@@ -182,7 +182,7 @@ test('F6-AC-07, F6-AC-08: the Overview carries exactly one refresh control, and 
   await expect(page.getByRole('dialog', { name: 'Refresh everything' })).toBeVisible()
 })
 
-test('F8-AC-27, F4-AC-03: the captain group meta reads picks and held, not a bare count', async ({ page }) => {
+test('F8-AC-27, F4-AC-01: the captain group meta reads picks and held, not a bare count', async ({ page }) => {
   // The trigger is a week in which the vice is held — the keep reading the
   // engine produces when the armband is already on the right player.
   await overview(page, {}, {

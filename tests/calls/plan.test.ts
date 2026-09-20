@@ -272,7 +272,7 @@ describe('Model proposals are checked, never trusted', () => {
   })
 })
 
-describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () => {
+describe('F4-AC-01, STE-151 · the armband, as one ranked call', () => {
   const armbandOf = (w: ReturnType<typeof world>, squad = w.squad) =>
     planWeek({ ...w, squad }).filter((c) => c.category === 'captaincy')
 
@@ -303,7 +303,7 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     expect(captain?.playerId).not.toBe(vice?.playerId)
   })
 
-  it('a bench player is a candidate, because the manager is one tap from starting him', () => {
+  it('F4-AC-14: a bench player is a candidate, because the manager is one tap from starting him', () => {
     // **The rule this replaced barred the squad's two best answers.** On the
     // first live week Groß projected 11.0 and De Cuyper 8.8, both on the bench,
     // both the subject of substitutions not yet accepted — and the table ruled
@@ -317,7 +317,7 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     expect(rows.find((r) => r.isVicePick)?.because).toBeNull()
   })
 
-  it("a player another call names is not barred — the manager has not agreed to that call yet", () => {
+  it("F4-AC-14: a player another call names is not barred — the manager has not agreed to that call yet", () => {
     /**
      * **Presuming in both directions at once is not consistency.** The table
      * greyed out five of the fifteen for substitutions and transfers the manager
@@ -339,7 +339,7 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     }
   })
 
-  it('F4-AC-07: the two facts that hold whatever he decides do bar a player, and say so', () => {
+  it('F4-AC-14: the two facts that hold whatever he decides do bar a player, and say so', () => {
     const w = world()
     const out = { eligible: false, reason: 'injured' } as const
     const squad = w.squad.map((p) =>
@@ -377,14 +377,14 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     expect(name(call?.inPlayerId ?? -1)).toBe('Rogers')
   })
 
-  it('F4-AC-09, F3-AC-28: the armband costs nothing and uses no transfer', () => {
+  it('F4-AC-15, F3-AC-28: the armband costs nothing and uses no transfer', () => {
     const call = armbandOf(world())[0]
     if (call?.outcome.reading !== 'call') throw new Error('expected a decidable armband call')
     expect(call.outcome.costTenths).toBe(0)
     expect(call.outcome.pointsHit).toBe(0)
   })
 
-  it('F4-AC-07: a holder whose club has no fixture forces the armband', () => {
+  it('STE-151: a holder whose club has no fixture forces the armband', () => {
     const w = world()
     const squad = w.squad.map((p) => (p.name === 'Semenyo' ? { ...p, hasFixture: false } : p))
     const call = armbandOf(w, squad)[0]
@@ -393,7 +393,7 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     if (call?.outcome.reading === 'call') expect(call.outcome.isForced).toBe(true)
   })
 
-  it('F4-AC-07: a forced armband needs no special figure — a holder who cannot play projects zero', () => {
+  it('STE-151: a forced armband needs no special figure — a holder who cannot play projects zero', () => {
     // Stephen's point when this was designed: forced should read strongly on its
     // own, because the gap to the best available *is* the whole of it.
     const w = world()
@@ -408,7 +408,7 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     expect(forced.outcome.conviction).toBeGreaterThan(free.outcome.conviction)
   })
 
-  it('F4-AC-07: a holder the availability gate excludes forces it too, even with a fixture to play', () => {
+  it('STE-151: a holder the availability gate excludes forces it too, even with a fixture to play', () => {
     const w = world()
     const out = { eligible: false, reason: 'injured' } as const
     const squad = w.squad.map((p) => (p.name === 'Semenyo' ? { ...p, availability: out } : p))
@@ -418,7 +418,7 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     if (call?.outcome.reading === 'call') expect(call.outcome.isForced).toBe(true)
   })
 
-  it('F4-AC-08: however strong the case, an armband is never forced while the holder can play', () => {
+  it('STE-151: however strong the case, an armband is never forced while the holder can play', () => {
     const call = armbandOf(world())[0]
     expect(call?.outcome.reading).toBe('call')
     if (call?.outcome.reading === 'call') expect(call.outcome.isForced).toBe(false)
@@ -435,7 +435,7 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     expect(calls.length).toBeGreaterThan(0)
   })
 
-  it('F4-AC-02: where both armbands are already right, the call is a keep reading with no figure', () => {
+  it('F4-AC-01: where both armbands are already right, the call is a keep reading with no figure', () => {
     const w = world()
     // Haaland tops the fifteen on 8.0 and Rogers is second on 7.0, bench or not.
     const squad = w.squad.map((p) => ({ ...p, isCaptain: p.name === 'Haaland', isVice: p.name === 'Rogers' }))
@@ -449,8 +449,8 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
   })
 })
 
-describe('F4-AC-12 · the ceiling tie-break reaches the table', () => {
-  it('F4-AC-12: the row the tie-break chose says so, and the others do not', () => {
+describe('F4-AC-13 · the ceiling tie-break reaches the table', () => {
+  it('F4-AC-13: the row the tie-break chose says so, and the others do not', () => {
     const w = world()
     const plain = planWeek(w).find((c) => c.shape === 'armband')
     expect(plain?.armband?.rows.some((r) => r.byCeiling)).toBe(false)
