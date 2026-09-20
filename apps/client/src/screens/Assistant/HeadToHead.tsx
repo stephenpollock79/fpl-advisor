@@ -255,20 +255,14 @@ export function HeadToHead({
               F
             </span>
           ) : null}
-        {/* What the last refresh did to this call, until the card has been seen
-            (F6-AC-13). Truncates before the title does, because the title is
-            what tells the manager which call he is looking at. */}
-        {/* `!= null` on purpose, covering undefined as well as null: a call row
-            written before these columns existed carries neither, and a strict
-            null check would let `undefined` through and then read a property off
-            it — taking the whole screen down over a field nobody can see. */}
-        {call.diffTag != null ? (
-          <span data-testid="diff-tag" className={styles.diffTag}>
-            {call.diffTag === 'band_move' && call.previousConviction != null
-              ? `WAS ${String(call.previousConviction)}`
-              : call.diffTag.toUpperCase()}
-          </span>
-        ) : null}
+        {/* **The diff tag is not here** (STE-183). F6-AC-13 puts it "beside the
+            call's title, truncating before the title does", and this card has
+            no title — the versus band is its identity. In the figures strip it
+            had nothing to truncate against and wrapped onto a row of its own,
+            costing a full row of card height on a 390-wide screen. It lives on
+            the Overview's call row, which has the anatomy the criterion
+            describes, and which is where a manager who dismissed the *what
+            changed* sheet goes looking. */}
           {watchReason ? (
             <button
               className={styles.flagWatch}
