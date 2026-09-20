@@ -186,10 +186,12 @@ export function HeadToHead({
                 * as a line rather than as four competing things.
                 */}
               <span className={styles.armbandFigures}>
-                {/* `xPTS` is what this app calls a projected-points difference
-                    everywhere else — the Overview's rows, the card strip, the
-                    squad table. F4-AC-15 still names the words *worth changing*
-                    until the PRD catches up. */}
+                {/* `xPTS`, which F4-AC-15 names: the app's own word for a
+                    projected-points difference on every other surface — the
+                    Overview's rows, the card strip, the squad table. Never
+                    *strength*, because beside a ranked table that reads as
+                    confidence in the pick, and the conviction chip below is
+                    what measures that. */}
                 <span className={styles.armbandFigLabel}>xPTS</span>
                 <span className={styles.armbandNet} data-testid="net">
                   {formatNet(figures.net)}

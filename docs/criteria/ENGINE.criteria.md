@@ -1,6 +1,6 @@
 <!-- DERIVED FILE — DO NOT EDIT. Regenerate with extract-criteria.py. -->
 <!-- source: PRD - The FPL Advisor.md -->
-<!-- source-sha256: 1db01acb920bfa77 -->
+<!-- source-sha256: ded03c988940f9f5 -->
 
 # The recommendation and conviction engine
 
