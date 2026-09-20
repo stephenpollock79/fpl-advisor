@@ -469,7 +469,21 @@ behaviour needs a real-Postgres fixture holding last week's run and decisions �
 the shape `tests/rls/isolation.test.ts` uses — which does not exist for the
 world read and is a piece of work rather than a line.
 
-**So F6-UP-03 still must not be read as met.** *Home: STE-177.*
+*Closed 2026-09-21, by observation rather than by a fixture.* **The rollover this
+was waiting for had already happened.** GW5 locked on 18 September and the app
+moved to GW6 the same evening; GW5 held a succeeded run with calls behind it and
+GW6 opened carrying none of it. That is the previous shortlist and any pending
+calls proven gone, on real data — more than the planned Postgres fixture would
+have shown, since that would have proven it about a fabricated world.
+
+Recorded in `docs/manual-coverage.md` with the one thing it does not settle
+stated plainly: whether GW5 held *decisions* is recalled rather than confirmed.
+Ruled closed on that basis by Stephen, with a standing tripwire — last week's
+advice appearing in a new gameweek is a bug and gets raised as one.
+
+**The structural check stays**, and is now the regression half rather than the
+whole of it: the observation says it worked once, the check says nobody has
+removed what makes it work.
 
 **F6-AC-20 — cancelling is built twice over and asserted nowhere.** A cancelled
 run must be treated exactly as a run that never started: recorded `cancelled`
