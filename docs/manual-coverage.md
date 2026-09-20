@@ -9,8 +9,10 @@ criterion this project deliberately does not automate:
 - **Human checklist** — anything visual or tactile. CLAUDE.md's testing rule is explicit: write the
   checklist, do not fake it with a class-name assertion. A criterion about a swipe feeling right, a
   frozen column holding position, or a contrast ratio on a real screen belongs here.
-- **Eval** — anything graded on model output rather than asserted. What the evals actually grade is
-  still open (STE-37).
+- **Eval** — anything graded on model output rather than asserted. **What the evals grade was
+  decided on 2026-09-21 (STE-37): outcomes, tracked over time** — what the app recommended against
+  what actually scored — rather than a rubric over the reasoning. Nothing is gradeable yet; the
+  ledger that would feed this is unbuilt, and the data accrues one gameweek a week.
 
 **One criterion per row.** `scripts/criteria-coverage.mjs` reads the first cell
 and expects a single identifier in it; a row naming two is skipped, and until
