@@ -693,45 +693,98 @@
  */
 .armbandHead {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 14px 11px;
+  padding: 9px 14px 10px;
   background: linear-gradient(135deg, #0a6e3d 0%, #10985a 58%, #25ac66 100%);
   color: #fff;
 }
 
-.armbandTitle {
+/*
+ * **One row at one size** (2026-09-20).
+ *
+ * It used to hold four things at four sizes — eyebrow, figure label, figure and
+ * band chip, at 9, 9, 17 and 13 pixels across a single baseline. That is a
+ * jumble rather than a hierarchy, and the band chip could not be made legible
+ * on a green ground anyway: `strong` is a pale green fill with dark green text.
+ *
+ * So the bar states one thing, at one size: what the armband is worth. The chip
+ * moved down into the editorial box, where it sits on a pale ground and can be
+ * itself.
+ */
+.armbandTitle,
+.armbandFigLabel {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #fff;
-  opacity: 0.85;
+  opacity: 0.75;
 }
 
 .armbandFigures {
   display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.armbandFigLabel {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #fff;
-  opacity: 0.8;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .armbandNet {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 17px;
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.06em;
   color: #fff;
 }
+
+/*
+ * **The conviction chip, in the editorial box.**
+ *
+ * Solid fill in the band's own colour with white text, on its own line above
+ * the reasoning: the strength of the recommendation, then the argument for it.
+ * The four bands keep their existing meanings and their existing colours — only
+ * the fill is solid, because a tinted chip on the warm editorial ground is too
+ * quiet to be the first thing read.
+ */
+.armbandChipRow {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/*
+ * **One rule down the whole box, starting at the chip.**
+ *
+ * The reasoning carried a green rule and the note carried a grey one, each on
+ * its own element, so the box had two short lines with a gap between them and
+ * nothing at all beside the conviction chip. The rule belongs to the block, not
+ * to the paragraphs in it: it moves to the wrapper, the children give theirs
+ * up, and it runs from the top of the chip to the bottom of the last note.
+ */
+.reasoningBodyRuled {
+  padding-left: 10px;
+  border-left: 2px solid var(--green);
+}
+
+.reasoningBodyRuled .reasoningText,
+.reasoningBodyRuled .reasoningNote {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.armbandChip {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 0;
+  color: #fff;
+}
+
+.armbandChip.certain { background: #06301b; }
+.armbandChip.strong { background: var(--green-dark); }
+.armbandChip.lean { background: #7a5410; }
+.armbandChip.thin { background: var(--muted); }
+.armbandNoChange { background: var(--muted); color: #fff; font-weight: 600; }
 
 /* Joined to the header: no top rounding, no gap, one element visually. */
 .reasoningJoined {
