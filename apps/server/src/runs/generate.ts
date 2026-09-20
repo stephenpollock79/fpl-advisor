@@ -403,7 +403,9 @@ export async function composeEditorial(input: {
       .filter((c) => !c.isReading)
       .sort((a, b) => b.net - a.net)
       .map((c) => ({
-        title: `${input.nameOf(c.outPlayerId)} → ${input.nameOf(c.inPlayerId)}`,
+        out: input.nameOf(c.outPlayerId),
+        in: input.nameOf(c.inPlayerId),
+        role: c.shape === 'captain' ? ('captain' as const) : c.shape === 'vice' ? ('vice' as const) : null,
         kind: kindOf(c),
         net: c.net,
         band: c.band,

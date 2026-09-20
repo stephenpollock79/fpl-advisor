@@ -166,7 +166,29 @@ export type EditorialInput = {
    * `because` is code's sentence, never the model's, and it is the difference
    * between handing over a fact and handing over a fact with its reason.
    */
-  calls: { title: string; kind: string; net: number; band: string | null; forced: boolean; because?: string }[]
+  calls: {
+    /**
+     * **The pair as two fields, never as one string** (STE-184).
+     *
+     * The prompt still renders `out → in`, but the check behind it needs the
+     * names apart: a guard that had to read them back out of the sentence it
+     * just built would be a parser for its own format, and wrong the first time
+     * the format moved.
+     */
+    out: string
+    in: string
+    /**
+     * Which armband, where this is one. The prompt says it in words the manager
+     * would use (`kind`); this says it in a value code can compare, so the two
+     * armband calls can be told apart without matching on a display label.
+     */
+    role: 'captain' | 'vice' | null
+    kind: string
+    net: number
+    band: string | null
+    forced: boolean
+    because?: string
+  }[]
   /** A lead sentence about this is shown above the paragraph (F8-AC-07). */
   exception: 'blank' | 'double' | null
   squadSource: 'deadline' | 'screenshot'
@@ -636,6 +658,9 @@ export const PARSE_SCHEMA = {
   additionalProperties: false,
 } as const
 
+/** The pair as the prompt and the template both say it. One spelling, one place. */
+export const pairOf = (c: Pick<EditorialInput['calls'][number], 'out' | 'in'>): string => `${c.out} \u2192 ${c.in}`
+
 export function editorialPrompt(input: EditorialInput): string {
   const lines = [
     /**
@@ -660,7 +685,7 @@ export function editorialPrompt(input: EditorialInput): string {
       : 'This week, strongest first:',
     ...input.calls.map(
       (c) =>
-        `${c.title} \u00b7 ${c.kind} \u00b7 net ${c.net >= 0 ? '+' : '-'}${Math.abs(c.net).toFixed(2)}` +
+        `${pairOf(c)} \u00b7 ${c.kind} \u00b7 net ${c.net >= 0 ? '+' : '-'}${Math.abs(c.net).toFixed(2)}` +
         `${c.forced ? ' \u00b7 forced' : c.band ? ` \u00b7 ${c.band}` : ''}` +
         `${c.because === undefined ? '' : ` \u00b7 ${c.because}`}`,
     ),
