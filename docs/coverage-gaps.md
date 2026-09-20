@@ -545,4 +545,7 @@ already handles on screen.
 
 **What would change it:** `F4` having room, or the engine's shared forcing rule
 being revisited for some other reason. Neither is worth doing for this alone.
-*Home: STE-189.*
+**No open owner, by design** — the ruling above is the whole of it, and STE-189
+closed with it. Every other entry here names a live ticket because every other
+entry names work; this one names a decision, and a ticket held open to own a
+decision is a ticket nobody can ever close.
