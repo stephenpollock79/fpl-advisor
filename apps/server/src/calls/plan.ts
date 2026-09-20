@@ -433,38 +433,38 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
     if (!captain || !vice) return []
 
     /**
-     * **The pool is the whole fifteen, not the starting eleven** (ruled
-     * 2026-09-20, after the first live run).
+     * **The whole fifteen, as they stand, and nothing else read into it**
+     * (ruled 2026-09-20, in two passes on the first live day).
      *
-     * It was the starters minus anyone another call had claimed — and on the
-     * first week that shipped, the two highest projections in the squad were
-     * Groß on 11.0 and De Cuyper on 8.8, both barred for being on the bench,
-     * both the subject of substitutions the manager had not accepted yet. The
-     * table ruled out its own best answers on a condition the manager was one
-     * tap from changing.
+     * It was the starters minus anyone another call had claimed. On the first
+     * week that shipped, the two highest projections in the squad were Groß on
+     * 11.0 and De Cuyper on 8.8, both barred for being on the bench and both the
+     * subject of substitutions the manager had not accepted. The table ruled out
+     * its own best answers on a condition he was one tap from changing.
      *
-     * **Only the side that is leaving is excluded**, which is the part of the
-     * old rule worth keeping: a player being transferred out, or coming out of
-     * the eleven, cannot be the man you hand the armband to. A player arriving
-     * can.
+     * The second pass removed the other half of the same mistake. Excluding a
+     * player because a transfer or a substitution *would* take him out reads his
+     * decision for him just as surely — five of the fifteen greyed out for
+     * changes he had not agreed to, while the two picks at the top were there
+     * because of changes he had not agreed to either. **Presuming in both
+     * directions at once is not consistency, it is two assumptions.**
      *
-     * The honest limit: a bench player nobody is bringing on is now a candidate,
-     * and captaining him would be poor advice. That is the interconnected
-     * -decisions problem (STE-162) showing through, and this is the best answer
-     * available before it is solved properly — a ranking that shows the real top
-     * of the squad beats one that hides it behind a decision not yet made.
+     * So: rank the squad he has. Only the two facts that are true whatever he
+     * decides bar anyone — the availability gate, and a club with no fixture.
+     *
+     * The cost is real and is STE-162's to solve: a player being transferred out
+     * can top this table, and captaining him would contradict the transfer. A
+     * ranking that states the squad as it stands beats one that quietly decides
+     * for him, and that is the whole of the argument until the interconnected
+     * -decisions problem is properly answered.
      */
-    const leaving = new Set(chosen.map((c) => c.outPlayerId))
-
-    const candidates: ArmbandCandidate[] = input.squad
-      .filter((p) => !leaving.has(p.playerId))
-      .map((p) => ({
-        playerId: p.playerId,
-        projection: thisWeek(p),
-        availability: p.availability,
-        takesPenalties: p.takesPenalties,
-        position: p.position,
-      }))
+    const candidates: ArmbandCandidate[] = input.squad.map((p) => ({
+      playerId: p.playerId,
+      projection: thisWeek(p),
+      availability: p.availability,
+      takesPenalties: p.takesPenalties,
+      position: p.position,
+    }))
 
     const eligible = candidates.filter((c) => c.availability.eligible)
     // `chooseArmband` throws below two, and a thin squad must not cost the week
@@ -482,10 +482,9 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
     const barredBecause = (p: SquadEntry): string | null => {
       if (!p.availability.eligible) return p.availability.reason ?? 'unavailable'
       if (!p.hasFixture) return 'no fixture this gameweek'
-      if (leaving.has(p.playerId)) return 'coming out of the side this week'
-      // **Being on the bench is not a bar**, and is not stated here. It is on
-      // the row already, and the table shows it as context rather than as a
-      // reason he cannot be picked.
+      // **Nothing about the week's other calls appears here.** Being on the
+      // bench, or named in a transfer, is a state the manager may be about to
+      // change; stating it as a reason he cannot be picked decides for him.
       return null
     }
 

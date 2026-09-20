@@ -4,13 +4,6 @@
  * alignment — a table that looked like a different app would read as one.
  */
 
-/* **Flat, not a card.** It sits inside the call card, and giving it its own
-   border and radius made a card within a card — two frames competing for the
-   same content. */
-.wrap {
-  overflow: hidden;
-}
-
 .table {
   width: 100%;
   border-collapse: separate;
@@ -18,8 +11,19 @@
   font-size: 11px;
 }
 
-/* The section header the design draws: dark green, white, mono, wide-tracked. */
+/*
+ * The section header the design draws: dark green, white, mono, wide-tracked —
+ * and **sticky**, so a figure never loses its column on a fifteen-row table.
+ *
+ * It sticks against `.armbandWrap`, which is the scrolling ancestor. The table
+ * had a wrapper with `overflow: hidden` for the card border it no longer has,
+ * and that wrapper was silently the containing block instead — a scroll
+ * container that never scrolls, so nothing could stick to it.
+ */
 .head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--green-dark);
   color: #fff;
   font-family: var(--font-mono);
@@ -144,15 +148,22 @@
   color: var(--ink-soft);
 }
 
-/* The bench slot, in the letters the Squad table already uses (F1-AC-18). */
+/*
+ * The bench slot — the Squad table's badge exactly: red disc, white mono, same
+ * size and radius (F1-AC-18). Two screens drawing the same slot two different
+ * ways is a difference the manager has to work out is meaningless.
+ */
 .bench {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
-  border: 1px solid var(--border-light);
-  border-radius: 3px;
-  padding: 1px 3px;
   flex: 0 0 auto;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: var(--red-disc);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 19px;
+  text-align: center;
 }
