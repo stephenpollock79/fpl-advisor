@@ -71,6 +71,42 @@ rather than a link being tapped, which is a fact about the email template and th
 manager's thumb. Its manual-coverage row is from 2026-09-08.
 
 
+**F6-RS-03 — the team-news sources were never read, and now never will be.**
+The criterion says a new item published by **Premier Fantasy Tools** or
+**Premier Injuries** since the last successful run counts as refresh evidence.
+Nothing in the app reads either site: no feed, no table, no ingestion path.
+
+**Ruled out of the MVP on 2026-09-14, and ruled won't-do on 2026-09-21
+(STE-126).** Each is an outside site with no API worth the name, its own licence
+question and its own ways of breaking — days of work rather than hours, first
+against a Friday launch and then against a parked project.
+
+**This entry did not exist until the ruling, which is the part worth noticing.**
+Slice 7's spec said `F6-RS-03` *"has no data source and is not deferred to a
+slice; it is ruled out of the MVP and needs a home"* — and the home was a Linear
+ticket the gaps file was never told about. So the one uncovered criterion in F6
+sat uncovered for a week with no written reason anywhere a reader of this file
+would find. **A gap that is ruled rather than recorded is indistinguishable from
+one nobody noticed.**
+
+**No home, deliberately.** There is no future work to point at, and naming the
+cancelled ticket would imply there is. The argument is on STE-126.
+
+**What carries the load instead.** FPL's own record holds the same facts — the
+status code, the free-text `news` line with its timestamp, and the
+chance-of-playing figure — usually within hours of the news breaking, and slice
+7's diff watches all three. **The accepted cost is real and was stated when it
+was accepted:** Stephen works Thursdays, which is when press conferences land, so
+the window where a human source would be ahead falls on the day he is most likely
+looking.
+
+**And the same prohibition as `F3-AC-17`.** Do not satisfy this by asking the
+model: it has no news, fitness or availability data, and asked to fill a gap it
+invents one (ADR 0012). Closing the ticket makes that shortcut more tempting,
+not less, because the criterion still describes the behaviour.
+
+`F6-RS-03` may not be read as met, and no test may name it.
+
 **F6-AC-07 — closed 2026-09-16 (STE-158).** The PRD now says the control
 *"always rewrites the whole week — every category — whichever screen it was
 tapped from"*, which is what the app has always done. The criterion is named
