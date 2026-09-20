@@ -159,26 +159,52 @@ export function HeadToHead({
           <div className={styles.panel}>
             <div className={styles.armbandHead} data-testid="armband-head">
               <span className={styles.armbandTitle}>Armband</span>
+              {/**
+                * **Label above value, like every other figure in the app.**
+                * All four sat on one baseline at 9, 9, 17 and 13 pixels, which
+                * read as a jumble rather than a hierarchy — two whispers, a
+                * shout and a chip, competing across a single line.
+                *
+                * Now the two labels match each other and sit above what they
+                * name, so the header has one loud thing in it.
+                */}
               <span className={styles.armbandFigures}>
-                {/* **The label F4-AC-15 asks for.** It lived in the figures
-                    strip and was lost when the card became two elements and the
-                    strip went — so the figure sat unlabelled beside a ranked
-                    table, which is exactly the reading *strength* was renamed to
-                    avoid. Caught by the end-to-end spec, which is what it is
-                    for. */}
-                <span className={styles.armbandFigLabel}>Worth changing</span>
-                <span className={styles.armbandNet} data-testid="net">
-                  {formatNet(figures.net)}
+                {/**
+                  * **`xPTS`, which is what this app calls a projected-points
+                  * difference everywhere else** — the Overview's rows, the card
+                  * strip, the squad table. The armband was the only figure in
+                  * the app with a phrase of its own (ruled 2026-09-20).
+                  *
+                  * F4-AC-15 names the words *worth changing*, and its reason is
+                  * that beside a ranked table *strength* reads as confidence in
+                  * the pick. `xPTS` does not read as confidence either, and the
+                  * conviction chip next to it is what measures that — but the
+                  * criterion still says otherwise until the PRD catches up.
+                  */}
+                <span className={styles.armbandFigLabel}>xPTS</span>
+                <span className={styles.armbandFigValue}>
+                  <span className={styles.armbandNet} data-testid="net">
+                    {formatNet(figures.net)}
+                  </span>
+                  {/* **The band chip is white here, not tinted.** The four band
+                      colours are built for a white card: `strong` is pale green
+                      on a green header, which is the one combination this
+                      header cannot show. A solid white pill carries the band in
+                      its text colour instead, so all four stay distinguishable
+                      and all four stay readable. */}
+                  {figures.reading === 'call' ? (
+                    <span
+                      data-testid="strength"
+                      className={`${styles.strength} ${styles.armbandBand} ${styles[figures.band] ?? ''}`}
+                    >
+                      {figures.conviction} · {figures.band}
+                    </span>
+                  ) : (
+                    <span data-testid="strength" className={`${styles.strength} ${styles.armbandBand} ${styles.armbandNoChange}`}>
+                      no change
+                    </span>
+                  )}
                 </span>
-                {figures.reading === 'call' ? (
-                  <span data-testid="strength" className={`${styles.strength} ${styles[figures.band] ?? ''}`}>
-                    {figures.conviction} · {figures.band}
-                  </span>
-                ) : (
-                  <span data-testid="strength" className={styles.noChange}>
-                    no change
-                  </span>
-                )}
               </span>
             </div>
             {reasoningBlock}

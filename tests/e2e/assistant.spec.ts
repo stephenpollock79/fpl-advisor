@@ -208,7 +208,7 @@ test('F4-AC-01, F4-AC-13, F4-AC-15: the Captain tab is one ranked table, and no 
   // the swap framing (F4-AC-15).
   await expect(page.getByTestId('cost')).toHaveCount(0)
   // The figure says what it measures.
-  await expect(page.getByTestId('armband-head')).toContainText('worth changing', { ignoreCase: true })
+  await expect(page.getByTestId('armband-head')).toContainText('xPTS', { ignoreCase: true })
   // The pair is fixed by the squad, and the rows are a reading rather than a picker.
   await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
 

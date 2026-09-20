@@ -693,45 +693,88 @@
  */
 .armbandHead {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 14px 11px;
+  padding: 10px 14px 12px;
   background: linear-gradient(135deg, #0a6e3d 0%, #10985a 58%, #25ac66 100%);
   color: #fff;
 }
 
+/*
+ * **Two labels at one size, one number at another** (2026-09-20).
+ *
+ * All four elements used to sit on a single baseline at 9, 9, 17 and 13 pixels
+ * — two whispers, a shout and a chip strung across one line, which is a jumble
+ * rather than a hierarchy. The eyebrow now sits on the left at the same size as
+ * the figure's label on the right, and the number and its band sit beneath that
+ * label: the same label-above-value shape every other figure in the app uses.
+ */
 .armbandTitle {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #fff;
-  opacity: 0.85;
+  opacity: 0.72;
 }
 
 .armbandFigures {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 0;
 }
 
 .armbandFigLabel {
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #fff;
-  opacity: 0.8;
+  opacity: 0.72;
+}
+
+.armbandFigValue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .armbandNet {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 17px;
+  font-size: 21px;
   font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
   color: #fff;
 }
+
+/*
+ * **The band chip, on a green ground.**
+ *
+ * The four band treatments are built for a white card, and `strong` is pale
+ * green on dark green text — which on this header is green on green, and the
+ * one thing it cannot show. A solid white pill carries the band in its text
+ * colour instead: all four stay apart from each other, all four stay readable,
+ * and the ordering reads as descending intensity.
+ */
+.armbandBand {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 0;
+  background: #fff;
+  letter-spacing: 0.01em;
+}
+
+.armbandBand.certain { background: #fff; color: #06301b; }
+.armbandBand.strong { background: #fff; color: var(--green-dark); }
+.armbandBand.lean { background: #fff; color: #7a5410; }
+.armbandBand.thin { background: #fff; color: var(--ink-3); }
+.armbandNoChange { background: rgb(255 255 255 / 18%); color: #fff; font-weight: 600; }
 
 /* Joined to the header: no top rounding, no gap, one element visually. */
 .reasoningJoined {
