@@ -84,7 +84,14 @@ function Marker({ player, move }: { player: WorldPlayer; move: Move }) {
         className={`${styles.chip} ${move ? (styles[move] ?? '') : ''}`}
         style={{ background: kit.primary, color: kit.ink }}
       >
+        {/* **Both armbands, because the advice moves both** (STE-147). The
+            vice was invisible here while the AFTER pitch was the one place a
+            manager could see the whole recommendation at a glance — so the half
+            that changed silently was the half he could not check. Filled for the
+            captain, outlined for the vice, exactly as the Captain tab draws
+            them. */}
         {player.isCaptain ? <span className={styles.armband}>C</span> : null}
+        {player.isVice ? <span className={`${styles.armband} ${styles.armbandVice}`}>V</span> : null}
       </span>
       <span className={styles.markerName}>{short(player.name)}</span>
     </span>

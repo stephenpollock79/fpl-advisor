@@ -108,6 +108,25 @@ function applyTo(before: readonly WorldPlayer[], calls: readonly WorldCall[], wo
     }
 
     if (call.category === 'captaincy') {
+      /**
+       * **One call moves both armbands** (STE-151, STE-147).
+       *
+       * It used to be two, and this read the shape to know which one it was
+       * holding. With one call the shape says *armband* and the ranking carries
+       * both picks — so taking only the incoming player set the captain and left
+       * the vice wherever it already was, even in the weeks the recommendation
+       * moved it. The AFTER pitch then showed a vice the advice had replaced.
+       */
+      const ranking = call.breakdown.armband
+      if (ranking) {
+        squad = squad.map((p) => ({
+          ...p,
+          isCaptain: p.playerId === ranking.captainId,
+          isVice: p.playerId === ranking.viceId,
+        }))
+        continue
+      }
+      // Calls written before 2026-09-20, when each shape moved one armband.
       const armband = call.shape === 'vice' ? 'isVice' : 'isCaptain'
       squad = squad.map((p) => ({ ...p, [armband]: p.playerId === call.inPlayerId }))
       continue
