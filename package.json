@@ -16,6 +16,8 @@
     "e2e": "playwright test",
     "typecheck": "tsc -p packages/engine/tsconfig.json --noEmit && tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.json --noEmit && tsc -p tsconfig.json --noEmit",
     "check:rls-live": "node scripts/live-rls-check.mjs",
+    "db:push:dev": "node scripts/db-push.mjs --project=dev",
+    "db:push:prod": "node scripts/db-push.mjs --project=prod",
     "check:red-team": "node scripts/red-team.mjs"
   },
   "devDependencies": {

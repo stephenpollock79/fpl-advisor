@@ -37,11 +37,8 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { PROJECTS } from './projects.mjs'
 
-const PROJECTS = {
-  dev: 'wtzdzjvvefbcgxdfxqom',
-  prod: 'bibsndkwgrnsklnzckim',
-}
 
 const target = (process.argv.find((a) => a.startsWith('--project=')) ?? '--project=dev').split('=')[1]
 if (!(target in PROJECTS)) {
