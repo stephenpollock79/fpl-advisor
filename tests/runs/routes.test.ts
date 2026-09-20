@@ -292,6 +292,36 @@ describe('F6-RS-08 · what a refresh is worth paying for', () => {
     expect(((await post()).body as { reused: boolean }).reused).toBe(false)
   })
 
+  it('a stored call the planner no longer writes forces a re-plan, whatever the data says', async () => {
+    // **The defect this was written after.** The armband shipped as one ranked
+    // call on 2026-09-20. Every stored call was still the old `captain` shape,
+    // nothing in the world had moved, so the gate reused the week — and the old
+    // two-card captaincy screen survived every reload. The gate asks whether the
+    // *world* moved; it cannot see that the code producing calls has changed.
+    const onFile = await onFileAsScoredNow()
+    let modelCalls = 0
+    const { post } = harness({
+      refreshInputs: async () => ({
+        before: world,
+        after: world,
+        feedReadId: 'r2',
+        calls: [{ ...onFile, shape: 'captain' as const }],
+        decisions: {},
+        fromSnapshotId: 'snapshot-gw4',
+        costOfSwap: () => 0,
+      }),
+      model: () => {
+        modelCalls += 1
+        return mockModel()
+      },
+    })
+
+    const body = (await post()).body as { reused: boolean }
+
+    expect(body.reused).toBe(false)
+    expect(modelCalls).toBe(1)
+  })
+
   it('STE-128: a stored figure that no longer holds is new evidence, even with every FPL record identical', async () => {
     // **The defect that removed this gate and then brought it back.** An
     // unchanged FPL record is not an unchanged world — a call rests mostly on

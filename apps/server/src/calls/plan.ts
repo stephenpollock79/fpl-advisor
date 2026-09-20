@@ -109,6 +109,26 @@ export type CallShape =
   | 'vice'
 
 /**
+ * Shapes the planner can still read but will never write again.
+ *
+ * **A stored call in one of these cannot be reused, whatever the data says**
+ * (2026-09-20). The reuse gate compares FPL's player records and each stored
+ * call's own band — it is a check on whether the *world* moved, and it has no
+ * idea the code that produces calls has changed underneath it. So the first
+ * refresh after `armband` shipped found nothing moved, reused the week, and the
+ * old two-card captaincy screen stayed put through every reload.
+ *
+ * Silence that means *I cannot see* rather than *nothing happened* is the same
+ * failure the gate was rebuilt to remove, arriving from the other direction.
+ *
+ * **This is the narrow version.** The general one is a planner version stamped
+ * on the run, so any change to how calls are produced invalidates a reuse
+ * rather than only the changes someone remembered to list here — it needs a
+ * column on `run`, and it is ticketed rather than smuggled in.
+ */
+export const RETIRED_SHAPES: ReadonlySet<CallShape> = new Set<CallShape>(['captain', 'vice'])
+
+/**
  * One player's line in the armband table, in the order the card shows them.
  *
  * **Every squad member is here, pickable or not.** A high projection sitting on
