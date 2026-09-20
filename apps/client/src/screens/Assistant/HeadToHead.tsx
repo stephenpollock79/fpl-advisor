@@ -62,10 +62,31 @@ export function HeadToHead({
    * joined to the header instead, reading as the verdict and its explanation
    * before the ranking that supports them.
    */
+  /**
+   * **The conviction chip lives in the editorial box on the armband, not in the
+   * green bar** (2026-09-20). On the bar it had to be legible against a green
+   * gradient, which is the one thing the band palette cannot do — `strong` is
+   * pale green on dark green text. Sitting above the reasoning it is back on a
+   * pale ground, so it can be a solid chip in its own colour, and it reads as
+   * what it is: how strongly the recommendation is held, stated just before the
+   * sentence that argues for it.
+   */
+  const bandChip =
+    figures.reading === 'call' ? (
+      <span data-testid="strength" className={`${styles.strength} ${styles.armbandChip} ${styles[figures.band] ?? ''}`}>
+        {figures.conviction} · {figures.band}
+      </span>
+    ) : (
+      <span data-testid="strength" className={`${styles.strength} ${styles.armbandChip} ${styles.armbandNoChange}`}>
+        no change
+      </span>
+    )
+
   const reasoningBlock = (
     <div className={`${styles.reasoning} ${armband ? styles.reasoningJoined : ''}`}>
       <img className={styles.gaffer} src={avatar} alt="" />
-      <div className={styles.reasoningBody}>
+      <div className={`${styles.reasoningBody} ${armband ? styles.reasoningBodyRuled : ''}`}>
+        {armband ? <span className={styles.armbandChipRow}>{bandChip}</span> : null}
         <p data-testid="reasoning" className={styles.reasoningText}>
           {figures.reasoning}
         </p>
@@ -160,50 +181,18 @@ export function HeadToHead({
             <div className={styles.armbandHead} data-testid="armband-head">
               <span className={styles.armbandTitle}>Armband</span>
               {/**
-                * **Label above value, like every other figure in the app.**
-                * All four sat on one baseline at 9, 9, 17 and 13 pixels, which
-                * read as a jumble rather than a hierarchy — two whispers, a
-                * shout and a chip, competing across a single line.
-                *
-                * Now the two labels match each other and sit above what they
-                * name, so the header has one loud thing in it.
+                * **One row, one size.** The bar states the figure and nothing
+                * else: the label and the number are the same size, so it reads
+                * as a line rather than as four competing things.
                 */}
               <span className={styles.armbandFigures}>
-                {/**
-                  * **`xPTS`, which is what this app calls a projected-points
-                  * difference everywhere else** — the Overview's rows, the card
-                  * strip, the squad table. The armband was the only figure in
-                  * the app with a phrase of its own (ruled 2026-09-20).
-                  *
-                  * F4-AC-15 names the words *worth changing*, and its reason is
-                  * that beside a ranked table *strength* reads as confidence in
-                  * the pick. `xPTS` does not read as confidence either, and the
-                  * conviction chip next to it is what measures that — but the
-                  * criterion still says otherwise until the PRD catches up.
-                  */}
+                {/* `xPTS` is what this app calls a projected-points difference
+                    everywhere else — the Overview's rows, the card strip, the
+                    squad table. F4-AC-15 still names the words *worth changing*
+                    until the PRD catches up. */}
                 <span className={styles.armbandFigLabel}>xPTS</span>
-                <span className={styles.armbandFigValue}>
-                  <span className={styles.armbandNet} data-testid="net">
-                    {formatNet(figures.net)}
-                  </span>
-                  {/* **The band chip is white here, not tinted.** The four band
-                      colours are built for a white card: `strong` is pale green
-                      on a green header, which is the one combination this
-                      header cannot show. A solid white pill carries the band in
-                      its text colour instead, so all four stay distinguishable
-                      and all four stay readable. */}
-                  {figures.reading === 'call' ? (
-                    <span
-                      data-testid="strength"
-                      className={`${styles.strength} ${styles.armbandBand} ${styles[figures.band] ?? ''}`}
-                    >
-                      {figures.conviction} · {figures.band}
-                    </span>
-                  ) : (
-                    <span data-testid="strength" className={`${styles.strength} ${styles.armbandBand} ${styles.armbandNoChange}`}>
-                      no change
-                    </span>
-                  )}
+                <span className={styles.armbandNet} data-testid="net">
+                  {formatNet(figures.net)}
                 </span>
               </span>
             </div>
