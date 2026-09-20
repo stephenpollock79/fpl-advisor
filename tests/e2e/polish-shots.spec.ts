@@ -18,7 +18,7 @@
  */
 
 import { test } from '@playwright/test'
-import { CAPTAIN, T1, T2, bench, open, player, squad, world } from './fixture'
+import { T1, T2, bench, open, player, squad, world } from './fixture'
 
 const OUT = process.env['SHOT_DIR'] ?? 'polish-shots'
 

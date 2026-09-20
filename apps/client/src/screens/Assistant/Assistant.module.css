@@ -716,6 +716,15 @@
   gap: 10px;
 }
 
+.armbandFigLabel {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  opacity: 0.8;
+}
+
 .armbandNet {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

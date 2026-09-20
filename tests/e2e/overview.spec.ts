@@ -12,7 +12,7 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { CAPTAIN, T1, T2, VICE, open, world } from './fixture'
+import { ARMBAND, T1, T2, open, world } from './fixture'
 
 /** Slice 8 opens the Assistant on the Overview, so these stay where they land. */
 const overview = (page: Parameters<typeof open>[0], decisions = {}, extra = {}) =>
@@ -182,34 +182,38 @@ test('F6-AC-07, F6-AC-08: the Overview carries exactly one refresh control, and 
   await expect(page.getByRole('dialog', { name: 'Refresh everything' })).toBeVisible()
 })
 
-test('F8-AC-27, F4-AC-01: the captain group meta reads picks and held, not a bare count', async ({ page }) => {
-  // The trigger is a week in which the vice is held — the keep reading the
-  // engine produces when the armband is already on the right player.
-  await overview(page, {}, {
-    calls: [...world.calls.filter((c) => c.key !== VICE), {
-      ...world.calls.find((c) => c.key === VICE),
-      isReading: true,
-      readingReason: 'incumbent_wins',
-      conviction: null,
-      band: null,
-    }],
-  })
+test('F8-AC-27, STE-151: the armband is one row, stated as a result rather than a move', async ({ page }) => {
+  /**
+   * **This asserted the old meta — "1 pick · 1 held" — which counted two
+   * armband calls against each other.** There is one, so the category counts
+   * like the other two and the row states who wears what. An arrow here is the
+   * swap framing the Captain tab stopped using, and it survived on this screen
+   * for a week because the two label their rows in different files.
+   */
+  await overview(page)
 
-  await expect(page.getByLabel('Captain').getByText(/held/)).toBeVisible()
+  const card = page.getByTestId(`card-${ARMBAND}`)
+  await expect(card).toContainText('Armband:')
+  await expect(card).toContainText('(C)')
+  await expect(card).toContainText('(V)')
+  await expect(card).not.toContainText('→')
+
+  // A count, like Transfers and Substitutions.
+  await expect(page.getByLabel('Captain').getByText(/suggested/)).toBeVisible()
 })
 
 test('F8-AC-28, F8-AC-29, F8-AC-30, F3-AC-10: a card decides in place, and the decision can be changed there', async ({ page }) => {
   await overview(page)
 
-  const card = page.getByTestId(`card-${CAPTAIN}`)
-  await page.getByTestId(`change-${CAPTAIN}`).click()
+  const card = page.getByTestId(`card-${ARMBAND}`)
+  await page.getByTestId(`change-${ARMBAND}`).click()
   await card.getByRole('button', { name: 'Select' }).click()
   await expect(card.getByText('SELECTED')).toBeVisible()
 
   // Changed from the card's own panel, without reopening the detail card. The
   // panel reopens to the three actions — not to Category cleared's two-way
   // control, which is a different screen answering a different question.
-  await page.getByTestId(`change-${CAPTAIN}`).click()
+  await page.getByTestId(`change-${ARMBAND}`).click()
   await expect(card.getByRole('button', { name: 'Select' })).toBeVisible()
 
   // A rejected card stays listed rather than disappearing (F8-AC-30, F3-AC-11).
