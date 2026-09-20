@@ -203,7 +203,10 @@ describe('POST /api/runs', () => {
     // A failure is reported on the stream rather than as a status, because the
     // response has already begun by the time the run breaks. What must not
     // change: nothing is stored, and the run is recorded failed.
-    expect(response.error).toBe('run_failed')
+    //
+    // The model breaking is the scoring stage, so the cause says so rather than
+    // saying only that something went wrong (STE-187).
+    expect(response.error).toBe('advice_failed')
     expect(h.stored).toEqual([])
     expect(h.events.at(-1)).toMatch(/^end:run-1:failed/)
   })
@@ -654,6 +657,24 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
     expect(events.map((e) => e.data['id'])).not.toContain('score')
   })
 
+  it('STE-187: the streamed failure carries the cause, not just the fact of it', async () => {
+    // **The screen used to print one fixed sentence ending "try again"** while
+    // the server knew exactly why and logged it somewhere the manager would
+    // never look. Here the run breaks in the first step, reading the feeds.
+    const { go } = stream({
+      prepare: async () => {
+        throw new Error('the feed went away')
+      },
+    })
+    const events = await read(await go())
+    const last = events.at(-1)
+
+    expect(last?.event).toBe('error')
+    expect(last?.data['reason']).toBe('feeds_unreachable')
+    expect(String(last?.data['message'])).toContain('feeds')
+    expect(last?.data['retryable']).toBe(true)
+  })
+
   it('F6-UP-01: a run that breaks says so and is recorded failed, never as a success', async () => {
     const { go, events } = stream({
       refreshInputs: async () => {
@@ -663,7 +684,9 @@ describe('F6-AC-16, F6-AC-18, F6-AC-20 · the streamed run', () => {
     const streamed = await read(await go())
 
     expect(streamed.at(-1)?.event).toBe('error')
-    expect(streamed.at(-1)?.data['reason']).toBe('run_failed')
+    // Reading the refresh inputs happens inside the *checking what has changed*
+    // step, so that is the stage a failure there belongs to (STE-187).
+    expect(streamed.at(-1)?.data['reason']).toBe('compare_failed')
     // Nothing finished, so the last-run time cannot have moved.
     expect(events.some((e) => e.startsWith('finish:'))).toBe(false)
   })
