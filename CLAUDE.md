@@ -97,8 +97,15 @@ And two gameweek rules that are pure foot-guns:
 - **Advise on `is_next`, not `is_current`.** The feed marks a gameweek *current* until the following one
   locks — so while a deadline is unpassed, `is_current` is a gameweek already played. Keying off it produces
   confident advice about the wrong week, every week, with nothing visibly broken.
-- **`data_checked`, not `finished`.** `finished` flips when the last match ends; bonus points and
-  corrections land afterwards. Last gameweek's points read from `data_checked`.
+- **`data_checked`, not `finished` — dormant, and deliberately still written down.** `finished`
+  flips when the last match ends; bonus points and corrections land afterwards, so a settled
+  points total reads from `data_checked`. **Nothing in the code reads it today** (STE-175,
+  2026-09-20): the only consumer computed last gameweek's points, which no screen ever showed,
+  and it was removed rather than left looking like a guarantee. The column is still ingested and
+  the migration still carries the rule. **It becomes load-bearing again the moment anything
+  displays a settled points figure** — which is the one circumstance this rule is about, and the
+  reason it is stated here rather than deleted. Do not read it as a live safeguard: there is
+  nothing to test until something reads it.
 
 **Attribution is a licence condition**, not a nicety: a visible link to fantasyfootballiq.app must ship.
 
