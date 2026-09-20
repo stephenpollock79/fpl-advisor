@@ -432,8 +432,32 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
     const vice = input.squad.find((p) => p.isVice)
     if (!captain || !vice) return []
 
+    /**
+     * **The pool is the whole fifteen, not the starting eleven** (ruled
+     * 2026-09-20, after the first live run).
+     *
+     * It was the starters minus anyone another call had claimed — and on the
+     * first week that shipped, the two highest projections in the squad were
+     * Groß on 11.0 and De Cuyper on 8.8, both barred for being on the bench,
+     * both the subject of substitutions the manager had not accepted yet. The
+     * table ruled out its own best answers on a condition the manager was one
+     * tap from changing.
+     *
+     * **Only the side that is leaving is excluded**, which is the part of the
+     * old rule worth keeping: a player being transferred out, or coming out of
+     * the eleven, cannot be the man you hand the armband to. A player arriving
+     * can.
+     *
+     * The honest limit: a bench player nobody is bringing on is now a candidate,
+     * and captaining him would be poor advice. That is the interconnected
+     * -decisions problem (STE-162) showing through, and this is the best answer
+     * available before it is solved properly — a ranking that shows the real top
+     * of the squad beats one that hides it behind a decision not yet made.
+     */
+    const leaving = new Set(chosen.map((c) => c.outPlayerId))
+
     const candidates: ArmbandCandidate[] = input.squad
-      .filter((p) => p.isStarter && !touched.has(p.playerId))
+      .filter((p) => !leaving.has(p.playerId))
       .map((p) => ({
         playerId: p.playerId,
         projection: thisWeek(p),
@@ -456,10 +480,12 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
      * isn't he captain?", and hiding it leaves the question open.
      */
     const barredBecause = (p: SquadEntry): string | null => {
-      if (!p.isStarter) return 'on the bench'
       if (!p.availability.eligible) return p.availability.reason ?? 'unavailable'
       if (!p.hasFixture) return 'no fixture this gameweek'
-      if (touched.has(p.playerId)) return 'already in another call this week'
+      if (leaving.has(p.playerId)) return 'coming out of the side this week'
+      // **Being on the bench is not a bar**, and is not stated here. It is on
+      // the row already, and the table shows it as context rather than as a
+      // reason he cannot be picked.
       return null
     }
 

@@ -306,7 +306,10 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
     const squad = plan.squad.map((p) => ({
       ...p,
       isCaptain: p.name === 'Haaland',
-      isVice: p.name === 'Semenyo',
+      // Rogers is second in the squad on 7.0. He is on the bench, and since
+      // 2026-09-20 that is context rather than a bar — the manager is one tap
+      // from starting him.
+      isVice: p.name === 'Rogers',
     }))
     const { calls, modelCalls } = await generateWeek({ plan: { ...plan, squad }, cards, model: scriptedModel([], 'x') })
     const captaincy = calls.filter((c) => c.category === 'captaincy')

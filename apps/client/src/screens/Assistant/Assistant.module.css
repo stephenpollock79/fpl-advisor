@@ -681,32 +681,49 @@
    table as well. */
 .change { font-size: 8px; }
 
-/* The armband card's header — a statement, not a versus band (STE-151). */
+/*
+ * The armband card's header — a statement, not a versus band (STE-151).
+ *
+ * Same gradient, padding and white type as `.versus` it replaces, so the card
+ * reads as one of the family rather than as a different screen. The first
+ * version set its own smaller, faded type and looked like a footnote.
+ */
 .armbandHead {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px 14px;
-  background: var(--green);
-  color: var(--paper);
+  padding: 10px 14px 11px;
+  background: linear-gradient(135deg, #0a6e3d 0%, #10985a 58%, #25ac66 100%);
+  color: #fff;
 }
 
 .armbandTitle {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 9px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: #fff;
   opacity: 0.85;
 }
 
 .armbandPicks {
-  font-weight: 600;
   font-size: 15px;
+  font-weight: 800;
+  color: #fff;
   text-align: right;
 }
 
 .armbandWrap {
-  padding: 4px 10px 10px;
+  padding: 10px;
   overflow-y: auto;
 }
+
+/* The strength cell sits hard right on the armband card, so the label and its
+   figure read as one thing at the end of the row rather than floating mid-strip. */
+.stripEnd {
+  margin-left: auto;
+  align-items: flex-end;
+  text-align: right;
+}
+
