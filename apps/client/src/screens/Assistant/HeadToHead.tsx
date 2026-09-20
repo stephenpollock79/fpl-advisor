@@ -16,6 +16,7 @@ import type { WorldPlayer } from '../../api'
 import avatar from '../../assets/gaffer-avatar.png'
 import { armbandNotes, formatCost, formatMoney, formatNet, formatRowValue, readingLine } from '../../calls/view'
 import { DifficultyBars, FixturePill } from '../Squad/parts'
+import { ArmbandTable } from './ArmbandTable'
 import styles from './Assistant.module.css'
 import type { Shown } from './AssistantScreen'
 
@@ -27,12 +28,15 @@ type Picker = { outs: WorldPlayer[]; ins: WorldPlayer[]; onSwap: (side: 'out' | 
 export function HeadToHead({
   shown,
   gameweekId,
+  players,
   onDecide,
   picker,
   decided,
 }: {
   shown: Shown
   gameweekId: number
+  /** The squad, for the armband table's rows (STE-151). */
+  players: ReadonlyMap<number, WorldPlayer>
   onDecide: (state: 'selected' | 'rejected' | 'pending') => void
   picker?: Picker | undefined
   /**
@@ -44,6 +48,13 @@ export function HeadToHead({
   decided?: 'selected' | 'rejected'
 }) {
   const { call, out, into, figures } = shown
+  /**
+   * **The armband is a ranking, so it renders as one** (STE-151). No versus
+   * band, no evaluation rows, no arrow — a sorted list with the top two marked.
+   * Everything else about the card is unchanged: same strip, same reasoning,
+   * same three tiles, same swipe.
+   */
+  const armband = call.breakdown.armband ?? null
   const [pickerSide, setPickerSide] = useState<'out' | 'in' | null>(null)
   const [explained, setExplained] = useState(false)
   const [whyWatch, setWhyWatch] = useState(false)
@@ -111,11 +122,20 @@ export function HeadToHead({
         onPointerCancel={onPointerUp}
         style={{ transform: `translate(${drag.dx}px, ${Math.min(0, drag.dy)}px) rotate(${drag.dx / 30}deg)` }}
       >
-        <div className={styles.versus}>
-          <Side player={out} direction="out" onChange={picker ? () => setPickerSide('out') : undefined} />
-          <span className={styles.vs}>VS</span>
-          <Side player={into} direction="in" onChange={picker ? () => setPickerSide('in') : undefined} />
-        </div>
+        {armband ? (
+          <div className={styles.armbandHead} data-testid="armband-head">
+            <span className={styles.armbandTitle}>Armband</span>
+            <span className={styles.armbandPicks}>
+              {players.get(armband.captainId)?.name ?? ''} (C) · {players.get(armband.viceId)?.name ?? ''} (V)
+            </span>
+          </div>
+        ) : (
+          <div className={styles.versus}>
+            <Side player={out} direction="out" onChange={picker ? () => setPickerSide('out') : undefined} />
+            <span className={styles.vs}>VS</span>
+            <Side player={into} direction="in" onChange={picker ? () => setPickerSide('in') : undefined} />
+          </div>
+        )}
 
         <div className={styles.strip}>
           <span className={styles.stripCell}>
@@ -124,14 +144,24 @@ export function HeadToHead({
               {formatNet(figures.net)}
             </span>
           </span>
-          <span className={styles.stripCell}>
-            <span className={styles.cardFigLabel}>COST</span>
-            <span data-testid="cost" className={styles.stripValue}>
-              {formatCost(figures.costTenths)}
+          {/* **No cost row on the armband** (STE-151). The £0.00 only ever
+              existed because the swap framing forced a money column onto
+              something that never had one. */}
+          {armband ? null : (
+            <span className={styles.stripCell}>
+              <span className={styles.cardFigLabel}>COST</span>
+              <span data-testid="cost" className={styles.stripValue}>
+                {formatCost(figures.costTenths)}
+              </span>
             </span>
-          </span>
+          )}
           <span className={styles.stripCell}>
-            <span className={styles.cardFigLabel}>STRENGTH</span>
+            {/* **Named for what it is on this card.** Beside a swap, STRENGTH
+                reads as *how sure are we about this change*. Beside a ranked
+                table the same figure would read as *how sure are we this is the
+                right captain* — question it does not answer. The table answers
+                that, by being a sorted list. */}
+            <span className={styles.cardFigLabel}>{armband ? 'WORTH CHANGING' : 'STRENGTH'}</span>
             {figures.reading === 'call' ? (
               <span data-testid="strength" className={`${styles.strength} ${styles[figures.band] ?? ''}`}>
                 {figures.conviction} · {figures.band}
@@ -209,6 +239,10 @@ export function HeadToHead({
                 </button>
               ))}
             </div>
+          </div>
+        ) : armband ? (
+          <div className={styles.armbandWrap} data-scrolls>
+            <ArmbandTable rows={armband.rows} players={players} />
           </div>
         ) : (
           <div className={styles.table} data-scrolls>

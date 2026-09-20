@@ -16,7 +16,15 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { type RunStep, type World, type WorldCall, type WorldPlayer, decide as saveDecision, streamRun } from '../../api'
+import {
+  type ArmbandRow,
+  type RunStep,
+  type World,
+  type WorldCall,
+  type WorldPlayer,
+  decide as saveDecision,
+  streamRun,
+} from '../../api'
 import avatar from '../../assets/gaffer-avatar.png'
 import { type Decisions, decide, initialDecisions, reopen, restore } from '../../calls/decisions'
 import {
@@ -98,8 +106,29 @@ const SHAPE_TITLE: Record<WorldCall['shape'], string> = {
   doubt_swap: 'Doubt swap',
   upgrade_swap: 'Swap',
   bench_order: 'Bench order',
+  /** One call carrying the whole ranking (STE-151). */
+  armband: 'Armband',
+  /** Rows written before 2026-09-20. Nothing produces them now. */
   captain: 'Captain',
   vice: 'Vice',
+}
+
+/**
+ * **An armband is a result, not a move** (STE-151).
+ *
+ * Everything else on this screen reads `X → Y`, because everything else is a
+ * swap. Rendering the armband that way is the two-swaps framing again, just
+ * smaller — and it is what the Captain tab stopped doing. So it states who
+ * wears what, and the arrow never appears.
+ */
+export function armbandTitle(call: WorldCall, players: ReadonlyMap<number, WorldPlayer>): string | null {
+  const rows = call.breakdown.armband
+  if (!rows) return null
+  const named = (pick: (r: ArmbandRow) => boolean): string => {
+    const found = rows.rows.find(pick)
+    return found ? (players.get(found.playerId)?.name ?? '') : ''
+  }
+  return `Armband: ${named((r) => r.isCaptainPick)} (C) · ${named((r) => r.isVicePick)} (V)`
 }
 
 /** A wall clock, for the last-run line (F8-AC-18). */
@@ -430,7 +459,7 @@ export function AssistantScreen({
       : undefined
 
   const clearedRows: ClearedRow[] = here.flatMap((s): ClearedRow[] => {
-    const title = `${SHAPE_TITLE[s.call.shape]}: ${s.out.name} → ${s.into.name}`
+    const title = armbandTitle(s.call, players) ?? `${SHAPE_TITLE[s.call.shape]}: ${s.out.name} → ${s.into.name}`
     const decided = decisions.decisions[s.key]
     if (decided !== undefined) return [{ key: s.key, title, state: decided }]
     if (decisions.reopened[s.key] !== undefined) return [{ key: s.key, title, state: 'reopened' as const }]
@@ -820,6 +849,7 @@ export function AssistantScreen({
             key={current.key}
             shown={current}
             gameweekId={world.gameweek.id}
+            players={players}
             onDecide={onDecide}
             picker={picker}
             {...(currentDecision ? { decided: currentDecision } : {})}

@@ -680,3 +680,33 @@
 /* The Change control sits in the green header, whose height is charged to the
    table as well. */
 .change { font-size: 8px; }
+
+/* The armband card's header — a statement, not a versus band (STE-151). */
+.armbandHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--green);
+  color: var(--paper);
+}
+
+.armbandTitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.armbandPicks {
+  font-weight: 600;
+  font-size: 15px;
+  text-align: right;
+}
+
+.armbandWrap {
+  padding: 4px 10px 10px;
+  overflow-y: auto;
+}
