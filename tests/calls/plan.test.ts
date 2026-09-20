@@ -384,16 +384,41 @@ describe('F4-AC-01, STE-151 · the armband, as one ranked call', () => {
     expect(call.outcome.pointsHit).toBe(0)
   })
 
-  it('STE-151: a holder whose club has no fixture forces the armband', () => {
+  it('STE-189: a holder who cannot play moves the armband without being forced', () => {
+    /**
+     * **The flag was a second way of saying what the order already says**
+     * (ruled 2026-09-20). A holder who cannot play is barred by `F4-AC-14`,
+     * cannot be the pick, and sinks below every eligible player — so the
+     * armband moves, visibly, with the reason on his row.
+     */
     const w = world()
+    const name = byName(w)
     const squad = w.squad.map((p) => (p.name === 'Semenyo' ? { ...p, hasFixture: false } : p))
     const call = armbandOf(w, squad)[0]
+    const rows = call?.armband?.rows ?? []
 
     expect(call?.outcome.reading).toBe('call')
-    if (call?.outcome.reading === 'call') expect(call.outcome.isForced).toBe(true)
+    if (call?.outcome.reading === 'call') expect(call.outcome.isForced).toBe(false)
+    // The armband leaves him, and the table shows why without a badge.
+    expect(name(call?.inPlayerId ?? -1)).not.toBe('Semenyo')
+    expect(rows.find((r) => name(r.playerId) === 'Semenyo')?.because).toBe('no fixture this gameweek')
   })
 
-  it('STE-151: a forced armband needs no special figure — a holder who cannot play projects zero', () => {
+  it('F4-AC-14: a barred player sinks below every eligible one, whatever his figure says', () => {
+    // He does not sink on the figure — the feed keeps projecting him unless his
+    // club blanks. Only the gate knows, and only the order can show it.
+    const w = world()
+    const name = byName(w)
+    const out = { eligible: false, reason: 'injured' } as const
+    const squad = w.squad.map((p) => (p.name === 'Haaland' ? { ...p, availability: out } : p))
+    const rows = armbandOf(w, squad)[0]?.armband?.rows ?? []
+
+    const haaland = rows.findIndex((r) => name(r.playerId) === 'Haaland')
+    const lastEligible = rows.map((r) => r.because).lastIndexOf(null)
+    expect(haaland).toBeGreaterThan(lastEligible)
+  })
+
+  it('STE-189: a holder who cannot play still scores strongly, because he projects zero', () => {
     // Stephen's point when this was designed: forced should read strongly on its
     // own, because the gap to the best available *is* the whole of it.
     const w = world()
@@ -408,7 +433,21 @@ describe('F4-AC-01, STE-151 · the armband, as one ranked call', () => {
     expect(forced.outcome.conviction).toBeGreaterThan(free.outcome.conviction)
   })
 
-  it('STE-151: a holder the availability gate excludes forces it too, even with a fixture to play', () => {
+  it('STE-189: a holder the gate excludes is still forced, because that rule is the whole app\'s', () => {
+    /**
+     * **How far the ruling actually reaches, stated rather than discovered.**
+     *
+     * "The armband is never forced" is not achievable from here. The engine sets
+     * forced for any call whose incumbent fails the availability gate, and that
+     * rule is shared with substitutions (`F3-AC-17`) — changing it would change
+     * them too, and overriding it when storing would leave our own row
+     * disagreeing with the arithmetic that produced it.
+     *
+     * So what went is the armband's *own* forcing: a blanking club no longer
+     * flags the call, because the ranking already sinks him. A holder the gate
+     * excludes is forced by the same rule that forces every other call about a
+     * player who cannot play, and that is not an armband special case.
+     */
     const w = world()
     const out = { eligible: false, reason: 'injured' } as const
     const squad = w.squad.map((p) => (p.name === 'Semenyo' ? { ...p, availability: out } : p))
@@ -418,7 +457,7 @@ describe('F4-AC-01, STE-151 · the armband, as one ranked call', () => {
     if (call?.outcome.reading === 'call') expect(call.outcome.isForced).toBe(true)
   })
 
-  it('STE-151: however strong the case, an armband is never forced while the holder can play', () => {
+  it('STE-189: a blanking club no longer forces the armband — the ranking already sinks him', () => {
     const call = armbandOf(world())[0]
     expect(call?.outcome.reading).toBe('call')
     if (call?.outcome.reading === 'call') expect(call.outcome.isForced).toBe(false)

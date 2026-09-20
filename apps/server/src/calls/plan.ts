@@ -499,8 +499,25 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
        * most 0.125, and the row it happens on says why.
        */
       .sort((a, b) => {
-        const rank = (r: { isCaptainPick: boolean; isVicePick: boolean }) =>
-          r.isCaptainPick ? 0 : r.isVicePick ? 1 : 2
+        /**
+         * **Picks, then the eligible, then the barred** (F4-AC-14).
+         *
+         * Barred players used to sort on the figure with everyone else, so an
+         * injured player on 8.0 sat third — above eligible players on 6.0 — with
+         * only a small line of text saying he could not be picked. The table
+         * looked like it was ranking him.
+         *
+         * It matters more than it reads: dropping the forced flag (STE-189)
+         * rests on a holder who cannot play sinking out of contention on sight.
+         * **Usually the figure does that by itself** — of 180 unavailable
+         * players in the feed on 2026-09-20, 169 projected exactly zero, because
+         * FFIQ prices availability. **Eleven did not**, and one of those
+         * projected 3.8 while FPL had him injured with no chance of playing.
+         * The two feeds disagree at the edges, the gate is the one that is
+         * right, and the order is what makes the gate visible.
+         */
+        const rank = (r: { isCaptainPick: boolean; isVicePick: boolean; because: string | null }) =>
+          r.isCaptainPick ? 0 : r.isVicePick ? 1 : r.because === null ? 2 : 3
         return rank(a) - rank(b) || b.projection - a.projection || a.playerId - b.playerId
       })
 
@@ -538,13 +555,22 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
       incumbent: side(pair.holder, 1),
       challenger: side(challenger, 1),
       /**
-       * **Forced when, and only when, the holder cannot score this gameweek** —
-       * the gate, or no fixture (F4-AC-07). The same predicate the substitution
-       * search uses. It needs no special figure: a holder who cannot play
-       * projects zero, so the gap to the best available is the whole of it and
-       * the conviction follows on its own.
+       * **The armband is never forced** (ruled 2026-09-20, STE-189).
+       *
+       * It used to be, when the holder could not score. Under the ranking that
+       * flag has nothing left to do: a holder who cannot play is barred from the
+       * pool by `F4-AC-14`, cannot be the pick, and sinks below every eligible
+       * player in the table — so the armband moves, visibly, with a reason on
+       * his row. The badge was a second way of saying what the order already
+       * says.
+       *
+       * **What goes with it, stated rather than discovered later:** a forced
+       * call walks through a rejection (`F6-AC-05`), and this one no longer
+       * does. Reject the armband and it stays rejected for the week even if the
+       * captain then cannot play — unless the recommendation itself changes,
+       * which gives the call a different key and a rejection keyed to the old
+       * pair no longer matches it.
        */
-      incumbentUnplayable: !pair.holder.hasFixture,
     })
 
     return [
