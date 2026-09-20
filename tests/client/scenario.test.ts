@@ -170,6 +170,48 @@ describe('F8-AC-09, F8-AC-10 · Before, After and the three totals', () => {
     expect(s.transfersUsed).toBe(0)
   })
 
+  it('STE-147: one armband call moves both armbands, not just the captain', () => {
+    /**
+     * **The defect this was written after.** With two calls this read the shape
+     * to know which armband it was holding. One call says *armband* and carries
+     * both picks in its ranking — so taking only the incoming player set the
+     * captain and left the vice wherever it already was, and the AFTER pitch
+     * showed a vice the advice had replaced.
+     */
+    const w = world({
+      players: SQUAD.map((p) =>
+        p.playerId === 8 ? { ...p, isCaptain: true } : p.playerId === 11 ? { ...p, isVice: true } : p,
+      ),
+      calls: [
+        call('a', {
+          category: 'captaincy',
+          shape: 'armband',
+          outPlayerId: 8,
+          inPlayerId: 13,
+          breakdown: {
+            ...call('x', { category: 'captaincy' }).breakdown,
+            armband: {
+              captainId: 13,
+              viceId: 9,
+              rows: [
+                { playerId: 13, projection: 8, because: null, isCaptainPick: true, isVicePick: false, byCeiling: false },
+                { playerId: 9, projection: 7, because: null, isCaptainPick: false, isVicePick: true, byCeiling: false },
+              ],
+            },
+          },
+        }),
+      ],
+    })
+    const s = scenarioFor(w, w.calls, 'all', none)
+
+    expect(s.after.find((p) => p.playerId === 13)?.isCaptain).toBe(true)
+    // The half that used to be left behind.
+    expect(s.after.find((p) => p.playerId === 9)?.isVice).toBe(true)
+    expect(s.after.find((p) => p.playerId === 11)?.isVice).toBe(false)
+    expect(s.after.filter((p) => p.isCaptain)).toHaveLength(1)
+    expect(s.after.filter((p) => p.isVice)).toHaveLength(1)
+  })
+
   it('F8-AC-10: a captaincy call moves the armband and nothing else', () => {
     const w = world({
       players: SQUAD.map((p) => (p.playerId === 8 ? { ...p, isCaptain: true } : p)),
