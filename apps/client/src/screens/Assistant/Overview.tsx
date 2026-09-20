@@ -21,7 +21,7 @@
 import { useState } from 'react'
 import type { DecisionState, World, WorldCall, WorldPlayer } from '../../api'
 import { type Filter, type Scenario, scenarioFor } from '../../calls/scenario'
-import { availabilityFor, formatCost, formatMoney, formatNet, thisWeekNet } from '../../calls/view'
+import { armbandLabel, availabilityFor, formatCost, formatMoney, formatNet, thisWeekNet } from '../../calls/view'
 import type { Week } from '../../calls/week'
 import { benchInOrder, displaySurname, startersByPosition } from '../../squad/format'
 import { kitFor } from '../../squad/kits'
@@ -153,6 +153,11 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
   function titleOf(call: WorldCall): string {
     const out = displaySurname(nameOf(call.outPlayerId))
     const into = displaySurname(nameOf(call.inPlayerId))
+    // **A result, not a move.** One definition, in `calls/view.ts`, because
+    // this screen and the card drifted apart the first day they both named it.
+    const armband = armbandLabel(call, (id) => displaySurname(nameOf(id)))
+    if (armband !== null) return armband
+    // Rows written before 2026-09-20. Readable, never produced again.
     if (call.shape === 'captain') return `Armband: ${out} → ${into}`
     if (call.shape === 'vice') return `Vice armband: ${out} → ${into}`
     if (call.shape === 'bench_order') return `Bench order: ${into} to 1`
@@ -328,7 +333,7 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
           <section key={group.category} className={styles.group} aria-label={group.label}>
             <header className={styles.groupHead}>
               <span>{group.label.toUpperCase()}</span>
-              <span className={styles.groupMeta}>{metaFor(group.category, all, world)}</span>
+              <span className={styles.groupMeta}>{metaFor(group.category, all)}</span>
             </header>
 
             {here.map((call) => {
@@ -472,19 +477,16 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
 }
 
 /**
- * The group meta (F8-AC-27, F4-AC-03).
+ * The group meta (F8-AC-27).
  *
- * Captaincy is the one that is not a count: the armband and the vice share this
- * group rather than splitting into a fourth, and a held armband is *held*, not a
- * pick. This is the sentence slice 6 deliberately left here rather than building
- * a second version in the tab strip.
+ * **A count, like the other two** (rewritten 2026-09-20). It used to read
+ * *"1 pick · 1 held"* or *"2 picks"*, a format whose whole job was counting two
+ * armband calls against each other. There is one now, so the count says what it
+ * says everywhere else and the category stops being the odd one out.
+ *
+ * It still never splits into a fourth category — that part of F8-AC-27 survives
+ * the rewrite, because the armband is one decision however it is drawn.
  */
-function metaFor(category: WorldCall['category'], all: WorldCall[], world: World): string {
-  if (category !== 'captaincy') return `${all.length} suggested`
-
-  const readings = world.calls.filter((c) => c.category === 'captaincy' && c.isReading).length
-  const picks = all.length
-  if (readings > 0 && picks > 0) return `${picks} pick${picks === 1 ? '' : 's'} · ${readings} held`
-  if (readings > 0) return `${readings} held`
-  return `${picks} pick${picks === 1 ? '' : 's'}`
+function metaFor(category: WorldCall['category'], all: WorldCall[]): string {
+  return `${all.length} suggested`
 }
