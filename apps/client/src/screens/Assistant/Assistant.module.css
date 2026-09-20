@@ -765,5 +765,15 @@
   min-height: 0;
   padding: 0;
   overflow-y: auto;
+  /*
+   * **The same fix the Squad stat table already carries**, for the same reason
+   * and with the same answer. Without it the iOS rubber-band drags the table off
+   * its own panel at both ends and flashes the page behind it — the white bars
+   * above the header and below the last row.
+   *
+   * `none` rather than `contain`: contain only stops the bounce chaining to the
+   * page, and it is the bounce itself that shows the ground behind the table.
+   */
+  overscroll-behavior: none;
 }
 
