@@ -91,9 +91,12 @@ test('STE-161: the policy refuses nothing the app actually loads', async ({ page
   await page.getByRole('tab', { name: /log in/i }).click()
   await page.unrouteAll()
 
-  // Then the screens behind a session, through the fixture's world. The kit
-  // colours and the drag transform are inline style attributes, which is the
-  // one allowance the policy makes and the one worth proving is enough.
+  // Then the screens behind a session, through the fixture's world. **Both
+  // components that set a `style` prop are on this walk** — the kit colours on
+  // the Overview's mini pitches, and the drag transform on the head-to-head —
+  // which is what licensed dropping `'unsafe-inline'` from `style-src`
+  // (STE-173). If either ever does emit a real style attribute, it reports
+  // here rather than on a phone.
   await open(page, {}, world.calls, {}, null)
   await page.getByRole('tab', { name: 'Squad' }).click()
   await page.getByRole('tab', { name: 'Stat', exact: true }).click()
