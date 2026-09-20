@@ -438,9 +438,28 @@ to gameweek 5 correctly and the squad on screen was still gameweek 3's, because
 picks were being read on the points rule. That defect is fixed; the criterion's
 other halves are still unproven.
 
-**F6-UP-03 must not be read as met**, and what would close it is a test that
-rolls the gameweek and asserts the decisions, the shortlist and the pending
-calls are gone and the squad has been captured again. *Home: STE-177.*
+*Squad half closed.* `tests/world/routes.test.ts` causes a real rollover — a
+snapshot the gameweek has moved past, and one that cannot say where it came from
+— and asserts the old snapshot is retired and the squad captured again. A
+current snapshot triggers neither, so the test is not passing by always
+capturing.
+
+*Clean-slate half, 2026-09-20 (STE-177): mechanism asserted, behaviour still
+not.* The discard is not a branch anybody wrote. It falls out of **both reads
+being keyed to the gameweek being advised** — `world/load.ts` selects the latest
+succeeded `run` and the `decision` rows with the same `.eq('gameweek', …)` — so
+a rolled-over week finds neither. Two checks now fail if either filter is
+removed, and each fails first if the read it inspects has gone, so neither can
+pass by matching nothing. Verified by deleting the decision filter, which fails
+them.
+
+**That is a structural check and it is not the criterion.** It cannot say the
+slate is clean; it says nobody removed what makes it clean. Proving the
+behaviour needs a real-Postgres fixture holding last week's run and decisions —
+the shape `tests/rls/isolation.test.ts` uses — which does not exist for the
+world read and is a piece of work rather than a line.
+
+**So F6-UP-03 still must not be read as met.** *Home: STE-177.*
 
 **F6-AC-20 — cancelling is built twice over and asserted nowhere.** A cancelled
 run must be treated exactly as a run that never started: recorded `cancelled`
@@ -519,8 +538,17 @@ carried into the run it constrained, whole and repositioned after the new calls.
 What is still unproven end to end is the two halves joined: accept a call,
 refresh, and see the card still there reading *selected · locked*.
 
-**What would close it:** an end-to-end spec that decides a call, runs a refresh,
-and asserts the card survives it. *Home: STE-177.*
+*Closed 2026-09-20 (STE-177).* `tests/e2e/assistant.spec.ts` now decides a call,
+**runs a refresh**, and asserts the card is still there reading *selected ·
+locked*.
+
+**The first version of that test was a false green**, and how it failed is worth
+keeping. It varied the run's `done` payload, which the client uses only as a
+signal to re-read `/api/world` — so it passed just as happily with the selected
+call stripped out of the run. The test now varies the world the refresh re-reads,
+and was checked by removing the selected call from it, where it fails. A test
+that causes the wrong trigger looks exactly like one that causes the right
+one.
 
 **The armband's forced behaviour is deliberately uncovered, and that is a
 settled decision rather than an open question.** Ruled 2026-09-20 (STE-189,

@@ -341,6 +341,54 @@ test('F6-AC-02: a selected call reads selected · locked, so it is clear why it 
   await expect(page.getByText('SELECTED · LOCKED', { exact: false })).toBeVisible()
 })
 
+/**
+ * **The half the criterion was written for** (STE-177, P16).
+ *
+ * The test above opens a world in which the call is already selected and reads
+ * the card. It never runs a refresh — and a refresh is the only circumstance
+ * F6-AC-02 is about. That is exactly where the rule was broken: until
+ * 2026-09-14 (STE-132) a selected call was applied to the next plan as a
+ * constraint and emitted no card, so a refresh made the accepted call vanish
+ * and the decision row pointed at nothing. **The green tick said otherwise for
+ * four days.**
+ *
+ * `tests/runs/routes.test.ts` proves the server carries the call into the run
+ * it constrained. This joins that to the screen.
+ */
+test('F6-AC-02: a selected call is still there, and still reads selected · locked, after a refresh', async ({ page }) => {
+  const decisions = { [T1]: 'selected', [T2]: 'rejected' }
+  await open(page, decisions)
+  await expect(page.getByText('SELECTED · LOCKED', { exact: false })).toBeVisible()
+
+  /**
+   * **The world after the run is what this test turns on**, not the done
+   * event's payload. The client uses `done` only as a signal to re-read
+   * `/api/world` — so a test that varied the event and left the world alone
+   * would pass whatever the server did with the call, which is what the first
+   * version of this test did.
+   */
+  await page.route('**/api/world', (route: Route) =>
+    route.fulfill({ json: { ...world, decisions, calls: world.calls } }),
+  )
+  await page.route('**/api/runs/stream', (route: Route) =>
+    route.fulfill({
+      headers: { 'content-type': 'text/event-stream' },
+      body: `event: done\ndata: ${JSON.stringify({ runId: 'r2', calls: world.calls })}\n\n`,
+    }),
+  )
+
+  // The trigger the old test never caused.
+  await page.getByTestId('refresh').click()
+  await page
+    .getByRole('dialog', { name: 'Refresh everything' })
+    .getByRole('button', { name: 'Refresh everything' })
+    .click()
+
+  // Back, still decided, still saying why it did not change.
+  await expect(page.getByText('Transfers decided')).toBeVisible()
+  await expect(page.getByText('SELECTED · LOCKED', { exact: false })).toBeVisible()
+})
+
 test('F6-UP-02: when FPL is not answering the screen says how old it is, and refresh reads off rather than failing on tap', async ({ page }) => {
   await open(page, {}, world.calls, { feedsReachable: false, dataReadAt: new Date(Date.now() - 39 * 60 * 1000).toISOString() })
 
