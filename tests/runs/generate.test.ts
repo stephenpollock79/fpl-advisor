@@ -286,7 +286,7 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
     expect(captain?.k).toBe(0.5)
   })
 
-  it('F4-UP-01: a captain whose club has no fixture projects zero, and the call is forced rather than re-scored', async () => {
+  it('F4-UP-01, STE-189: a captain whose club has no fixture projects zero, and the ranking moves the armband', async () => {
     const { plan, cards, id } = build()
     const blanking = id('Semenyo')
     const squad = plan.squad.map((p) => (p.playerId === blanking ? { ...p, hasFixture: false } : p))
@@ -295,7 +295,10 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
 
     expect(captain?.outPlayerId).toBe(blanking)
     expect(captain?.breakdown.out.projections).toEqual([0])
-    expect(captain?.isForced).toBe(true)
+    // **No longer forced** (ruled 2026-09-20). A blanking club projects zero and
+    // is barred, so he sinks below every eligible player and the armband moves
+    // on sight. The badge was a second way of saying what the order already says.
+    expect(captain?.isForced).toBe(false)
     // Forced, and never shown a negative figure (slice 4's rule).
     expect(captain?.net).toBeGreaterThanOrEqual(0)
   })

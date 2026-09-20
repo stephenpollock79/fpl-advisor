@@ -541,24 +541,3 @@ the table on a screen** — nobody has seen it render, and no spec draws it.
 `breakdown.armband` ranking, and assert the table — the two marks, a barred row
 carrying its reason, no cost cell, and the figure labelled *worth changing*
 rather than *strength*. *Home: STE-186.*
-
-**The armband's forced flag is asserted by tests and required by no criterion.**
-F4's rewrite on 2026-09-20 retired `F4-AC-07` and `F4-AC-08` — *when a pick is
-forced*, and *never forced while the holder can play*. Under the ranking they
-looked redundant: `F4-AC-14` bars a player whose club has no fixture, so a
-blanking holder cannot be the pick and the armband moves without anything being
-flagged.
-
-**But the code still sets it.** `planWeek` passes `incumbentUnplayable` on the
-armband call, so a blanking holder still produces a call marked forced, and 3.4's
-Forced flag still cites F4 for *"a captain who is ruled out"*. Four tests assert
-that behaviour and now name a ticket rather than a criterion, because there is no
-longer one to name.
-
-**Nothing is broken and that is the point.** Code and criteria disagree about
-whether the concept exists, and the coverage figure cannot show it: a behaviour
-with no criterion is invisible to a report that counts criteria.
-
-**What would close it:** a ruling. Either the flag is redundant under the ranking
-and comes out of the code and of 3.4, or it is still wanted and F4 needs a
-criterion saying so. *Home: STE-189.*
