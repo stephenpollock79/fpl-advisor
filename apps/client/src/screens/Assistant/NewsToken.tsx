@@ -18,7 +18,7 @@
  *   dismisses it, and nothing should.
  */
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Flagged } from '../../calls/week'
 import styles from './NewsToken.module.css'
 
@@ -33,11 +33,54 @@ type Props = {
 
 export function NewsToken({ flagged, since, onRefreshAll, disabled }: Props) {
   const [open, setOpen] = useState(false)
+  const wrap = useRef<HTMLDivElement>(null)
+
+  /**
+   * **A transient surface has to be leavable** (STE-182). Until this, the panel
+   * closed only by finding the badge again — a small target beside the wordmark
+   * — while tapping the page, scrolling or switching tabs all left it sitting
+   * there. Every other transient surface in the app can be left.
+   *
+   * **The dismissing tap dismisses and nothing else.** It is caught on the
+   * document in the capture phase and stopped there, so a tap that lands on a
+   * call card closes the panel without also opening that card. The opposite is
+   * defensible, but underneath this panel is a list of cards that navigate, and
+   * opening one by accident while reaching to dismiss is the worse failure.
+   *
+   * **`click`, not `pointerdown`, on purpose.** `click` is what activates a
+   * control, so stopping it is what prevents the accidental navigation —
+   * and, unlike swallowing a pointer event, it leaves scrolling untouched.
+   *
+   * **The listeners exist only while the panel does.** A document listener left
+   * behind runs on every subsequent tap in the app for a panel that is not
+   * there — the sort of thing no test catches and that slowly makes a screen
+   * feel heavy.
+   *
+   * It starts no run (F8-AC-19): dismissing is not the action inside the panel.
+   */
+  useEffect(() => {
+    if (!open) return
+    const onClick = (e: MouseEvent) => {
+      if (wrap.current?.contains(e.target as Node) === true) return
+      e.stopPropagation()
+      setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('click', onClick, true)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', onClick, true)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   if (flagged.length === 0) return null
   void since
 
   return (
-    <div className={styles.wrap}>
+    <div className={styles.wrap} ref={wrap}>
       <button
         className={styles.token}
         onClick={() => setOpen((o) => !o)}

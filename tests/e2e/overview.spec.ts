@@ -125,6 +125,43 @@ test('F8-AC-13, F8-AC-15, F8-AC-18, F8-AC-19: moved evidence raises the token an
   expect((panel?.x ?? 0) + (panel?.width ?? 0), 'the news panel runs off the right of the screen').toBeLessThanOrEqual(width)
 })
 
+test('STE-182: the news panel closes on a tap outside and on Escape, without opening what the tap landed on', async ({ page }) => {
+  await overview(page, {}, {
+    news: { since: new Date().toISOString(), flagged: [{ playerId: 423, fields: ['chance'], nowExcluded: false }] },
+  })
+
+  await page.getByTestId('news-token').click()
+  await expect(page.getByTestId('news-tooltip')).toBeVisible()
+
+  /**
+   * **The tap lands on a call card, which is the case that matters.** A card is
+   * a control that navigates, so a dismissal that also activated it would take
+   * the manager somewhere he did not ask to go — and that is the half a
+   * "does it close?" assertion would miss entirely.
+   */
+  await page.getByTestId(`card-${T1}`).click()
+  await expect(page.getByTestId('news-tooltip')).toHaveCount(0)
+  // Still on the Overview: the tap was spent dismissing and nothing else.
+  await expect(page.getByTestId('overview')).toBeVisible()
+
+  // Escape closes it too, which is what a keyboard expects.
+  await page.getByTestId('news-token').click()
+  await expect(page.getByTestId('news-tooltip')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('news-tooltip')).toHaveCount(0)
+
+  // And the badge still toggles — this adds a way out rather than replacing one.
+  await page.getByTestId('news-token').click()
+  await expect(page.getByTestId('news-tooltip')).toBeVisible()
+  await page.getByTestId('news-token').click()
+  await expect(page.getByTestId('news-tooltip')).toHaveCount(0)
+
+  // Dismissing is not the action inside the panel, so it starts no run
+  // (F8-AC-19). A confirmation on screen here would mean it had.
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByTestId('thinking')).toHaveCount(0)
+})
+
 test('F8-AC-16, F6-AC-09: the token’s own refresh runs at every scope, from whichever tab it is tapped on', async ({ page }) => {
   await overview(page, {}, {
     news: { since: new Date().toISOString(), flagged: [{ playerId: 423, fields: ['status'], nowExcluded: true }] },
