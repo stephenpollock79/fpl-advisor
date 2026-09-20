@@ -68,6 +68,21 @@ describe('STE-161 · the headers every response carries', () => {
     expect(scriptSrc).not.toContain('unsafe-eval')
   })
 
+  it('STE-173: styles get no inline allowance either, and an injected style attribute is named out', () => {
+    // `'unsafe-inline'` on styles was the weakest line in this policy — far less
+    // dangerous than the script equivalent, but enough for a UI-redressing
+    // attack, an invisible overlay over a control.
+    //
+    // It was never needed: React writes a `style` prop through the CSSOM,
+    // property by property, and CSP polices the attribute the parser sees, not
+    // the CSSOM. The evidence is `tests/e2e/csp.spec.ts`, which walks both
+    // components that set one and reports nothing.
+    const styleSrc = /style-src ([^;]+)/.exec(CONTENT_SECURITY_POLICY)?.[1] ?? ''
+    expect(styleSrc).not.toContain('unsafe-inline')
+    // Said outright rather than left to fall back through `style-src`.
+    expect(CONTENT_SECURITY_POLICY).toContain("style-src-attr 'none'")
+  })
+
   it('STE-161: the three that never needed a ruling are still sent', () => {
     // They went in on STE-38 and nothing here should quietly drop them while
     // attention is on the two new ones.
