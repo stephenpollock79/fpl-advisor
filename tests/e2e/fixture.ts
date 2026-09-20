@@ -184,7 +184,6 @@ export const T2 = 'transfer:out=10:in=300'
 
 export const world = {
   gameweek: { id: 4, name: 'Gameweek 4', deadlineTime: '2026-09-12T12:30:00Z' },
-  lastScoredGameweek: 3,
   snapshot: { id: 's1', source: 'fpl_deadline', capturedAt: '2026-09-11T10:00:00Z', bankTenths: 10, freeTransfers: 3, chipsRemaining: { wildcard: 'available', freehit: 'available', bboost: 'available', '3xc': 'spent' } },
   players: squad,
   candidates,

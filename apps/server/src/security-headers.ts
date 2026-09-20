@@ -27,17 +27,28 @@
  *   stylesheet and `fonts.gstatic.com` serves the font files; naming only the
  *   first is the classic mistake, and the page then renders in a fallback face
  *   with nothing in the console but a font error.
- * - `'unsafe-inline'` on styles only. **It is probably unnecessary, and it stays
- *   anyway.** The two components that set a `style` prop — a club's kit colours
- *   and the drag transform — go through React, which writes each property via
- *   the CSSOM rather than emitting a `style` attribute for the parser, and CSP
- *   does not police the CSSOM. Adding `style-src-attr 'none'` produced no
- *   violation anywhere in the walk, which is the measurement. Tightening it is
- *   still a separate change from enforcing the policy: one of those two is
- *   backed by evidence and the other would be riding on it (STE-173).
- *   Scripts get no such allowance: the production build emits a file and no
- *   inline script, which is what makes `script-src 'self'` the line that carries
- *   this policy's whole value.
+ * - **Styles get no inline allowance either, as of STE-173.** `'unsafe-inline'`
+ *   was there for the two components that set a `style` prop — a club's kit
+ *   colours and the drag transform — and it was never needed: React writes each
+ *   property through the CSSOM rather than emitting a `style` attribute for the
+ *   parser, and CSP polices the attribute, not the CSSOM. Measured first, then
+ *   removed: `style-src-attr 'none'` produced no violation anywhere in the walk,
+ *   and the harness is known to report, because removing `'self'` from
+ *   `style-src` reports the blocked stylesheet immediately. Silence there is
+ *   silence, not a broken listener.
+ *
+ *   It mattered because `'unsafe-inline'` on styles was the weakest line in the
+ *   policy: far less dangerous than the script equivalent, but enough for a
+ *   UI-redressing attack — an invisible overlay over a control.
+ *
+ *   **What the walk does not cover is a screen it never visits.** A `style`
+ *   attribute on one of those now renders wrong on a phone rather than merely
+ *   reporting. `report-uri` still points at `/api/csp-report`, so it would
+ *   arrive as a log line — worth reading for a few days rather than assuming.
+ *
+ *   Scripts never had such an allowance: the production build emits a file and
+ *   no inline script, which is what makes `script-src 'self'` the line that
+ *   carries this policy's whole value.
  * - `data:` on images for icons inlined by the build.
  *
  * **PostHog is deliberately absent.** STE-161 said this policy would have to
@@ -58,7 +69,11 @@ export const CONTENT_SECURITY_POLICY = [
   "connect-src 'self'",
   "img-src 'self' data:",
   "font-src 'self' https://fonts.gstatic.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "style-src 'self' https://fonts.googleapis.com",
+  // Belt and braces: `style-src-attr` is what an injected `style` attribute
+  // would land on, and naming it 'none' says so outright rather than leaving it
+  // to fall back through `style-src`.
+  "style-src-attr 'none'",
   'report-uri /api/csp-report',
 ].join('; ')
 
