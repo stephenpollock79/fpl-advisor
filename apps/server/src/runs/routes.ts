@@ -56,6 +56,7 @@ import { committedPairs, suppressed } from '../refresh/locks.js'
 import type { SideNow } from '../refresh/recompute.js'
 import { recomputeCall } from '../refresh/recompute.js'
 import { identityOf } from '../calls/identity.js'
+import { RETIRED_SHAPES } from '../calls/plan.js'
 import { type CardInfo, type StoredCall, composeEditorial, generateWeek } from './generate.js'
 
 export type WeekInputs = {
@@ -199,6 +200,16 @@ function materiallyMoved(refresh: RefreshInputs, week: WeekInputs): Set<string> 
 
   const moved = new Set<string>()
   for (const call of refresh.calls) {
+    /**
+     * **A shape the planner no longer writes cannot be reused.** Its figures may
+     * re-derive perfectly and still describe a card this build does not produce;
+     * only a run can replace it. Checked before the recompute, because the
+     * question is not whether the world moved.
+     */
+    if (RETIRED_SHAPES.has(call.shape)) {
+      moved.add(call.key)
+      continue
+    }
     // One bad row must not take down the run — the same posture the world read
     // takes, and for the same reason: a call naming a player the latest feed no
     // longer knows is one call's problem, not the week's.
