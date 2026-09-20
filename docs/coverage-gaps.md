@@ -381,13 +381,32 @@ by slice 8 (STE-66).** Each was counted covered off a test proving one half.
   it is FPL's own figure, consumed as the projections are. **Check the payload
   before concluding a feed lacks something** — the absence was in the reading.
 
-  The **press-conference** trigger has no data source, and closing it is a
-  decision about whether to introduce scraping rather than a missing
-  implementation. *Home: STE-163* (Post MVP), split out on 2026-09-16 when
-  STE-117 closed with the half it had built — a gaps entry naming a closed
-  ticket is a pointer that looks checkable and is not.
+  The **press-conference** trigger has no data source. **Ruled won't-do on
+  2026-09-21 (STE-163):** *"I can't see me ever building that."* The cost was
+  always scraping club media schedules — fragile, its own licence question, and
+  nothing in this build scrapes anything — against a trigger that fires on a
+  handful of calls a week.
 
-`F3-AC-17` may not be read as met from the coverage figure.
+  **So this entry has no home, deliberately, and that is not the failure `P14`
+  describes.** That rule is about an entry whose owning ticket closed while the
+  gap stayed open — a pointer that looks checkable and is not. Here the gap is
+  closed as a decision: there is no future work to point at, and naming a
+  cancelled ticket would imply there is. **`F3-AC-17` is permanently partial by
+  ruling rather than by omission**, and the record of the argument is on the
+  cancelled STE-163.
+
+  **One thing this makes more likely, not less.** The criterion still describes
+  the trigger, and the cheap way to satisfy a criterion with no data behind it
+  is to ask the model. `CLAUDE.md`'s reasoning invariant forbids exactly that —
+  the model has no fitness, availability, news or minutes data, and on
+  15–16 September it invented an injury for a fit player it recommended for the
+  captaincy two clauses later (ADR 0012). A press conference guessed from a
+  fixture date is the same failure with a calendar attached. **It stays
+  forbidden now the ticket is closed.**
+
+`F3-AC-17` may not be read as met from the coverage figure, and **no test may
+name it for the unbuilt half** — the identifier is already named by tests
+proving *FORCED* and the price trigger, both of which are real.
 
 
 **F4-AC-02 — the tiles are tested, the swipe is not.** The criterion is that a
