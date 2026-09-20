@@ -9,6 +9,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { type SideNow, type StoredFigure, recomputeAll, recomputeCall } from '../../apps/server/src/refresh/recompute.js'
+import { identityOf } from '../../apps/server/src/calls/identity.js'
 
 const side = (playerId: number, projection: number, extra: Partial<SideNow> = {}): SideNow => ({
   playerId,
@@ -253,5 +254,32 @@ describe('A call the run forced stays forced when it is re-derived (STE-143)', (
     // The guard must not make every call survive re-derivation — only the ones
     // the run had a reason for.
     expect(recomputeCall(viceCall(false), sides()).isReading).toBe(true)
+  })
+})
+
+describe('STE-151 · an armband call re-derives as a captaincy, never as a substitution', () => {
+  /**
+   * **The defect this was written after.** `identityOf` ended in a `default:`
+   * arm, so the day `armband` joined the shape union every stored armband call
+   * quietly rebuilt as a *substitution* — wrong bar, wrong label, and no error
+   * anywhere to say so. A catch-all absorbing a case nobody thought about is the
+   * same failure as a test naming a criterion and exercising the other half of
+   * it (P16).
+   */
+  it('STE-151: the shape maps to the captaincy bar, and every shape is named rather than defaulted', () => {
+    expect(identityOf({ shape: 'armband', outPlayerId: 7, inPlayerId: 9 })).toEqual({
+      type: 'captain',
+      fromPlayerId: 7,
+      toPlayerId: 9,
+    })
+    // The arms the default used to cover, still covered — now by name.
+    expect(identityOf({ shape: 'upgrade_swap', outPlayerId: 1, inPlayerId: 2 })).toEqual({
+      type: 'substitution',
+      variant: 'upgrade',
+      outPlayerId: 1,
+      inPlayerId: 2,
+    })
+    expect(identityOf({ shape: 'forced_swap', outPlayerId: 1, inPlayerId: 2 })).toMatchObject({ variant: 'forced' })
+    expect(identityOf({ shape: 'doubt_swap', outPlayerId: 1, inPlayerId: 2 })).toMatchObject({ variant: 'doubt' })
   })
 })
