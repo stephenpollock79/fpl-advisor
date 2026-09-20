@@ -21,7 +21,7 @@
  */
 
 import type { ArmbandRow, WorldPlayer } from '../../api'
-import { displaySurname } from '../../squad/format'
+import { benchBadge, displaySurname } from '../../squad/format'
 import { FixturePill } from '../Squad/parts'
 import styles from './ArmbandTable.module.css'
 
@@ -74,9 +74,17 @@ export function ArmbandTable({
                         V
                       </span>
                     ) : null}
+                    {/* **The bench slot as a badge, not a second line.** Spelling
+                        it out under the name gave half the table a two-line row
+                        and buried the figures; the same letters the Squad table
+                        already uses say it in the width of a word (F1-AC-18). */}
+                    {benchBadge(player.benchOrder) === null ? null : (
+                      <span className={styles.bench} title="On your bench">
+                        {benchBadge(player.benchOrder)}
+                      </span>
+                    )}
                   </div>
                   {barred ? <div className={styles.note}>{row.because}</div> : null}
-                  {!barred && !player.isStarter ? <div className={styles.note}>on the bench</div> : null}
                   {row.byCeiling ? <div className={styles.note}>chosen on ceiling, not the raw figure</div> : null}
                 </td>
                 <td className={styles.figure}>{player.form === null ? '—' : player.form.toFixed(1)}</td>
