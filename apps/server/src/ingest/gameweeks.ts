@@ -61,31 +61,19 @@ export function gameweekToAdviseOn(rows: GameweekRow[]): GameweekRow {
 }
 
 /**
- * The most recent gameweek whose points have settled.
- *
- * **`data_checked`, not `finished`.** `finished` flips when the last match ends;
- * bonus points and corrections land afterwards. A total read from `finished`
- * changes under the manager a few hours later, which reads as the app being wrong
- * rather than the feed being early.
- *
- * Null when nothing has settled yet — the opening weeks of a season, and the
- * window between the last whistle and the bonus points.
- */
-export function lastScoredGameweek(rows: GameweekRow[]): GameweekRow | null {
-  const scored = rows.filter((r) => r.dataChecked)
-  if (scored.length === 0) return null
-  return scored.reduce((latest, r) => (r.id > latest.id ? r : latest))
-}
-
-/**
  * The most recent gameweek whose **deadline** has passed — the newest squad FPL
  * will disclose.
  *
- * **A different question from `lastScoredGameweek`, and the two must not share a
- * rule.** Points settle late: bonus and corrections land hours after the last
- * whistle, so a total is read from `data_checked`. **Picks settle early:** they
- * lock the instant the deadline passes and never move again, so the squad is
- * read from the deadline.
+ * **Picks settle early, and that is why this reads the deadline.** They lock the
+ * instant it passes and never move again. Points are the opposite — bonus and
+ * corrections land hours after the last whistle — which is why `data_checked`
+ * exists and why the two questions must never share a rule.
+ *
+ * **Nothing reads `data_checked` any more** (STE-175). The only thing that did
+ * was `lastScoredGameweek`, whose figure reached the client and was rendered by
+ * nothing; it was removed rather than left looking like a guarantee. The column
+ * is still ingested and still documented in the migration, so the rule is one
+ * consumer away if last gameweek's points are ever shown.
  *
  * Until 2026-09-14 this used `data_checked`, and F1's own happy path says *the
  * squad as at the last completed deadline*. **The two agreed every day the app

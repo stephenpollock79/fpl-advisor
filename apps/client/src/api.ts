@@ -263,7 +263,6 @@ export type DecisionState = 'selected' | 'rejected'
 
 export type World = {
   gameweek: { id: number; name: string; deadlineTime: string }
-  lastScoredGameweek: number | null
   snapshot: {
     id: string
     /** `fpl_deadline` or, from slice 9, `screenshots`. What the editorial names (F8-AC-04). */

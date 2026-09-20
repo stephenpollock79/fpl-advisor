@@ -81,7 +81,6 @@ const call: WorldCall = {
 const world = () =>
   assembleWorld({
     gameweek,
-    lastScored: null,
     snapshot: { id: 's1', source: 'fpl_deadline', capturedAt: '2026-09-11T10:00:00Z', bankTenths: 10, freeTransfers: 3, chipsRemaining: {} },
     squad: [
       { playerId: 557, isStarter: true, benchOrder: null, isCaptain: true, isVice: false, purchasePriceTenths: 60 },

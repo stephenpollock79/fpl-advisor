@@ -61,7 +61,7 @@ const snapshot = {
 }
 
 const world = () =>
-  assembleWorld({ gameweek, lastScored: null, snapshot, squad, players, clubs, fixtures, projections, states })
+  assembleWorld({ gameweek, snapshot, squad, players, clubs, fixtures, projections, states })
 
 describe('F1-UP-01, F1-UP-02 · the two feeds meeting', () => {
   it('F1-UP-01: a blanking player projects 0.0, whatever the projections feed carries', () => {
@@ -154,7 +154,7 @@ describe('F1-AC-10 · the name on screen is the name FPL prints', () => {
     // on 2026-09-15 and matched the wrong player in a screenshot the same
     // evening. A test using a player where they agree proves nothing.
     const shown = assembleWorld({
-      gameweek, lastScored: null, snapshot, clubs, fixtures, projections, states,
+      gameweek, snapshot, clubs, fixtures, projections, states,
       players: [
         { id: 101, clubId: 2, position: 'FWD', firstName: 'João', surname: 'Junqueira de Jesus', shirtName: 'João Pedro', shirtNumber: 9 },
       ],
@@ -166,7 +166,7 @@ describe('F1-AC-10 · the name on screen is the name FPL prints', () => {
 
   it('F1-AC-10: a row read before the shirt name existed falls back to the second name', () => {
     const shown = assembleWorld({
-      gameweek, lastScored: null, snapshot, clubs, fixtures, projections, states,
+      gameweek, snapshot, clubs, fixtures, projections, states,
       players: [
         { id: 101, clubId: 2, position: 'FWD', firstName: 'Erling', surname: 'Haaland', shirtName: '', shirtNumber: 9 },
       ],
@@ -218,7 +218,6 @@ describe('A call the world cannot carry out says so, rather than claiming nothin
     // 102 is in the squad, so buying him is not a transfer at all any more.
     const shown = assembleWorld({
       gameweek,
-      lastScored: null,
       snapshot,
       squad,
       players,
@@ -290,7 +289,6 @@ describe('A call demoted by the world read is reported, whichever way it was dem
     try {
       assembleWorld({
         gameweek,
-        lastScored: null,
         snapshot,
         squad,
         players,
