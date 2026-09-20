@@ -502,7 +502,29 @@ frozen-feeds strip is already on screen saying so.
 What *was* seen on 18 September, two hours after the deadline: the app on GW6
 with the right deadline and no run yet, rather than still advising on a week
 already locked. That is the outcome this criterion protects, reached by the feed
-being right rather than by the stop firing. *Home: STE-154.*
+being right rather than by the stop firing.
+
+*Rendering closed 2026-09-20 (STE-154).* **The residual was never the
+arithmetic — it was that nobody had ever seen the card.** The clock comparison
+and the server putting `gameweekStop` on the world were each proven twice, and
+no test drew the thing a person would actually be looking at. A card that is
+wrong at 390 wide, wrongly worded, or that crashes on a field it does not carry
+would have been found at the one moment it matters, which is rare and most
+likely coincides with the feeds being down.
+
+`tests/e2e/assistant.spec.ts` now renders it against a fabricated world, in both
+arms. It asserts the card names the week, that it is a stop rather than a
+dismissible prompt (`F6-AC-15` — no dialog, no control inside it), that it
+*replaces* the advice rather than sitting over stale calls, and that the two
+reasons do not share wording. It needs no real deadline, which is the whole
+point: the original premise asked for a live window that FPL never opens.
+
+**The refresh control is asserted in both directions**, which turned out to be
+the honest reading of *"offers no refresh that cannot help"*: it stays enabled
+under a stop, because re-ingesting is exactly what clears one, and it is already
+disabled when the feeds are unreachable, which is the case where it could not.
+
+*Home: STE-154.*
 
 **F6-AC-02 is asserted on a screen, never across a refresh — which is the only
 circumstance the criterion is about.** `tests/e2e/assistant.spec.ts` names it and
