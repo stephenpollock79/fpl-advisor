@@ -309,11 +309,21 @@ that the rule forbids.
 is not another engine test — it is that F3's components take net, conviction and
 band as values and hold no arithmetic over them.
 
-*Closed 2026-09-11 (slice 5).* `tests/client/surface-rules.test.ts` reads the
-source of every screen and fails on any value import from the engine, and fails
-first if the Assistant screen is missing, so it cannot pass by scanning nothing.
-Screens receive figures from `apps/client/src/calls/`, which takes them from the
-run or from `evaluateCall`.
+*Partly closed 2026-09-11 (slice 5).* `tests/client/surface-rules.test.ts` reads
+the source of every screen and fails on any value import from the engine, and
+fails first if the Assistant screen is missing, so it cannot pass by scanning
+nothing. Screens receive figures from `apps/client/src/calls/`, which takes them
+from the run or from `evaluateCall`.
+
+*Fully closed 2026-09-20 (STE-176).* **The import check shut one route and left
+the other open**, which is why STE-176 was still raising this five days after the
+line above said closed. A screen needs no engine import to write
+`conviction >= 70 ? 'strong' : 'lean'` — it needs one subtraction and a
+comparison, and that is precisely the band-from-a-stored-conviction the criterion
+forbids. `tests/client/no-arithmetic-in-screens.test.ts` now walks the syntax
+tree of every file under `screens/` and fails on `+ - * / %` with net,
+conviction, previousConviction or band on either side. Checked against an
+injected violation, which it reports with file, line and expression.
 
 **ENGINE-AC-05 — nothing renders conviction yet, so nothing can be checked.**
 Conviction must be labelled everywhere it appears as the strength of the call,
