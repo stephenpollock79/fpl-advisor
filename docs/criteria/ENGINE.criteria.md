@@ -1,6 +1,6 @@
 <!-- DERIVED FILE — DO NOT EDIT. Regenerate with extract-criteria.py. -->
 <!-- source: PRD - The FPL Advisor.md -->
-<!-- source-sha256: a75b2d855d945c2f -->
+<!-- source-sha256: 9c98b772b7f9c596 -->
 
 # The recommendation and conviction engine
 
@@ -104,6 +104,6 @@ Three things to read off it. **Every figure in the table is now either published
 | **ENGINE-AC-03** | A negative net is rejected rather than computed. No conviction figure is produced for a net below zero, and any code path able to supply one is a defect. |
 | **ENGINE-AC-04** | One function produces net, conviction and band for a call, and every surface displaying any of the three reads that function's output rather than recomputing it. |
 | **ENGINE-AC-05** | Conviction is labelled everywhere it appears as the strength of the call, never as a probability, likelihood or chance of being right. |
-| **ENGINE-AC-06** | **The armband and the bench order are decided by projected points alone.** The captain is the eligible player with the highest projected points for the gameweek, the vice is the second-highest, and the outfield bench is ordered by the same figure with players the availability gate excluded placed last. **No second signal enters that ordering** — not ownership, form, price, fixture difficulty, nor any figure or opinion the model returns. The captaincy ceiling tie-break above is the single stated exception: it is bounded to choosing which challenger is put up against the incumbent, uses only the two published signals it names, and never decides whether a change is recommended. |
+| **ENGINE-AC-06** | **The armband and the bench order are decided by projected points alone.** The captain is the eligible player with the highest projected points for the gameweek, the vice is the second-highest, and the outfield bench is ordered by the same figure with players the availability gate excluded placed last. **No second signal enters that ordering** — not ownership, form, price, fixture difficulty, nor any figure or opinion the model returns. The captaincy ceiling tie-break above is the single stated exception, and it decides more than which option is compared: **within the noise floor it can decide who the recommended captain is**, because the top of the ranking is the recommendation. It uses only the two published signals it names — whether he takes penalties, then position — and nothing else enters on its back. |
 
 **The constants are no longer starting values, and are still not fixed by these criteria.** The three k values (substitution 0.5, captain/vice 0.5, transfer 2.0) and the noise floor of 20 were tuned on 2026-09-10 against GW4 on the real squad and are now fixed (#25, closed). No criterion above cites one of them, which was deliberate while they could still move and is worth keeping now that they cannot: a criterion written on top of a constant becomes false the moment the constant is corrected, and fails as a document edit rather than as a code change — which is exactly what the armband's move from 0.8 to 0.5 would otherwise have done to four statements in this section.
