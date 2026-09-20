@@ -33,74 +33,74 @@ export function ArmbandTable({
   players: ReadonlyMap<number, WorldPlayer>
 }) {
   return (
-    <div className={styles.wrap}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th className={styles.head}>Player</th>
-            <th className={styles.head}>Form</th>
-            <th className={styles.head}>xPts</th>
-            <th className={styles.head}>This GW</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const player = players.get(row.playerId)
-            if (!player) return null
-            const barred = row.because !== null
-            const picked = row.isCaptainPick || row.isVicePick
+    /* No wrapper: the scrolling ancestor is the card's own scroll area, and a
+       wrapper here would take that role and stop the header sticking. */
+    <table className={styles.table}>
+      <thead>
+        <tr>
+          <th className={styles.head}>Player</th>
+          <th className={styles.head}>Form</th>
+          <th className={styles.head}>xPts</th>
+          <th className={styles.head}>This GW</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => {
+          const player = players.get(row.playerId)
+          if (!player) return null
+          const barred = row.because !== null
+          const picked = row.isCaptainPick || row.isVicePick
 
-            return (
-              <tr
-                key={row.playerId}
-                className={[picked ? styles.picked : '', barred ? styles.barred : ''].filter(Boolean).join(' ')}
-                data-testid={`armband-row-${String(row.playerId)}`}
-              >
-                <td className={styles.player}>
-                  <div className={styles.nameLine}>
-                    <span className={`${styles.name} ${picked ? styles.pickedName : ''}`}>
-                      {displaySurname(player.name)}
+          return (
+            <tr
+              key={row.playerId}
+              className={[picked ? styles.picked : '', barred ? styles.barred : ''].filter(Boolean).join(' ')}
+              data-testid={`armband-row-${String(row.playerId)}`}
+            >
+              <td className={styles.player}>
+                <div className={styles.nameLine}>
+                  <span className={`${styles.name} ${picked ? styles.pickedName : ''}`}>
+                    {displaySurname(player.name)}
+                  </span>
+                  {/* Who wears it *today*. The recommendation is the row's own
+                      styling — two marks competing to say the same thing was
+                      the first version's mistake. */}
+                  {player.isCaptain ? (
+                    <span className={`${styles.badge} ${styles.badgeC}`} title="Your captain">
+                      C
                     </span>
-                    {/* Who wears it *today*. The recommendation is the row's own
-                        styling — two marks competing to say the same thing was
-                        the first version's mistake. */}
-                    {player.isCaptain ? (
-                      <span className={`${styles.badge} ${styles.badgeC}`} title="Your captain">
-                        C
-                      </span>
-                    ) : null}
-                    {player.isVice ? (
-                      <span className={`${styles.badge} ${styles.badgeV}`} title="Your vice-captain">
-                        V
-                      </span>
-                    ) : null}
-                    {/* **The bench slot as a badge, not a second line.** Spelling
-                        it out under the name gave half the table a two-line row
-                        and buried the figures; the same letters the Squad table
-                        already uses say it in the width of a word (F1-AC-18). */}
-                    {benchBadge(player.benchOrder) === null ? null : (
-                      <span className={styles.bench} title="On your bench">
-                        {benchBadge(player.benchOrder)}
-                      </span>
-                    )}
-                  </div>
-                  {barred ? <div className={styles.note}>{row.because}</div> : null}
-                  {row.byCeiling ? <div className={styles.note}>chosen on ceiling, not the raw figure</div> : null}
-                </td>
-                <td className={styles.figure}>{player.form === null ? '—' : player.form.toFixed(1)}</td>
-                <td className={styles.figure}>{row.projection.toFixed(1)}</td>
-                <td className={styles.fixture}>
-                  {player.fixtures.length === 0 ? (
-                    <span className={styles.blank}>none</span>
-                  ) : (
-                    <FixturePill fixtures={player.fixtures} />
+                  ) : null}
+                  {player.isVice ? (
+                    <span className={`${styles.badge} ${styles.badgeV}`} title="Your vice-captain">
+                      V
+                    </span>
+                  ) : null}
+                  {/* **The bench slot as a badge, not a second line.** Spelling
+                      it out under the name gave half the table a two-line row
+                      and buried the figures; the same letters the Squad table
+                      already uses say it in the width of a word (F1-AC-18). */}
+                  {benchBadge(player.benchOrder) === null ? null : (
+                    <span className={styles.bench} title="On your bench">
+                      {benchBadge(player.benchOrder)}
+                    </span>
                   )}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                </div>
+                {barred ? <div className={styles.note}>{row.because}</div> : null}
+                {row.byCeiling ? <div className={styles.note}>chosen on ceiling, not the raw figure</div> : null}
+              </td>
+              <td className={styles.figure}>{player.form === null ? '—' : player.form.toFixed(1)}</td>
+              <td className={styles.figure}>{row.projection.toFixed(1)}</td>
+              <td className={styles.fixture}>
+                {player.fixtures.length === 0 ? (
+                  <span className={styles.blank}>none</span>
+                ) : (
+                  <FixturePill fixtures={player.fixtures} />
+                )}
+              </td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
   )
 }

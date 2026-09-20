@@ -732,8 +732,38 @@
   border-top-right-radius: 0;
 }
 
+/*
+ * **Two elements, with the page showing between them.**
+ *
+ * The header, the editorial and the table sat inside one card, so the gap
+ * between the editorial and the table was a white bar *inside* the card — two
+ * things joined by a seam, reading as one thing interrupted.
+ *
+ * The card itself goes transparent on this shape and carries only the gap; each
+ * block takes the border, radius and shadow the card used to own.
+ */
+.cardSplit {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  gap: 10px;
+}
+
+.panel {
+  border: 2px solid #cfc7b6;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: 0 14px 32px rgb(92 82 62 / 18%);
+}
+
+/* The scroll area the sticky table header sticks against. No top padding: a gap
+   above a sticky header is a strip the rows scroll through in full view. */
 .armbandWrap {
-  padding: 10px 0 0;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
   overflow-y: auto;
 }
 

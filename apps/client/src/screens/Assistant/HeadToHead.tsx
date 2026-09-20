@@ -137,7 +137,7 @@ export function HeadToHead({
   return (
     <div className={styles.h2h}>
       <div
-        className={styles.card}
+        className={`${styles.card} ${armband ? styles.cardSplit : ''}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -146,27 +146,35 @@ export function HeadToHead({
       >
         {armband ? (
           /**
+           * **Header and editorial are one element, the table is another.**
+           * The gap between them shows the page, not a white bar inside a
+           * single card — two things joined by a seam read as one thing
+           * interrupted.
+           *
            * **The header carries the impact, not the names.** It stated the two
            * picks, and the table three inches below says the same thing with its
            * own top two rows — so the header was spending the card's most
            * prominent line repeating what the reader was about to see anyway.
            */
-          <div className={styles.armbandHead} data-testid="armband-head">
-            <span className={styles.armbandTitle}>Armband</span>
-            <span className={styles.armbandFigures}>
-              <span className={styles.armbandNet} data-testid="net">
-                {formatNet(figures.net)}
+          <div className={styles.panel}>
+            <div className={styles.armbandHead} data-testid="armband-head">
+              <span className={styles.armbandTitle}>Armband</span>
+              <span className={styles.armbandFigures}>
+                <span className={styles.armbandNet} data-testid="net">
+                  {formatNet(figures.net)}
+                </span>
+                {figures.reading === 'call' ? (
+                  <span data-testid="strength" className={`${styles.strength} ${styles[figures.band] ?? ''}`}>
+                    {figures.conviction} · {figures.band}
+                  </span>
+                ) : (
+                  <span data-testid="strength" className={styles.noChange}>
+                    no change
+                  </span>
+                )}
               </span>
-              {figures.reading === 'call' ? (
-                <span data-testid="strength" className={`${styles.strength} ${styles[figures.band] ?? ''}`}>
-                  {figures.conviction} · {figures.band}
-                </span>
-              ) : (
-                <span data-testid="strength" className={styles.noChange}>
-                  no change
-                </span>
-              )}
-            </span>
+            </div>
+            {reasoningBlock}
           </div>
         ) : (
           <div className={styles.versus}>
@@ -175,8 +183,6 @@ export function HeadToHead({
             <Side player={into} direction="in" onChange={picker ? () => setPickerSide('in') : undefined} />
           </div>
         )}
-
-        {armband ? reasoningBlock : null}
 
         {/* The armband's figures live in its header, so the strip would be a
             second copy of them (2026-09-20). */}
@@ -286,7 +292,7 @@ export function HeadToHead({
             </div>
           </div>
         ) : armband ? (
-          <div className={styles.armbandWrap} data-scrolls>
+          <div className={`${styles.armbandWrap} ${styles.panel}`} data-scrolls>
             <ArmbandTable rows={armband.rows} players={players} />
           </div>
         ) : (

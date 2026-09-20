@@ -4,13 +4,6 @@
  * alignment — a table that looked like a different app would read as one.
  */
 
-/* **Flat, not a card.** It sits inside the call card, and giving it its own
-   border and radius made a card within a card — two frames competing for the
-   same content. */
-.wrap {
-  overflow: hidden;
-}
-
 .table {
   width: 100%;
   border-collapse: separate;
@@ -18,8 +11,19 @@
   font-size: 11px;
 }
 
-/* The section header the design draws: dark green, white, mono, wide-tracked. */
+/*
+ * The section header the design draws: dark green, white, mono, wide-tracked —
+ * and **sticky**, so a figure never loses its column on a fifteen-row table.
+ *
+ * It sticks against `.armbandWrap`, which is the scrolling ancestor. The table
+ * had a wrapper with `overflow: hidden` for the card border it no longer has,
+ * and that wrapper was silently the containing block instead — a scroll
+ * container that never scrolls, so nothing could stick to it.
+ */
 .head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--green-dark);
   color: #fff;
   font-family: var(--font-mono);
