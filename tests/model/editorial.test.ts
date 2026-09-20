@@ -13,16 +13,24 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { editorialIsAcceptable, templateEditorial } from '../../apps/server/src/model/editorial.js'
+import { editorialIsAcceptable, editorialMatchesCalls, templateEditorial } from '../../apps/server/src/model/editorial.js'
 import type { EditorialInput } from '../../apps/server/src/model/client.js'
 
-const call = (title: string, kind: string, net: number, forced = false) => ({
-  title,
-  kind,
-  net,
-  band: 'strong' as const,
-  forced,
-})
+const call = (pair: string, kind: string, net: number, forced = false) => {
+  const [out, into] = pair.split(' \u2192 ')
+  return {
+    out: out ?? '',
+    in: into ?? '',
+    role: (kind === 'captaincy change' ? 'captain' : kind === 'vice-captaincy change' ? 'vice' : null) as
+      | 'captain'
+      | 'vice'
+      | null,
+    kind,
+    net,
+    band: 'strong' as const,
+    forced,
+  }
+}
 
 const week = (calls: EditorialInput['calls']): EditorialInput => ({
   calls,
@@ -97,5 +105,80 @@ describe('A paragraph reaching for a cause it cannot know is refused (STE-146)',
         'The captaincy is moving to Calvert-Lewin, which means Rogers must take the vice — a package deal, not a debate.',
       ),
     ).toBe(true)
+  })
+})
+
+describe('STE-184 · the paragraph has to describe the calls it was given', () => {
+  /**
+   * **The week off Stephen's screen on 2026-09-20**, figures and all. The
+   * captaincy moves Haaland to Rogers; the vice moves Calvert-Lewin to Mbeumo.
+   */
+  const armbands = [
+    call('van Hecke → De Cuyper', 'substitution', 4.7),
+    call('Calvert-Lewin → Mbeumo', 'vice-captaincy change', 3.1),
+    call('Kinský → Verbruggen', 'substitution', 2.3),
+    call('Haaland → Rogers', 'captaincy change', 1.5),
+  ]
+
+  it('STE-184: the sentence that shipped is refused, on both of its errors', () => {
+    // Every word here is allowed by the blocklist. What is wrong is that it
+    // contradicts the calls underneath it.
+    const shipped =
+      'Start with the two locked substitutions. Haaland stays captain, but Rogers takes the vice armband instead of Calvert-Lewin.'
+
+    expect(editorialIsAcceptable(shipped)).toBe(true)
+    expect(editorialMatchesCalls(shipped, armbands)).not.toBe(true)
+  })
+
+  it('STE-184: a player a call moves is not allowed to be described as staying', () => {
+    const verdict = editorialMatchesCalls('Haaland stays captain this week.', armbands)
+
+    expect(verdict).not.toBe(true)
+    expect(String(verdict)).toContain('Haaland')
+  })
+
+  it('STE-184: naming an armband without naming who the call gives it to is refused', () => {
+    // The half a "does every name appear in a call?" check cannot see: Rogers
+    // is in a call, just not this one, and Mbeumo is missing altogether.
+    const verdict = editorialMatchesCalls('Rogers takes the vice armband.', armbands)
+
+    expect(verdict).not.toBe(true)
+    expect(String(verdict)).toContain('Mbeumo')
+  })
+
+  it('STE-184: vice-captain reads as the vice and never as the captaincy', () => {
+    // Without that distinction every mention of the vice armband would also
+    // count as a mention of the captaincy, and the captain rule would fire on
+    // prose that never discussed it.
+    expect(editorialMatchesCalls('The vice-captain becomes Mbeumo.', armbands)).toBe(true)
+  })
+
+  it('STE-184: an armband discussed with no call behind it is refused', () => {
+    // A held armband is filtered out before the editorial is written, so the
+    // model was told nothing about it — the STE-146 shape, one level up.
+    const verdict = editorialMatchesCalls('The vice armband is unchanged.', [
+      call('Haaland → Rogers', 'captaincy change', 1.5),
+    ])
+
+    expect(verdict).not.toBe(true)
+  })
+
+  it('STE-184: a paragraph that gets both armbands right passes', () => {
+    const good = 'Rogers takes the armband from Haaland, and the vice goes to Mbeumo. Two substitutions are worth a look.'
+
+    expect(editorialMatchesCalls(good, armbands)).toBe(true)
+  })
+
+  it('STE-184: a week of ordinary swaps is left alone — no armband, no rule to break', () => {
+    const swaps = [call('Calafiori → De Cuyper', 'substitution', 4.1), call('Semenyo → Groß', 'substitution', 2.2)]
+
+    expect(editorialMatchesCalls('Two substitutions worth a look, and nothing else this week.', swaps)).toBe(true)
+  })
+
+  it('STE-184: a name is treated as data, so punctuation in it cannot become syntax', () => {
+    const odd = [call("O'Brien → Groß", 'substitution', 1.1)]
+
+    expect(editorialMatchesCalls('Groß comes in.', odd)).toBe(true)
+    expect(editorialMatchesCalls("O'Brien stays in the side.", odd)).not.toBe(true)
   })
 })

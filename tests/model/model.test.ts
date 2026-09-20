@@ -24,6 +24,12 @@ import {
 } from '../../apps/server/src/model/client.js'
 import { finalReasoning, reasoningIsAcceptable } from '../../apps/server/src/model/reasoning.js'
 
+/** The two sides, written as the screen writes the pair. Keeps these fixtures readable. */
+const sides = (pair: string) => {
+  const [out, into] = pair.split(' \u2192 ')
+  return { out: out ?? '', in: into ?? '' }
+}
+
 const player = (projection: number, form: number): CardPlayer => ({
   availability: { eligible: true },
   chanceOfPlayingNextRound: null,
@@ -380,7 +386,7 @@ describe('The editorial is given the week, never the arithmetic over it (STE-142
    * The trigger is building the prompt from a set of calls and looking for the
    * total. Asserting the model's output would be asserting the model.
    */
-  const call = (title: string, forced: boolean) => ({ title, kind: 'transfer', net: 1.2, band: 'thin' as const, forced })
+  const call = (pair: string, forced: boolean) => ({ ...sides(pair), role: null, kind: 'transfer', net: 1.2, band: 'thin' as const, forced })
 
   it('the prompt hands over the calls and never their total', () => {
     const prompt = editorialPrompt({
@@ -437,8 +443,9 @@ describe('The editorial is never left to invent a cause (STE-146)', () => {
    * that the vacuum is closed from both ends — the reason is supplied, and
    * inventing one is forbidden.
    */
-  const call = (title: string, because?: string) => ({
-    title,
+  const call = (pair: string, because?: string) => ({
+    ...sides(pair),
+    role: null as 'captain' | 'vice' | null,
     kind: 'vice-captaincy change',
     net: 0,
     band: 'thin' as const,
@@ -479,8 +486,8 @@ describe('The editorial is told what kind of move each call is (STE-149)', () =>
   it('each call carries its kind, so a captaincy change cannot read as a transfer', () => {
     const prompt = editorialPrompt({
       calls: [
-        { title: 'Calafiori → De Cuyper', kind: 'substitution', net: 4.1, band: 'strong', forced: false },
-        { title: 'Haaland → Calvert-Lewin', kind: 'captaincy change', net: 3.1, band: 'strong', forced: false },
+        { ...sides('Calafiori → De Cuyper'), role: null, kind: 'substitution', net: 4.1, band: 'strong', forced: false },
+        { ...sides('Haaland → Calvert-Lewin'), role: 'captain' as const, kind: 'captaincy change', net: 3.1, band: 'strong', forced: false },
       ],
       exception: null,
       squadSource: 'screenshot',
