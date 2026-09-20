@@ -14,7 +14,7 @@
 
 import { Fragment, useRef } from 'react'
 import type { WorldPlayer } from '../../api'
-import { BANDS, type Band, bandOf, displaySurname } from '../../squad/format'
+import { BENCH_BADGES, BANDS, type Band, bandOf, displaySurname } from '../../squad/format'
 import { DifficultyBars, FixturePill } from './parts'
 import styles from './StatTable.module.css'
 import { useAxisLock } from './useAxisLock'
@@ -26,8 +26,7 @@ const GROUPS = [
   ['FWD', 'Forwards'],
 ] as const
 
-/** S for the substitute goalkeeper, then S1, S2, S3 outfield (F1-AC-18). */
-const BENCH_BADGES = ['S', 'S1', 'S2', 'S3']
+
 
 export function StatTable({ players }: { players: WorldPlayer[] }) {
   // A table that scrolls both ways at once drifts diagonally under the thumb.

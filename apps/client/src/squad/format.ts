@@ -144,3 +144,15 @@ export function bandOf(value: number | null, scale: { good: number; fair: number
   if (value >= scale.fair) return 'fair'
   return 'poor'
 }
+
+/**
+ * **S for the substitute goalkeeper, then S1, S2, S3 outfield** (F1-AC-18).
+ *
+ * Lived inside `StatTable` until the armband table needed it too (2026-09-20).
+ * One copy: two screens showing a different letter for the same bench slot would
+ * be a contradiction the manager has to resolve himself.
+ */
+export const BENCH_BADGES = ['S', 'S1', 'S2', 'S3'] as const
+
+export const benchBadge = (benchOrder: number | null): string | null =>
+  benchOrder === null ? null : (BENCH_BADGES[benchOrder] ?? null)
