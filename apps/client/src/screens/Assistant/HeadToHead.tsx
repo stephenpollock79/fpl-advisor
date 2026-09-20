@@ -55,6 +55,28 @@ export function HeadToHead({
    * same three tiles, same swipe.
    */
   const armband = call.breakdown.armband ?? null
+
+  /**
+   * **One block, two positions.** On a swap card the reasoning closes the
+   * argument the table above it made, so it comes last. On the armband it is
+   * joined to the header instead, reading as the verdict and its explanation
+   * before the ranking that supports them.
+   */
+  const reasoningBlock = (
+    <div className={`${styles.reasoning} ${armband ? styles.reasoningJoined : ''}`}>
+      <img className={styles.gaffer} src={avatar} alt="" />
+      <div className={styles.reasoningBody}>
+        <p data-testid="reasoning" className={styles.reasoningText}>
+          {figures.reasoning}
+        </p>
+        {armbandNotes(call).map((note) => (
+          <p key={note} data-testid="armband-note" className={styles.reasoningNote}>
+            {note}
+          </p>
+        ))}
+      </div>
+    </div>
+  )
   const [pickerSide, setPickerSide] = useState<'out' | 'in' | null>(null)
   const [explained, setExplained] = useState(false)
   const [whyWatch, setWhyWatch] = useState(false)
@@ -123,10 +145,27 @@ export function HeadToHead({
         style={{ transform: `translate(${drag.dx}px, ${Math.min(0, drag.dy)}px) rotate(${drag.dx / 30}deg)` }}
       >
         {armband ? (
+          /**
+           * **The header carries the impact, not the names.** It stated the two
+           * picks, and the table three inches below says the same thing with its
+           * own top two rows — so the header was spending the card's most
+           * prominent line repeating what the reader was about to see anyway.
+           */
           <div className={styles.armbandHead} data-testid="armband-head">
             <span className={styles.armbandTitle}>Armband</span>
-            <span className={styles.armbandPicks}>
-              {players.get(armband.captainId)?.name ?? ''} (C) · {players.get(armband.viceId)?.name ?? ''} (V)
+            <span className={styles.armbandFigures}>
+              <span className={styles.armbandNet} data-testid="net">
+                {formatNet(figures.net)}
+              </span>
+              {figures.reading === 'call' ? (
+                <span data-testid="strength" className={`${styles.strength} ${styles[figures.band] ?? ''}`}>
+                  {figures.conviction} · {figures.band}
+                </span>
+              ) : (
+                <span data-testid="strength" className={styles.noChange}>
+                  no change
+                </span>
+              )}
             </span>
           </div>
         ) : (
@@ -137,6 +176,11 @@ export function HeadToHead({
           </div>
         )}
 
+        {armband ? reasoningBlock : null}
+
+        {/* The armband's figures live in its header, so the strip would be a
+            second copy of them (2026-09-20). */}
+        {armband ? null : (
         <div className={styles.strip}>
           <span className={styles.stripCell}>
             <span className={styles.cardFigLabel}>NET</span>
@@ -206,6 +250,7 @@ export function HeadToHead({
             </button>
           ) : null}
         </div>
+        )}
 
         {watchReason && whyWatch ? (
           <p data-testid="watch-reason" className={styles.watchNote}>
@@ -277,19 +322,7 @@ export function HeadToHead({
             budget**: concatenated into the same paragraph they pushed the vice
             premise off the bottom of the card with no way to reach it, which
             F4-AC-05 requires to be readable. They sit on their own line. */}
-        <div className={styles.reasoning}>
-          <img className={styles.gaffer} src={avatar} alt="" />
-          <div className={styles.reasoningBody}>
-            <p data-testid="reasoning" className={styles.reasoningText}>
-              {figures.reasoning}
-            </p>
-            {armbandNotes(call).map((note) => (
-              <p key={note} data-testid="armband-note" className={styles.reasoningNote}>
-                {note}
-              </p>
-            ))}
-          </div>
-        </div>
+        {armband ? null : reasoningBlock}
       </div>
 
       {decided !== undefined ? (

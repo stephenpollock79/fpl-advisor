@@ -682,15 +682,18 @@
 .change { font-size: 8px; }
 
 /*
- * The armband card's header — a statement, not a versus band (STE-151).
+ * The armband card, in two elements rather than four (2026-09-20).
  *
- * Same gradient, padding and white type as `.versus` it replaces, so the card
- * reads as one of the family rather than as a different screen. The first
- * version set its own smaller, faded type and looked like a footnote.
+ * It was a header naming the picks, a figures strip, a table inside its own
+ * bordered card, and the reasoning last. The names repeated what the table said
+ * three inches below, and the table's own frame made a card within a card.
+ *
+ * Now: one green header carrying the impact, the reasoning joined straight to
+ * it, and a flat table under both. The verdict and why, then the evidence.
  */
 .armbandHead {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px 11px;
@@ -707,23 +710,30 @@
   opacity: 0.85;
 }
 
-.armbandPicks {
-  font-size: 15px;
-  font-weight: 800;
+.armbandFigures {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.armbandNet {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
+  font-weight: 700;
   color: #fff;
-  text-align: right;
+}
+
+/* Joined to the header: no top rounding, no gap, one element visually. */
+.reasoningJoined {
+  margin-top: 0;
+  border-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .armbandWrap {
-  padding: 10px;
+  padding: 10px 0 0;
   overflow-y: auto;
-}
-
-/* The strength cell sits hard right on the armband card, so the label and its
-   figure read as one thing at the end of the row rather than floating mid-strip. */
-.stripEnd {
-  margin-left: auto;
-  align-items: flex-end;
-  text-align: right;
 }
 
