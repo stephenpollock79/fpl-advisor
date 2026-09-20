@@ -8,6 +8,7 @@
 
 import type { AuthenticatedUser } from '../auth/session.js'
 import { ingestWorld } from '../ingest/run.js'
+import { loadEnv } from '../env.js'
 import { modelFromEnv } from '../model/client.js'
 import { fillMissingPurchasePrices } from '../squad/store.js'
 import type { EvidenceRow } from '../refresh/evidence.js'
@@ -44,12 +45,13 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
 
       const { data: runs } = await db
         .from('run')
-        .select('id, feed_read_id, squad_snapshot_id')
+        .select('id, feed_read_id, squad_snapshot_id, build_commit')
         .eq('status', 'succeeded')
         .order('finished_at', { ascending: false })
         .limit(1)
       const lastRun =
-        (runs as { id: string; feed_read_id: string | null; squad_snapshot_id: string | null }[] | null)?.[0] ?? null
+        (runs as { id: string; feed_read_id: string | null; squad_snapshot_id: string | null; build_commit: string | null }[] | null)?.[0] ??
+        null
 
       const { data: newest } = await reference
         .from('feed_read')
@@ -99,6 +101,9 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
         before: await rows(lastRun?.feed_read_id ?? null),
         after: (await rows(feedReadId)) ?? [],
         feedReadId,
+        // Null for every run written before this column existed, and null must
+        // read as *a different build* rather than as a match (STE-185).
+        builtBy: lastRun?.build_commit ?? null,
         // Structurally a LockableCall and a StoredCall at once, so neither
         // consumer needs a second query or a second mapping.
         calls: ((callRows ?? []) as Record<string, unknown>[]).map((c) => ({
@@ -139,6 +144,8 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
       }
     },
 
+    buildCommit: loadEnv().commit,
+
     model: () => modelFromEnv(),
 
     async startRun(user, gameweek, snapshotId, feedReadId) {
@@ -155,6 +162,10 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
           gameweek,
           squad_snapshot_id: snapshotId,
           feed_read_id: feedReadId,
+          // Which build produced it (STE-185). A run from another build cannot
+          // be reused, and the server already knows this without anyone having
+          // to remember a constant.
+          build_commit: loadEnv().commit,
           status: 'running',
           trigger: (count ?? 0) > 0 ? 'refresh' : 'first_open',
         })

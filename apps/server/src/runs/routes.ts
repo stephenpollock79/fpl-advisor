@@ -56,7 +56,6 @@ import { committedPairs, suppressed } from '../refresh/locks.js'
 import type { SideNow } from '../refresh/recompute.js'
 import { recomputeCall } from '../refresh/recompute.js'
 import { identityOf } from '../calls/identity.js'
-import { RETIRED_SHAPES } from '../calls/plan.js'
 import { type CardInfo, type StoredCall, composeEditorial, generateWeek } from './generate.js'
 
 export type WeekInputs = {
@@ -74,6 +73,13 @@ export type RefreshInputs = {
   before: EvidenceRow[] | null
   after: EvidenceRow[]
   feedReadId: string | null
+  /**
+   * The commit that produced the last succeeded run (STE-185). Null for every
+   * run written before the column existed, and null reads as *a different
+   * build* rather than as a match — so the first refresh after it ships
+   * regenerates instead of trusting a blank.
+   */
+  builtBy: string | null
   /**
    * The calls that run produced, whole, and the manager's answers to them.
    *
@@ -100,6 +106,12 @@ export type RunDeps = {
   loadWeek: (user: AuthenticatedUser) => Promise<WeekInputs | null>
   refreshInputs: (user: AuthenticatedUser) => Promise<RefreshInputs>
   model: () => ModelPort
+  /**
+   * Which build this server is (STE-185). Injected like every other
+   * collaborator, because a route that reads the environment directly is a route
+   * that cannot be tested without one.
+   */
+  buildCommit: string
   startRun: (user: AuthenticatedUser, gameweek: number, snapshotId: string, feedReadId: string | null) => Promise<string>
   finishRun: (
     user: AuthenticatedUser,
@@ -200,16 +212,6 @@ function materiallyMoved(refresh: RefreshInputs, week: WeekInputs): Set<string> 
 
   const moved = new Set<string>()
   for (const call of refresh.calls) {
-    /**
-     * **A shape the planner no longer writes cannot be reused.** Its figures may
-     * re-derive perfectly and still describe a card this build does not produce;
-     * only a run can replace it. Checked before the recompute, because the
-     * question is not whether the world moved.
-     */
-    if (RETIRED_SHAPES.has(call.shape)) {
-      moved.add(call.key)
-      continue
-    }
     // One bad row must not take down the run — the same posture the world read
     // takes, and for the same reason: a call naming a player the latest feed no
     // longer knows is one call's problem, not the week's.
@@ -350,7 +352,30 @@ export function runRoutes(deps: RunDeps) {
          */
         const sameSquad = refresh.fromSnapshotId === week.snapshotId
 
-        if (sameSquad && evidence && !evidence.worthPaying && moved.size === 0 && refresh.calls.length > 0) {
+        /**
+         * **A run from another build cannot be reused** (STE-185).
+         *
+         * Every other half of this gate asks whether the *world* moved — the
+         * feed's player records, each stored call's own band, the squad
+         * snapshot. None of them can see that the code producing calls has
+         * changed underneath them, and on 2026-09-20 that cost hours: the
+         * armband shipped as one ranked call, nothing in the world had moved,
+         * the gate reused the previous week, and the old screen survived every
+         * reload while reading as a fix that had not worked.
+         *
+         * **The server already knows which build it is** and prints it on boot,
+         * so there is no constant for anyone to remember to bump — which is the
+         * half a hand-maintained version number would have lost. It replaced a
+         * narrower rule that listed the call shapes a build no longer writes:
+         * that one only ever covered changes someone thought to write down.
+         *
+         * A build that changes nothing about call production still pays for one
+         * model call on the first refresh after it. That is the price of never
+         * being wrong about it, and deploys are rare next to refreshes.
+         */
+        const sameBuild = refresh.builtBy !== null && refresh.builtBy === deps.buildCommit
+
+        if (sameBuild && sameSquad && evidence && !evidence.worthPaying && moved.size === 0 && refresh.calls.length > 0) {
           await send('done', { runId: null, calls: [], reused: true, changed: evidence.changed.length })
           return
         }
