@@ -65,8 +65,8 @@ describe('ENGINE-AC-03 · the winning side is the recommendation', () => {
   })
 })
 
-describe('F3-AC-17, F4-AC-07, F4-AC-08 · forced is a property of the call, not of the figure', () => {
-  it('F4-AC-07: a call is forced when, and only when, the incumbent fails the gate', () => {
+describe('F3-AC-17, STE-151 · forced is a property of the call, not of the figure', () => {
+  it('STE-151: a call is forced when, and only when, the incumbent fails the gate', () => {
     const forced = evaluateCall({
       ...substitution([1.7], [4.7]),
       incumbent: {
@@ -81,7 +81,7 @@ describe('F3-AC-17, F4-AC-07, F4-AC-08 · forced is a property of the call, not 
     expect(forced.isForced).toBe(true)
   })
 
-  it('F4-AC-08: however high the conviction, a call is never forced while the incumbent can play', () => {
+  it('STE-151: however high the conviction, a call is never forced while the incumbent can play', () => {
     const outcome = evaluateCall(substitution([0.2], [9.8]))
 
     expect(outcome.reading).toBe('call')
@@ -90,7 +90,7 @@ describe('F3-AC-17, F4-AC-07, F4-AC-08 · forced is a property of the call, not 
     expect(outcome.isForced).toBe(false)
   })
 
-  it('F4-AC-07: a forced call is still produced when the replacement is no better on paper', () => {
+  it('STE-151: a forced call is still produced when the replacement is no better on paper', () => {
     // The incumbent cannot play, so the change has to happen. The figure says how
     // much better the replacement is, which may be not at all — the red Forced
     // flag carries the obligation, and F3-AC-18 forbids deriving one from the other.

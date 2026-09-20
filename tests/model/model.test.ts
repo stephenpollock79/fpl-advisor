@@ -329,7 +329,7 @@ describe('ADR 0008 · the call is shaped as ruled, and recorded as it happened',
   })
 })
 
-describe('F4-AC-09, ENGINE step 3 · a line that contradicts its own card is refused', () => {
+describe('F4-AC-15, ENGINE step 3 · a line that contradicts its own card is refused', () => {
   it('a line arguing against the call is refused, so Select and Reject keep their meaning', () => {
     // Found live on 2026-09-14: a captaincy call recommending Calvert-Lewin
     // carried "Skip this one… the marginal xPts edge not worth it." The figure
@@ -339,7 +339,7 @@ describe('F4-AC-09, ENGINE step 3 · a line that contradicts its own card is ref
     expect(reasoningIsAcceptable('Rogers outscores Tzolis on projected points this gameweek.')).toBe(true)
   })
 
-  it('F4-AC-09: money cannot be claimed on a call where no money moves', () => {
+  it('F4-AC-15: money cannot be claimed on a call where no money moves', () => {
     // Not a weak argument — a false one. A captaincy call costs £0.00.
     const armband = { costsNothing: true }
     expect(reasoningIsAcceptable('Haaland edges it while freeing up £7.7m.', armband)).toBe(false)

@@ -186,7 +186,7 @@ test('F3-UP-05: a category with nothing worth changing says so, rather than show
   await expect(page.getByRole('tab', { name: /Transfer/ })).toContainText('Clear')
 })
 
-test('F4-AC-01, F4-AC-06: the Captain tab carries two calls and neither offers a candidate picker', async ({ page }) => {
+test('F4-AC-01, F4-AC-13: the Captain tab carries two calls and neither offers a candidate picker', async ({ page }) => {
   await open(page)
   await page.getByRole('tab', { name: 'Captain' }).click()
 
@@ -203,7 +203,7 @@ test('F4-AC-01, F4-AC-06: the Captain tab carries two calls and neither offers a
   await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
 })
 
-test('F4-AC-02, F4-AC-03: a keep reading offers no decision tile and enters no tally', async ({ page }) => {
+test('F4-AC-01: a keep reading offers no decision tile and enters no tally', async ({ page }) => {
   const readings = [
     keep(0, CAPTAIN, 'captain', 411, 8, 'Haaland keeps it: 8.0 projected points this gameweek against Semenyo 6.2.'),
     keep(1, VICE, 'vice', 8, 411, 'Semenyo keeps it: 6.2 projected points this gameweek against FwdA 6.0.'),

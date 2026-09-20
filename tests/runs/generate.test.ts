@@ -45,7 +45,7 @@ const inSquad = (
 
 /**
  * `unplayable` gives a starter no fixture, which is one of the two things
- * `F4-AC-07` and `F3-AC-03` call forced. **The default fixture has no forced
+ * `STE-151` and `F3-AC-03` call forced. **The default fixture has no forced
  * call at all since 2026-09-16** (STE-144): the vice call used to supply one,
  * and it should never have — its holder can play.
  */
@@ -146,7 +146,7 @@ describe('One run, end to end', () => {
 
   it('STE-143: a forced call is explained in code, never argued by the model', async () => {
     // A starter with no fixture — genuinely forced, which is the only thing
-    // F3-AC-03 and F4-AC-07 mean by the word.
+    // F3-AC-03 and STE-151 mean by the word.
     const { plan, cards } = build({ unplayable: 'Tzolis' })
     const { calls } = await generateWeek({
       plan,
@@ -271,7 +271,7 @@ describe('One run, end to end', () => {
 })
 
 describe('F4 · the captaincy calls, through the whole pipeline', () => {
-  it('F4-AC-04, F4-AC-11: a captaincy card uses the master row list, and its breakdown names the captaincy bar', async () => {
+  it('STE-151: a captaincy card uses the master row list, and its breakdown names the captaincy bar', async () => {
     const { plan, cards } = build()
     const { calls } = await generateWeek({ plan, cards, model: mockModel() })
     const captain = calls.find((c) => c.shape === 'armband')
@@ -300,7 +300,7 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
     expect(captain?.net).toBeGreaterThanOrEqual(0)
   })
 
-  it('F4-AC-01, F4-AC-02: a keep reading is stored with no conviction, no band, and no model call behind it', async () => {
+  it('F4-AC-01: a keep reading is stored with no conviction, no band, and no model call behind it', async () => {
     const { plan, cards } = build()
     // Both armbands already on the right players.
     const squad = plan.squad.map((p) => ({

@@ -479,8 +479,30 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
           (p.playerId === armband.captainId && armband.captainByCeiling) ||
           (p.playerId === armband.viceId && armband.viceByCeiling),
       }))
-      // Highest first, then by id so the same squad always sorts the same way.
-      .sort((a, b) => b.projection - a.projection || a.playerId - b.playerId)
+      /**
+       * **The engine's order, not a plain sort on the figure** (ruled
+       * 2026-09-20).
+       *
+       * Sorting purely on projected points put the captain mark on row 2
+       * whenever the ceiling tie-break fired: it decides anything within the
+       * noise floor — `k / 4`, so 0.125 points for the armband — and that is a
+       * band, not equality. The table then showed the higher number recommended
+       * as *vice* and the lower one as *captain*, with the evidence on screen
+       * arguing against its own conclusion.
+       *
+       * The two picks lead, then the rest by projection. So `F4-AC-13`'s *top
+       * two rows are the recommended captain and vice* is true by construction
+       * rather than true most weeks, and the comparator lives in one place —
+       * `chooseArmband` — instead of being reimplemented here and drifting.
+       *
+       * The visible cost: the xPts column is occasionally out of order, by at
+       * most 0.125, and the row it happens on says why.
+       */
+      .sort((a, b) => {
+        const rank = (r: { isCaptainPick: boolean; isVicePick: boolean }) =>
+          r.isCaptainPick ? 0 : r.isVicePick ? 1 : 2
+        return rank(a) - rank(b) || b.projection - a.projection || a.playerId - b.playerId
+      })
 
     /**
      * **The figure is the captain's, because the captain is what doubles.**

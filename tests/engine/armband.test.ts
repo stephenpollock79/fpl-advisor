@@ -1,5 +1,5 @@
 /**
- * F4-AC-01, F4-AC-07, F4-AC-10 — who wears the armband.
+ * F4-AC-01, STE-151 — who wears the armband.
  *
  * Ruled 2026-09-10: the captain is the eligible player with the highest
  * projection for the gameweek and the vice is the second-highest. There is no
@@ -60,7 +60,7 @@ describe('ENGINE-AC-06, F4-AC-01 · captain and vice come off the projection', (
   })
 })
 
-describe('ENGINE-AC-02, F4-AC-07 · an excluded player wears neither armband', () => {
+describe('ENGINE-AC-02, STE-151 · an excluded player wears neither armband', () => {
   it('ENGINE-AC-02, ENGINE-AC-06: the highest projection in the squad is skipped when he fails the gate', () => {
     const armband = chooseArmband([
       player(1, 9.9, { availability: { eligible: false, reason: 'injured' } }),
@@ -72,7 +72,7 @@ describe('ENGINE-AC-02, F4-AC-07 · an excluded player wears neither armband', (
     expect(armband.viceId).toBe(3)
   })
 
-  it('F4-AC-07: with fewer than two eligible players there is no legal pair, and that is a defect rather than a guess', () => {
+  it('STE-151: with fewer than two eligible players there is no legal pair, and that is a defect rather than a guess', () => {
     expect(() =>
       chooseArmband([
         player(1, 7.7),
@@ -82,8 +82,8 @@ describe('ENGINE-AC-02, F4-AC-07 · an excluded player wears neither armband', (
   })
 })
 
-describe('F4-AC-12 · the ceiling tie-break, and only inside the noise floor', () => {
-  it('F4-AC-12: inside the floor the greater ceiling wins, and the outcome says the tie-break decided it', () => {
+describe('F4-AC-13 · the ceiling tie-break, and only inside the noise floor', () => {
+  it('F4-AC-13: inside the floor the greater ceiling wins, and the outcome says the tie-break decided it', () => {
     const window = noiseFloorNet(kFor('captain'))
     const armband = chooseArmband([
       player(1, 7.2, { position: 'DEF' }),
@@ -95,7 +95,7 @@ describe('F4-AC-12 · the ceiling tie-break, and only inside the noise floor', (
     expect(armband.captainByCeiling).toBe(true)
   })
 
-  it('ENGINE-AC-06, F4-AC-12: outside the floor the higher projection wins and the tie-break never runs', () => {
+  it('ENGINE-AC-06, F4-AC-13: outside the floor the higher projection wins and the tie-break never runs', () => {
     const outside = noiseFloorNet(kFor('captain')) * 2
     const armband = chooseArmband([
       player(1, 7.2, { position: 'DEF' }),
@@ -107,7 +107,7 @@ describe('F4-AC-12 · the ceiling tie-break, and only inside the noise floor', (
     expect(armband.captainByCeiling).toBe(false)
   })
 
-  it('F4-AC-12: penalties are read before position, because they are the stronger published signal', () => {
+  it('F4-AC-13: penalties are read before position, because they are the stronger published signal', () => {
     const armband = chooseArmband([
       player(1, 7.2, { position: 'FWD' }),
       player(2, 7.15, { position: 'MID', takesPenalties: true }),
@@ -117,7 +117,7 @@ describe('F4-AC-12 · the ceiling tie-break, and only inside the noise floor', (
     expect(armband.captainId).toBe(2)
   })
 
-  it('F4-AC-12: position ranks forward, midfielder, defender, goalkeeper', () => {
+  it('F4-AC-13: position ranks forward, midfielder, defender, goalkeeper', () => {
     const order = ['FWD', 'MID', 'DEF', 'GKP'] as const
 
     for (let i = 0; i < order.length - 1; i++) {
@@ -132,12 +132,12 @@ describe('F4-AC-12 · the ceiling tie-break, and only inside the noise floor', (
     }
   })
 
-  it('F4-AC-12: two players alike on every published signal resolve the same way on every run', () => {
+  it('F4-AC-13: two players alike on every published signal resolve the same way on every run', () => {
     const candidates = [player(9, 7.2), player(4, 7.2), player(3, 4.0)]
     expect(chooseArmband(candidates).captainId).toBe(chooseArmband([...candidates].reverse()).captainId)
   })
 
-  it('F4-AC-12: the vice is chosen the same way, over whoever is left', () => {
+  it('F4-AC-13: the vice is chosen the same way, over whoever is left', () => {
     const armband = chooseArmband([
       player(1, 9.0),
       player(2, 7.2, { position: 'DEF' }),

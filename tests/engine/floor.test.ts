@@ -20,8 +20,8 @@ const captaincy = (incumbent: number, challenger: number): CallInput => ({
   challenger: { playerId: 22, projections: [challenger], availability: { eligible: true } },
 })
 
-describe('F4-AC-02, F4-AC-03 · below the floor is a reading, not a weak call', () => {
-  it('F4-AC-02: a win too small to distinguish reads "no change · nothing to do"', () => {
+describe('F4-AC-01 · below the floor is a reading, not a weak call', () => {
+  it('F4-AC-01: a win too small to distinguish reads "no change · nothing to do"', () => {
     const outcome = evaluateCall(captaincy(7.0, 7.02))
 
     expect(outcome.reading).toBe('no_change')
@@ -29,13 +29,13 @@ describe('F4-AC-02, F4-AC-03 · below the floor is a reading, not a weak call', 
     expect(outcome.reason).toBe('below_floor')
   })
 
-  it('F4-AC-03: a sub-floor result carries no percentage at all, so it cannot be rendered as a weak change', () => {
+  it('F4-AC-01: a sub-floor result carries no percentage at all, so it cannot be rendered as a weak change', () => {
     const outcome = evaluateCall(captaincy(7.0, 7.02))
     expect(outcome).not.toHaveProperty('conviction')
     expect(outcome).not.toHaveProperty('band')
   })
 
-  it('F4-AC-02: a win just above the floor is a call, with a figure', () => {
+  it('F4-AC-01: a win just above the floor is a call, with a figure', () => {
     const justOver = noiseFloorNet(kFor('captain')) + 0.05
     const outcome = evaluateCall(captaincy(7.0, 7.0 + justOver))
 

@@ -41,7 +41,7 @@ describe('F6-AC-01 · a selected call is a constraint, not a suggestion', () => 
     expect(committedPairs([call()], { 'transfer:out=7:in=124': 'rejected' }, cost)).toEqual([])
   })
 
-  it('a captaincy call commits its pair and no money (F4-AC-09)', () => {
+  it('a captaincy call commits its pair and no money (F4-AC-15)', () => {
     const armband = call({ key: 'captaincy:captain:from=8:to=411', category: 'captaincy', outPlayerId: 8, inPlayerId: 411, costTenths: 0, alternatives: null })
     const committed = committedPairs([armband], { 'captaincy:captain:from=8:to=411': 'selected' }, cost)
 

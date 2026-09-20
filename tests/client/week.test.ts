@@ -1,5 +1,5 @@
 /**
- * The editorial's figures (F8-AC-01 – F8-AC-07, F4-AC-03, F3-UP-05).
+ * The editorial's figures (F8-AC-01 – F8-AC-07, F4-AC-01, F3-UP-05).
  *
  * **Each test causes the circumstance its criterion is about** (P16). The
  * blank-week test gives the world a blank; the quiet-week test gives it a run
@@ -158,7 +158,7 @@ describe('F8-AC-02, F8-AC-06 · the count and the tally come off one list', () =
     expect(weekOf(w, none).tally.bands.map((b) => b.band)).toEqual(['certain', 'strong', 'thin'])
   })
 
-  it('F4-AC-03: a keep reading is in the world but in no tally and no count', () => {
+  it('F4-AC-01: a keep reading is in the world but in no tally and no count', () => {
     // The trigger is a run that produced a keep — the app answering "nothing to
     // do" — alongside one real call.
     const w = world({
