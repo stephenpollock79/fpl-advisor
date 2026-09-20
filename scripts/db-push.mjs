@@ -16,6 +16,11 @@
  *   node scripts/db-push.mjs --project=prod
  *   node scripts/db-push.mjs --project=dev --dry-run
  *
+ * **Invoked as `node`, not through the package manager.** There are npm scripts
+ * for it, but bare `pnpm` is not on the PATH on this machine — a help message
+ * printing a command that does not run is the small version of the fault this
+ * whole script exists to stop.
+ *
  * **There is no default.** `live-rls-check.mjs` defaults to dev, and that is
  * right there — running it is a read plus two throwaway accounts, and the worst
  * a default can do is check the wrong database. A migration is neither cheap nor
@@ -45,8 +50,8 @@ if (!target) {
     'Name the database. There is no default, because a migration is not',
     'something to apply to whichever project the CLI happens to be linked to.',
     '',
-    '  pnpm db:push:dev',
-    '  pnpm db:push:prod',
+    '  node scripts/db-push.mjs --project=dev',
+    '  node scripts/db-push.mjs --project=prod',
   )
 }
 
