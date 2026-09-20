@@ -540,20 +540,4 @@ the table on a screen** — nobody has seen it render, and no spec draws it.
 **What would close it:** rebuild the F4 fixtures as an `armband` call with a
 `breakdown.armband` ranking, and assert the table — the two marks, a barred row
 carrying its reason, no cost cell, and the figure labelled *worth changing*
-rather than *strength*. *Home: STE-151.*
-
-**The build stamp cannot be proven against a real deploy by any test here.**
-A run is stamped with the commit that produced it, and a run from another build
-cannot be reused (STE-185). The unit tests cover both directions with fabricated
-values — a different commit, and the null every run written before the column
-existed — which is the whole of the rule.
-
-**What they cannot show is the value arriving.** In production the stamp is
-`RAILWAY_GIT_COMMIT_SHA`; locally and in every test it is the string `dev`, so
-nothing here exercises a real deploy changing it. A variable that stopped being
-set would leave every run stamped `dev`, matching for ever, and the gate would
-go quietly back to the behaviour it was built to remove.
-
-**What would close it:** after the next deploy, press refresh once and confirm
-the run actually re-plans rather than reusing. One look, and it is the only way
-to see the variable is reaching the server. *Home: STE-185.*
+rather than *strength*. *Home: STE-186.*
