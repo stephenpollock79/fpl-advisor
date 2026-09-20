@@ -381,6 +381,26 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
                   <button className={styles.cardContent} onClick={() => onOpen(call)} type="button">
                     <span className={styles.cardTop}>
                       <span className={styles.cardTitle}>{titleOf(call)}</span>
+                      {/* What the last refresh did to this call (F6-AC-13),
+                          beside the title and truncating before it does — the
+                          title is what tells the manager which call he is
+                          looking at, so the tag is the one that gives up space.
+                          Moved here from the head-to-head strip, where it had
+                          no title to sit beside and wrapped instead (STE-183).
+
+                          `!= null` on purpose, covering undefined as well as
+                          null: a call row written before these columns existed
+                          carries neither, and a strict null check would let
+                          `undefined` through and then read a property off it —
+                          taking the whole screen down over a field nobody can
+                          see. */}
+                      {call.diffTag != null ? (
+                        <span data-testid="diff-tag" className={styles.diffTag}>
+                          {call.diffTag === 'band_move' && call.previousConviction != null
+                            ? `WAS ${String(call.previousConviction)}`
+                            : call.diffTag.toUpperCase()}
+                        </span>
+                      ) : null}
                       {call.isForced ? (
                         <span className={styles.forcedFlag}>FORCED</span>
                       ) : call.watch ? (

@@ -311,18 +311,27 @@ test('F6-AC-07, F6-AC-10: the refresh control rewrites the whole week from any t
   await expect(page.getByTestId('thinking')).toHaveCount(0)
 })
 
-test('F6-AC-13: a call the last run touched carries its tag, and an untouched one carries none', async ({ page }) => {
+test('F6-AC-13: the tag sits on its own call\'s card beside the title, and an untouched call carries none', async ({ page }) => {
   const moved = {
-    ...call(0, T1, 'transfer', 'transfer', 7, 124, 1.95, 49, 'thin', 6, 'Groß over MidB.', { out: [6], in: [200] }),
+    ...call(0, T1, 'transfer', 'transfer', 7, 124, 1.95, 49, 'thin', 6, 'Gro\u00df over MidB.', { out: [6], in: [200] }),
     diffTag: 'band_move',
     previousConviction: 84,
   }
-  await open(page, {}, [moved, world.calls[1], world.calls[2]])
+  // The Overview, because that is where the criterion puts the tag — beside the
+  // call's title (STE-183). The head-to-head has no title to sit beside.
+  await open(page, {}, [moved, world.calls[1], world.calls[2]], {}, null)
 
-  await expect(page.getByTestId('diff-tag')).toHaveText('WAS 84')
+  // **On its own card, not loose on the screen.** The point of the tag is to
+  // lead the manager back to the call the *what changed* sheet named, so which
+  // card carries it is the criterion, not a detail.
+  const card = page.getByTestId(`card-${T1}`)
+  await expect(card.getByTestId('diff-tag')).toHaveText('WAS 84')
+  // Beside the title, in the same row — the two are siblings in the card's head.
+  await expect(card.getByTestId('diff-tag')).toBeVisible()
 
-  await page.getByRole('tab', { name: 'Sub' }).click()
-  await expect(page.getByTestId('diff-tag')).toHaveCount(0)
+  // And only that one: the other two calls were untouched by the run, so a tag
+  // on either of them would be the sheet pointing at the wrong card.
+  await expect(page.getByTestId('diff-tag')).toHaveCount(1)
 })
 
 test('F6-AC-02: a selected call reads selected · locked, so it is clear why it did not change', async ({ page }) => {

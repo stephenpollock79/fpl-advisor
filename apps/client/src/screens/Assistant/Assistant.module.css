@@ -451,26 +451,6 @@
 
 .refreshOff { opacity: 0.5; cursor: not-allowed; }
 
-/* A call the last refresh touched, until its card has been seen (F6-AC-13).
-   Truncates before the title does. */
-.diffTag {
-  flex: none;
-  max-width: 96px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: var(--warm-2);
-  border: 1px solid var(--border-strong);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-2);
-}
-
 /* Selected · locked (F6-AC-02): it did not change, and this says why. */
 .locked { color: var(--green-text); }
 

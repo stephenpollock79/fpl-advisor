@@ -287,6 +287,21 @@
   font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
 }
 
+/* **The diff tag yields space before the title does** (F6-AC-13, STE-183).
+   `flex-shrink: 100` against the title's 1 means a narrow card takes the width
+   out of the tag first and the title keeps its meaning — the tag says what
+   changed, the title says which call. `RESURFACED` is the longest of the five
+   and is the one this has to hold for; it ellipsises rather than wrapping,
+   which is what it did in the old strip. */
+.diffTag {
+  flex: 0 100 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 2px 6px; border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.14); color: #fff;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+}
+
 .forcedFlag { background: var(--red-disc); border-color: var(--red-disc); color: #fff; }
 .watchFlag { background: #fbf1dc; border-color: #ecd6a6; color: #7a5410; }
 .doubleChip { background: var(--green-tint); border-color: var(--green-tint-border); color: var(--green-dark); }
