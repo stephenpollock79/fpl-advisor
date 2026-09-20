@@ -7,6 +7,8 @@
  * `CLAUDE.md`'s *feeds are fetched on open* described an intention, not the code.
  */
 
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { type WorldDeps, worldRoutes } from '../../apps/server/src/world/routes.js'
 import type { WorldParts } from '../../apps/server/src/world/assemble.js'
@@ -149,6 +151,52 @@ describe('F6-UP-03 · a gameweek rollover re-reads the squad rather than reusing
 
     expect(events).not.toContain('supersede')
     expect(events).not.toContain('capture')
+  })
+})
+
+describe('F6-UP-03 · the clean slate is the gameweek key, and it must stay there', () => {
+  /**
+   * **What this proves, and what it does not** (STE-177, P16).
+   *
+   * The criterion says a new gameweek discards the previous shortlist,
+   * decisions, filters and pending calls — *nothing is carried forward and
+   * nothing is replayed.* The squad half of that is covered by the block
+   * above, which causes a real rollover and asserts the re-capture.
+   *
+   * The rest is not enforced by any branch. It falls out of **both reads being
+   * keyed to the gameweek being advised**: `world/load.ts` selects the latest
+   * succeeded `run` with `.eq('gameweek', …)` and the `decision` rows with the
+   * same filter, so a rolled-over week finds neither and the slate is clean by
+   * construction.
+   *
+   * That is a good mechanism and a fragile one to assert. Exercising it
+   * properly needs a real Postgres fixture holding last week's run and
+   * decisions — the shape `tests/rls/isolation.test.ts` and
+   * `tests/auth/throttle.pg.test.ts` use — which does not exist for the world
+   * read and is a piece of work rather than a line.
+   *
+   * **So this is deliberately a structural check, in the open.** It cannot tell
+   * you the slate is clean. It can tell you nobody removed the thing that makes
+   * it clean — and dropping either filter would put last week's decisions
+   * against this week's calls, which is silent, wrong, and exactly the class
+   * F6-UP-03 exists to stop. The behavioural half stays named in
+   * `docs/coverage-gaps.md`.
+   */
+  const source = readFileSync(
+    fileURLToPath(new URL('../../apps/server/src/world/load.ts', import.meta.url)),
+    'utf8',
+  )
+
+  it('F6-UP-03: the run a world reads is the one for the gameweek being advised', () => {
+    const runRead = /\.from\('run'\)[\s\S]{0,240}?\.limit\(1\)/.exec(source)?.[0] ?? ''
+    expect(runRead, "world/load.ts no longer reads the run — this check is pointing at nothing").not.toBe('')
+    expect(runRead).toContain(".eq('gameweek'")
+  })
+
+  it('F6-UP-03: the decisions a world reads are the ones for the gameweek being advised', () => {
+    const decisionRead = /\.from\('decision'\)[^\n]*/.exec(source)?.[0] ?? ''
+    expect(decisionRead, "world/load.ts no longer reads decisions — this check is pointing at nothing").not.toBe('')
+    expect(decisionRead).toContain(".eq('gameweek'")
   })
 })
 

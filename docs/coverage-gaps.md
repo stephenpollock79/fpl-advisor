@@ -309,11 +309,21 @@ that the rule forbids.
 is not another engine test — it is that F3's components take net, conviction and
 band as values and hold no arithmetic over them.
 
-*Closed 2026-09-11 (slice 5).* `tests/client/surface-rules.test.ts` reads the
-source of every screen and fails on any value import from the engine, and fails
-first if the Assistant screen is missing, so it cannot pass by scanning nothing.
-Screens receive figures from `apps/client/src/calls/`, which takes them from the
-run or from `evaluateCall`.
+*Partly closed 2026-09-11 (slice 5).* `tests/client/surface-rules.test.ts` reads
+the source of every screen and fails on any value import from the engine, and
+fails first if the Assistant screen is missing, so it cannot pass by scanning
+nothing. Screens receive figures from `apps/client/src/calls/`, which takes them
+from the run or from `evaluateCall`.
+
+*Fully closed 2026-09-20 (STE-176).* **The import check shut one route and left
+the other open**, which is why STE-176 was still raising this five days after the
+line above said closed. A screen needs no engine import to write
+`conviction >= 70 ? 'strong' : 'lean'` — it needs one subtraction and a
+comparison, and that is precisely the band-from-a-stored-conviction the criterion
+forbids. `tests/client/no-arithmetic-in-screens.test.ts` now walks the syntax
+tree of every file under `screens/` and fails on `+ - * / %` with net,
+conviction, previousConviction or band on either side. Checked against an
+injected violation, which it reports with file, line and expression.
 
 **ENGINE-AC-05 — nothing renders conviction yet, so nothing can be checked.**
 Conviction must be labelled everywhere it appears as the strength of the call,
@@ -438,9 +448,28 @@ to gameweek 5 correctly and the squad on screen was still gameweek 3's, because
 picks were being read on the points rule. That defect is fixed; the criterion's
 other halves are still unproven.
 
-**F6-UP-03 must not be read as met**, and what would close it is a test that
-rolls the gameweek and asserts the decisions, the shortlist and the pending
-calls are gone and the squad has been captured again. *Home: STE-177.*
+*Squad half closed.* `tests/world/routes.test.ts` causes a real rollover — a
+snapshot the gameweek has moved past, and one that cannot say where it came from
+— and asserts the old snapshot is retired and the squad captured again. A
+current snapshot triggers neither, so the test is not passing by always
+capturing.
+
+*Clean-slate half, 2026-09-20 (STE-177): mechanism asserted, behaviour still
+not.* The discard is not a branch anybody wrote. It falls out of **both reads
+being keyed to the gameweek being advised** — `world/load.ts` selects the latest
+succeeded `run` and the `decision` rows with the same `.eq('gameweek', …)` — so
+a rolled-over week finds neither. Two checks now fail if either filter is
+removed, and each fails first if the read it inspects has gone, so neither can
+pass by matching nothing. Verified by deleting the decision filter, which fails
+them.
+
+**That is a structural check and it is not the criterion.** It cannot say the
+slate is clean; it says nobody removed what makes it clean. Proving the
+behaviour needs a real-Postgres fixture holding last week's run and decisions —
+the shape `tests/rls/isolation.test.ts` uses — which does not exist for the
+world read and is a piece of work rather than a line.
+
+**So F6-UP-03 still must not be read as met.** *Home: STE-177.*
 
 **F6-AC-20 — cancelling is built twice over and asserted nowhere.** A cancelled
 run must be treated exactly as a run that never started: recorded `cancelled`
@@ -541,8 +570,17 @@ carried into the run it constrained, whole and repositioned after the new calls.
 What is still unproven end to end is the two halves joined: accept a call,
 refresh, and see the card still there reading *selected · locked*.
 
-**What would close it:** an end-to-end spec that decides a call, runs a refresh,
-and asserts the card survives it. *Home: STE-177.*
+*Closed 2026-09-20 (STE-177).* `tests/e2e/assistant.spec.ts` now decides a call,
+**runs a refresh**, and asserts the card is still there reading *selected ·
+locked*.
+
+**The first version of that test was a false green**, and how it failed is worth
+keeping. It varied the run's `done` payload, which the client uses only as a
+signal to re-read `/api/world` — so it passed just as happily with the selected
+call stripped out of the run. The test now varies the world the refresh re-reads,
+and was checked by removing the selected call from it, where it fails. A test
+that causes the wrong trigger looks exactly like one that causes the right
+one.
 
 **The armband's forced behaviour is deliberately uncovered, and that is a
 settled decision rather than an open question.** Ruled 2026-09-20 (STE-189,
