@@ -51,6 +51,13 @@ Four are in `CLAUDE.md`, under *Data rules* and *Architecture invariants* — ro
 `is_next` vs `is_current`, `data_checked` vs `finished`, and fixture count never coming from a
 projection.
 
+**One of those four is dormant, and the list keeps it anyway.** `data_checked` vs `finished` has
+had no consumer in the code since 2026-09-20 (STE-175), when the settled-points figure nothing
+displayed was removed. So it has nothing to verify and must not be counted as verified — an entry
+in this list that cannot fail is the same false comfort every rule here exists to prevent. It sits
+here because it is a trap waiting for the next feature rather than a safeguard running today, and
+it re-enters the class the moment anything shows a settled points figure.
+
 The fifth, **the spend cap, is not in `CLAUDE.md` at all.** It is in
 `docs/criteria/NFR.criteria.md` under *Cost control*. It is a £50 prepaid balance in the Anthropic
 console (STE-52), and `NFR.criteria.md` states that a ceiling inside the application is
