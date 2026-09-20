@@ -541,3 +541,28 @@ the table on a screen** — nobody has seen it render, and no spec draws it.
 `breakdown.armband` ranking, and assert the table — the two marks, a barred row
 carrying its reason, no cost cell, and the figure labelled *worth changing*
 rather than *strength*. *Home: STE-186.*
+
+**The armband's forced behaviour is deliberately uncovered, and that is a
+settled decision rather than an open question.** Ruled 2026-09-20 (STE-189,
+Decision Log #108): a club with no fixture no longer forces the armband, because
+the ranking sinks a player who cannot score. A holder the **availability gate**
+excludes still is — the engine marks any call forced whose incumbent fails that
+gate, and that rule is shared with substitutions (`F3-AC-17`).
+
+So the behaviour exists and **no `F4` criterion names it.** Four tests assert it
+and cite a ticket, because there is nothing else to cite, and **nothing in the
+coverage report will ever go red for it.**
+
+**This entry differs from every other one here**, and the difference is the
+point. The rest record something unproven and name the check that would close
+them. This records something *proven and uncoverable* — the tests are real, the
+behaviour is right, and the gap is in the reporting rather than in the work.
+
+**Why it is not closed by writing a criterion.** `F4` carries seven identifiers
+against a cap of five and was the first feature brought back toward it. Spending
+another on when a flag is set would undo that, to cover a case the ranking
+already handles on screen.
+
+**What would change it:** `F4` having room, or the engine's shared forcing rule
+being revisited for some other reason. Neither is worth doing for this alone.
+*Home: STE-189.*
