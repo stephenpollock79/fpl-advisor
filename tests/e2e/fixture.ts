@@ -128,16 +128,56 @@ export const call = (position: number, key: string, category: string, shape: str
 })
 
 /** A keep reading: the armband is already right, so there is no decision in it. */
-export const keep = (position: number, key: string, shape: string, outPlayerId: number, inPlayerId: number, reasoning: string) => ({
-  ...call(position, key, 'captaincy', shape, outPlayerId, inPlayerId, -1.8, 5, 'thin', 0, reasoning),
+/**
+ * The armband, as the app has produced it since 2026-09-20: **one call carrying
+ * a ranking**, not two swaps (STE-151).
+ *
+ * `rows` is every squad member, highest first, with the two picks marked — the
+ * same shape the planner stores. `captainId` and `viceId` are the picks, and the
+ * *current* holders are on the squad, because who wears it and who should are
+ * two different things (F4-AC-13).
+ */
+export const armband = (
+  position: number,
+  captainId: number,
+  viceId: number,
+  reasoning: string,
+  barred: Record<number, string> = {},
+) => ({
+  ...call(position, ARMBAND, 'captaincy', 'armband', 8, captainId, 1.8, 78, 'lean', 0, reasoning),
+  breakdown: {
+    ...breakdown(8, captainId, 1.8, 0.5),
+    armband: {
+      captainId,
+      viceId,
+      rows: [...squad]
+        .map((p) => ({
+          playerId: p['playerId'] as number,
+          projection: p['projectedPoints'] as number,
+          because: barred[p['playerId'] as number] ?? null,
+          isCaptainPick: p['playerId'] === captainId,
+          isVicePick: p['playerId'] === viceId,
+          byCeiling: false,
+        }))
+        .sort((a, b) => {
+          const rank = (r: { isCaptainPick: boolean; isVicePick: boolean; because: string | null }) =>
+            r.isCaptainPick ? 0 : r.isVicePick ? 1 : r.because === null ? 2 : 3
+          return rank(a) - rank(b) || b.projection - a.projection || a.playerId - b.playerId
+        }),
+    },
+  },
+})
+
+/** The same call with nothing to do — both armbands already right (F4-AC-01). */
+export const armbandKeep = (position: number, captainId: number, viceId: number, reasoning: string) => ({
+  ...armband(position, captainId, viceId, reasoning),
   isReading: true,
   readingReason: 'incumbent_wins',
   conviction: null,
   band: null,
 })
 
-export const CAPTAIN = 'captaincy:captain:from=8:to=411'
-export const VICE = 'captaincy:vice:from=411:to=8'
+export const ARMBAND = 'captaincy:captain:from=8:to=411'
 
 export const T1 = 'transfer:out=7:in=124'
 export const T2 = 'transfer:out=10:in=300'
@@ -153,8 +193,10 @@ export const world = {
     call(1, T2, 'transfer', 'transfer', 10, 300, 2.34, 54, 'thin', 10, 'Striker over FwdB: 6.2 projected points this gameweek against 5.0.', { out: [9], in: [] }),
     call(2, 'substitution:upgrade:out=557:in=40', 'substitution', 'upgrade_swap', 557, 40, 4.6, 90, 'certain', 0, 'Rogers over Tzolis: 7.0 projected points this gameweek against 2.4.'),
     call(3, 'substitution:doubt:out=423:in=112', 'substitution', 'doubt_swap', 423, 112, 3, 86, 'strong', 0, 'VanHecke over Shaw: 4.7 projected points this gameweek against 1.7.'),
-    call(4, CAPTAIN, 'captaincy', 'captain', 8, 411, 1.8, 78, 'lean', 0, 'Haaland over Semenyo: 8.0 projected points this gameweek against 6.2.'),
-    call(5, VICE, 'captaincy', 'vice', 411, 8, 0, 5, 'thin', 0, 'Semenyo over Haaland: the vice armband has to move.'),
+    // **One call, the whole ranking** (STE-151). Semenyo holds the armband and
+    // Haaland tops the squad on 8.0, so the captaincy moves and Rogers takes the
+    // vice on 7.0 — from the bench, which does not bar him (F4-AC-14).
+    armband(4, 411, 40, 'Haaland tops your fifteen on projected points, and Rogers is next.'),
   ],
   decisions: {},
   // Relative to the clock, not fixed: WATCH hides a forecast from before FPL's

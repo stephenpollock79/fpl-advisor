@@ -175,6 +175,22 @@ export function Overview({ world, week, decisions, nameOf, onOpen, onDecide, onS
     const out = playerById.get(call.outPlayerId)
     const into = playerById.get(call.inPlayerId)
     if (call.shape === 'bench_order') return 'auto-sub cover'
+    /**
+     * **The armband's sub-line is about the captain pick, not a swap.** Every
+     * other line here reads `out → in`, and the armband borrowed it — so the
+     * row said "MID · FUL → MUN", which is the outgoing holder's club pointing
+     * at the incoming pick's club as though one were replacing the other. It is
+     * one call stating a result (STE-151), so the line describes the player the
+     * armband is going on: his position and who he plays.
+     */
+    const captainPick = call.breakdown.armband?.rows.find((r) => r.isCaptainPick)
+    if (captainPick) {
+      const pick = playerById.get(captainPick.playerId)
+      if (!pick) return ''
+      const first = pick.fixtures[0]
+      const fixture = first === undefined ? 'no fixture' : `${first.opponentShortName} (${first.isHome ? 'H' : 'A'})`
+      return `${pick.position} · ${fixture}`
+    }
     if (!out) return ''
     if (call.category === 'transfer') {
       return `${out.position} · ${out.clubShortName} → ${into?.clubShortName ?? '—'}`

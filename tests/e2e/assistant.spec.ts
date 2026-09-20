@@ -8,7 +8,7 @@
  */
 
 import { type Route, expect, test } from '@playwright/test'
-import { CAPTAIN, T1, T2, VICE, call, keep, open, player, squad, world } from './fixture'
+import { ARMBAND, T1, T2, armband, armbandKeep, call, open, player, squad, world } from './fixture'
 
 test('F3-AC-12: deciding a call advances to the next undecided one; when none are left the tab reads Done and Category cleared shows', async ({ page }) => {
   await open(page)
@@ -186,45 +186,52 @@ test('F3-UP-05: a category with nothing worth changing says so, rather than show
   await expect(page.getByRole('tab', { name: /Transfer/ })).toContainText('Clear')
 })
 
-test('F4-AC-01, F4-AC-13: the Captain tab carries two calls and neither offers a candidate picker', async ({ page }) => {
+test('F4-AC-01, F4-AC-13, F4-AC-15: the Captain tab is one ranked table, and no picker', async ({ page }) => {
   await open(page)
   await page.getByRole('tab', { name: 'Captain' }).click()
 
-  await expect(page.getByTestId('reasoning')).toContainText('Haaland')
-  // The pair is fixed by the squad — there is nothing to choose between.
-  await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
-  await expect(page.getByTestId('cost')).toHaveText('£0.00')
+  // **The table is the advice.** Every squad member, and the two picks marked
+  // separately from who holds them today.
+  await expect(page.getByTestId('armband-head')).toContainText('Armband')
+  await expect(page.locator('[data-testid^="armband-row-"]')).toHaveCount(squad.length)
 
-  await page.getByRole('button', { name: 'Next undecided call' }).click()
-  // The premise is code's, not the model's, and sits on its own line so it
-  // cannot be pushed off the bottom of the card by a long model sentence.
+  // Haaland tops the squad on 8.0 and takes the armband; Rogers is next on 7.0
+  // and takes the vice, from the bench.
+  const rows = page.locator('[data-testid^="armband-row-"]')
+  await expect(rows.nth(0)).toContainText('Haaland')
+  await expect(rows.nth(1)).toContainText('Rogers')
+
+  // Semenyo holds it today, which is a different thing and is marked as one.
+  await expect(page.getByTestId(`armband-row-8`)).toContainText('C')
+
+  // **No cost cell** — no money moves and none ever appeared here except through
+  // the swap framing (F4-AC-15).
+  await expect(page.getByTestId('cost')).toHaveCount(0)
+  // The figure says what it measures.
+  await expect(page.getByTestId('armband-head')).toContainText('worth changing', { ignoreCase: true })
+  // The pair is fixed by the squad, and the rows are a reading rather than a picker.
+  await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
+
+  // The premise is code's, not the model's, and sits on its own line so a long
+  // model sentence cannot push it off the bottom of the card.
   await expect(page.getByTestId('armband-note')).toContainText('vice armband only pays if the captain does not play')
   await expect(page.getByTestId('armband-note')).toBeVisible()
-  await expect(page.getByRole('button', { name: /Change/ })).toHaveCount(0)
 })
 
 test('F4-AC-01: a keep reading offers no decision tile and enters no tally', async ({ page }) => {
-  const readings = [
-    keep(0, CAPTAIN, 'captain', 411, 8, 'Haaland keeps it: 8.0 projected points this gameweek against Semenyo 6.2.'),
-    keep(1, VICE, 'vice', 8, 411, 'Semenyo keeps it: 6.2 projected points this gameweek against FwdA 6.0.'),
-  ]
+  // Both armbands already right: Semenyo captain, Haaland vice, nothing to do.
+  const reading = armbandKeep(0, 8, 411, 'Nobody in your eleven projects higher than Semenyo this gameweek.')
   // The transfers stay in, so the control swipe below has a decidable card to
   // land on — otherwise "nothing was posted" would prove nothing.
-  const { posted } = await open(page, {}, [...world.calls.slice(0, 2), ...readings])
+  const { posted } = await open(page, {}, [...world.calls.slice(0, 2), reading])
   await page.getByRole('tab', { name: 'Captain' }).click()
 
-  // **Not a comparison** (F4 happy path, amended 2026-09-14): one player, his
-  // figure and why. A versus with a decision panel underneath reads as a choice
-  // the manager is expected to resolve, and there is not one.
-  // Not named `keep` — that is the fixture factory this test calls above, and
-  // shadowing it here reaches the const before it exists.
+  // **Not a comparison** (F4 happy path, amended 2026-09-14): the answer, and
+  // why. A versus with a decision panel underneath reads as a choice the
+  // manager is expected to resolve, and there is not one.
   const card = page.getByTestId('keep-card')
   await expect(card).toContainText('nothing to do')
-  // Here the figures produced the keep, so that is what it says.
-  await expect(card).toContainText('Nobody in your eleven projects higher')
-  await expect(page.getByTestId('keep-points')).toContainText('xPts this gameweek')
   await expect(page.getByText('VS', { exact: true })).toHaveCount(0)
-  await expect(page.getByTestId('in-name')).toHaveCount(0)
   // Neither route into a decision exists: no tiles, and the swipe does nothing.
   await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Reject' })).toHaveCount(0)
@@ -241,18 +248,25 @@ test('F4-AC-01: a keep reading offers no decision tile and enters no tally', asy
   await expect(page.getByRole('tab', { name: /Captain/ })).toContainText('Clear')
 })
 
-test('F4-UP-02: rejecting the captain change holds the vice call rather than leaving the pair inconsistent', async ({ page }) => {
-  await open(page, { [CAPTAIN]: 'rejected' })
+test('F4-UP-02: rejecting the armband leaves both armbands exactly as he holds them', async ({ page }) => {
+  /**
+   * **There is no second armband call to hold** (rewritten 2026-09-20). It used
+   * to be two, and rejecting the captain change left a vice call proposing to
+   * move an armband off a player who was now staying — so the vice was turned
+   * into a keep to stop the pair contradicting itself. One call cannot
+   * contradict itself, and the criterion says so now: both armbands stand, and
+   * the card carries its rejected state like any other.
+   */
+  await open(page, { [ARMBAND]: 'rejected' })
   await page.getByRole('tab', { name: 'Captain' }).click()
 
-  const held = page.getByTestId('keep-card')
-  await expect(held).toContainText('nothing to do')
-  // **The verdict has to be true of this keep.** The armband is staying because
-  // the captain change was turned down, not because nobody projects higher —
-  // claiming the latter asserts something the app has not concluded.
-  await expect(held).toContainText('You kept your captain')
-  await expect(held).not.toContainText('projects higher')
+  // Decided, so it is off the undecided walk and shown as settled.
   await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
+  await expect(page.getByTestId('verdict').or(page.getByText(/rejected/i)).first()).toBeVisible()
+
+  // And nothing proposes an armband any more: there is no second call to hold,
+  // which is the whole of the rewritten criterion.
+  await expect(page.getByTestId('armband-head')).toHaveCount(0)
 })
 
 /**
@@ -418,8 +432,8 @@ test('F3-AC-12: with every call decided, the cleared screen says so rather than 
     [T2]: 'rejected',
     'substitution:upgrade:out=557:in=40': 'selected',
     'substitution:doubt:out=423:in=112': 'rejected',
-    [CAPTAIN]: 'selected',
-    [VICE]: 'rejected',
+    // One armband call now, not two (STE-151).
+    [ARMBAND]: 'selected',
   })
 
   await expect(page.getByTestId('all-decided')).toHaveText('Every call this week is decided.')

@@ -160,6 +160,13 @@ export function HeadToHead({
             <div className={styles.armbandHead} data-testid="armband-head">
               <span className={styles.armbandTitle}>Armband</span>
               <span className={styles.armbandFigures}>
+                {/* **The label F4-AC-15 asks for.** It lived in the figures
+                    strip and was lost when the card became two elements and the
+                    strip went — so the figure sat unlabelled beside a ranked
+                    table, which is exactly the reading *strength* was renamed to
+                    avoid. Caught by the end-to-end spec, which is what it is
+                    for. */}
+                <span className={styles.armbandFigLabel}>Worth changing</span>
                 <span className={styles.armbandNet} data-testid="net">
                   {formatNet(figures.net)}
                 </span>
