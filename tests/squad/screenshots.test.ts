@@ -355,7 +355,6 @@ describe('F2-AC-04 · an uploaded squad is not thrown away on the next open', ()
   const parts = (source: string, picksFrom: number | null): WorldParts => ({
     picksFrom,
     gameweek: { id: 5, name: 'Gameweek 5', deadlineTime: '2026-09-18T17:30:00Z', isNext: true, isCurrent: false, finished: false, dataChecked: false },
-    lastScored: null,
     snapshot: { id: 's1', source, capturedAt: new Date().toISOString(), bankTenths: 10, freeTransfers: 1, chipsRemaining: {} },
     squad: [],
     players: [],

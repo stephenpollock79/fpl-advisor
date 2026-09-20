@@ -16,7 +16,7 @@
 
 import type { AuthenticatedUser } from '../auth/session.js'
 import { referenceClient, userClient } from '../supabase.js'
-import { toGameweekRows, gameweekToAdviseOn, lastScoredGameweek } from '../ingest/gameweeks.js'
+import { toGameweekRows, gameweekToAdviseOn } from '../ingest/gameweeks.js'
 import type { WorldCall, WorldParts } from './assemble.js'
 import { latestRead } from './reads.js'
 
@@ -162,7 +162,6 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
 
   return {
     gameweek,
-    lastScored: lastScoredGameweek(gameweeks),
     snapshot: {
       id: snapshot['id'] as string,
       source: snapshot['source'] as string,

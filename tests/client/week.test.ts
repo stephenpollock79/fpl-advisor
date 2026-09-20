@@ -92,7 +92,6 @@ const call = (key: string, extra: Partial<WorldCall> = {}): WorldCall => ({
 
 const world = (extra: Partial<World> = {}): World => ({
   gameweek: { id: 5, name: 'Gameweek 5', deadlineTime: '2026-09-18T17:30:00Z' },
-  lastScoredGameweek: 4,
   snapshot: {
     id: 's1',
     source: 'fpl_deadline',

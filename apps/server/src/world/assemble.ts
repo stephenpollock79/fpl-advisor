@@ -144,7 +144,6 @@ export type DecisionState = 'selected' | 'rejected'
 
 export type World = {
   gameweek: { id: number; name: string; deadlineTime: string }
-  lastScoredGameweek: number | null
   snapshot: {
     id: string
     source: string
@@ -202,7 +201,6 @@ export type World = {
 
 export type WorldParts = {
   gameweek: GameweekRow
-  lastScored: GameweekRow | null
   snapshot: World['snapshot']
   squad: (SquadPlayer & { purchasePriceTenths?: number | null })[]
   players: PlayerRow[]
@@ -303,7 +301,6 @@ export function assembleWorld(parts: WorldParts): World {
       name: parts.gameweek.name,
       deadlineTime: parts.gameweek.deadlineTime,
     },
-    lastScoredGameweek: parts.lastScored?.id ?? null,
     snapshot: { ...parts.snapshot, picksFrom: parts.picksFrom ?? null },
     players,
     candidates,
