@@ -258,7 +258,10 @@ describe('A call demoted by the world read is reported, whichever way it was dem
     key: 'substitution:out=102:in=101',
     position: 0,
     category: 'substitution' as const,
-    shape: 'substitution' as const,
+    // A real shape. This read `'substitution'`, which is not one — the `as never`
+    // below let an invalid value through, and the identity switch's old default
+    // arm absorbed it without anyone noticing (STE-151).
+    shape: 'upgrade_swap' as const,
     outPlayerId: 102,
     inPlayerId: 101,
     net: 4.1,

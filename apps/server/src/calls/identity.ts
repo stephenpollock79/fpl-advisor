@@ -61,5 +61,23 @@ export function identityOf(call: StoredShape): CallIdentity {
       return { type: 'substitution', variant: 'doubt', outPlayerId: call.outPlayerId, inPlayerId: call.inPlayerId }
     case 'upgrade_swap':
       return { type: 'substitution', variant: 'upgrade', outPlayerId: call.outPlayerId, inPlayerId: call.inPlayerId }
+    default: {
+      /**
+       * **Both halves matter, and they guard different things.**
+       *
+       * The assignment is a compile-time tripwire: add a shape to the union and
+       * this stops type-checking until it is named above. That is what the old
+       * `default:` arm silently removed, and how `armband` came to re-derive as
+       * a substitution.
+       *
+       * The return is a runtime floor. `shape` is a column, and a row written
+       * by a newer build — or by hand — can hold a value this one has never
+       * heard of. **That is data, not a case**, and one unreadable row must not
+       * throw through a world read that is otherwise fine.
+       */
+      const unknown: never = call.shape
+      console.warn(`[calls] a stored call carries an unknown shape: ${String(unknown)}`)
+      return { type: 'substitution', variant: 'upgrade', outPlayerId: call.outPlayerId, inPlayerId: call.inPlayerId }
+    }
   }
 }
