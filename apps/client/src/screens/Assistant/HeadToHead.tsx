@@ -155,7 +155,7 @@ export function HeadToHead({
               </span>
             </span>
           )}
-          <span className={styles.stripCell}>
+          <span className={`${styles.stripCell} ${armband ? styles.stripEnd : ''}`}>
             {/* **Named for what it is on this card.** Beside a swap, STRENGTH
                 reads as *how sure are we about this change*. Beside a ranked
                 table the same figure would read as *how sure are we this is the

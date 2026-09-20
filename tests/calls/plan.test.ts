@@ -303,14 +303,32 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
     expect(captain?.playerId).not.toBe(vice?.playerId)
   })
 
-  it('STE-151: a player who cannot take the armband is shown with the reason, never hidden', () => {
+  it('a bench player is a candidate, because the manager is one tap from starting him', () => {
+    // **The rule this replaced barred the squad's two best answers.** On the
+    // first live week Groß projected 11.0 and De Cuyper 8.8, both on the bench,
+    // both the subject of substitutions not yet accepted — and the table ruled
+    // them out on a condition the manager was one tap from changing.
     const w = world()
+    const name = byName(w)
     const rows = armbandOf(w)[0]?.armband?.rows ?? []
-    const benched = rows.filter((r) => r.because === 'on the bench')
 
-    expect(benched.length).toBeGreaterThan(0)
-    // And the pickable ones carry no reason at all.
-    expect(rows.find((r) => r.isCaptainPick)?.because).toBeNull()
+    // Rogers is on the bench on 7.0 and is now second in the squad.
+    expect(name(rows.find((r) => r.isVicePick)?.playerId ?? -1)).toBe('Rogers')
+    expect(rows.find((r) => r.isVicePick)?.because).toBeNull()
+  })
+
+  it('STE-151: the side that is leaving is still barred, and the table says why', () => {
+    // The half of the old rule worth keeping: a player coming out of the eleven,
+    // or out of the squad, cannot be the man you hand the armband to.
+    const w = world()
+    const calls = planWeek(w)
+    const leaving = new Set(calls.filter((c) => c.category !== 'captaincy').map((c) => c.outPlayerId))
+    const rows = calls.find((c) => c.shape === 'armband')?.armband?.rows ?? []
+
+    expect(leaving.size).toBeGreaterThan(0)
+    for (const id of leaving) {
+      expect(rows.find((r) => r.playerId === id)?.because).toBe('coming out of the side this week')
+    }
   })
 
   it('ENGINE-AC-06: the figure is the captain move, because the captain is what doubles', () => {
@@ -335,7 +353,7 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
 
     expect(call?.outcome.reading).toBe('call')
     expect(name(call?.outPlayerId ?? -1)).toBe('MidA')
-    expect(name(call?.inPlayerId ?? -1)).toBe('Semenyo')
+    expect(name(call?.inPlayerId ?? -1)).toBe('Rogers')
   })
 
   it('F4-AC-09, F3-AC-28: the armband costs nothing and uses no transfer', () => {
@@ -388,7 +406,8 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
   it('F4-AC-01: a squad with fewer than two eligible starters keeps its other advice rather than failing', () => {
     const w = world()
     const out = { eligible: false, reason: 'injured' } as const
-    const squad = w.squad.map((p) => (p.isStarter && p.name !== 'Haaland' ? { ...p, availability: out } : p))
+    // The whole fifteen now, not the eleven — a bench player is a candidate.
+    const squad = w.squad.map((p) => (p.name === 'Haaland' ? p : { ...p, availability: out }))
     const calls = planWeek({ ...w, squad })
 
     expect(calls.filter((c) => c.category === 'captaincy')).toHaveLength(0)
@@ -397,7 +416,8 @@ describe('F4-AC-01, F4-AC-07, STE-151 · the armband, as one ranked call', () =>
 
   it('F4-AC-02: where both armbands are already right, the call is a keep reading with no figure', () => {
     const w = world()
-    const squad = w.squad.map((p) => ({ ...p, isCaptain: p.name === 'Haaland', isVice: p.name === 'Semenyo' }))
+    // Haaland tops the fifteen on 8.0 and Rogers is second on 7.0, bench or not.
+    const squad = w.squad.map((p) => ({ ...p, isCaptain: p.name === 'Haaland', isVice: p.name === 'Rogers' }))
     const calls = armbandOf(w, squad)
 
     expect(calls).toHaveLength(1)
@@ -452,9 +472,23 @@ describe('F6-AC-01, F6-AC-03, F6-AC-05 · what a refresh keeps, and what it walk
     const committed = [{ key: 'transfer:out=7:in=18', outPlayerId: 7, inPlayerId: 18, costTenths: 90, isTransfer: true }]
     const calls = planWeek({ ...w, committed })
 
-    // He is off the table for every other call, which is F3-UP-04 applied to a
-    // player the manager has already claimed.
-    expect(calls.flatMap((c) => [c.outPlayerId, c.inPlayerId])).not.toContain(18)
+    /**
+     * **The title of this test was already right and its assertion was not.**
+     *
+     * It asserted he appeared in no call at all — F3-UP-04 read as *one player,
+     * one call* — while the name above says he can be substituted or captained.
+     * A committed transfer is not a competing proposal; it is settled, and the
+     * player is as much a squad member as anyone else.
+     *
+     * So he is a candidate for the armband (ruled 2026-09-20 with the widened
+     * pool), and F3-UP-04 still holds where it means something: nothing may
+     * claim him *out* of the squad a second time.
+     */
+    const armband = calls.find((c) => c.shape === 'armband')
+    expect(armband?.armband?.rows.some((r) => r.playerId === 18 && r.because === null)).toBe(true)
+    expect(calls.filter((c) => c.category !== 'captaincy').flatMap((c) => [c.outPlayerId, c.inPlayerId])).not.toContain(
+      18,
+    )
   })
 
   it('F6-AC-03: a rejected call is not offered again while its premise stands', () => {

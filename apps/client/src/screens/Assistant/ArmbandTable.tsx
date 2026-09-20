@@ -37,10 +37,10 @@ export function ArmbandTable({
       <table className={styles.table}>
         <thead>
           <tr>
-            <th className={styles.player}>Player</th>
-            <th>Form</th>
-            <th>xPts</th>
-            <th className={styles.fixture}>This GW</th>
+            <th className={styles.head}>Player</th>
+            <th className={styles.head}>Form</th>
+            <th className={styles.head}>xPts</th>
+            <th className={styles.head}>This GW</th>
           </tr>
         </thead>
         <tbody>
@@ -48,28 +48,36 @@ export function ArmbandTable({
             const player = players.get(row.playerId)
             if (!player) return null
             const barred = row.because !== null
+            const picked = row.isCaptainPick || row.isVicePick
 
             return (
               <tr
                 key={row.playerId}
-                className={barred ? styles.barred : undefined}
+                className={[picked ? styles.picked : '', barred ? styles.barred : ''].filter(Boolean).join(' ')}
                 data-testid={`armband-row-${String(row.playerId)}`}
               >
                 <td className={styles.player}>
                   <div className={styles.nameLine}>
-                    {/* The recommendation, and the only mark that carries a
-                        decision. A row can be both the pick and the current
-                        holder, in which case nothing is moving on that line. */}
-                    {row.isCaptainPick ? <span className={styles.pickC}>C</span> : null}
-                    {row.isVicePick ? <span className={styles.pickV}>V</span> : null}
-                    <span className={styles.name}>{displaySurname(player.name)}</span>
-                    {/* What he wears today, so "does anything move?" is answered
-                        by looking rather than by remembering. */}
-                    {player.isCaptain ? <span className={styles.held}>now C</span> : null}
-                    {player.isVice ? <span className={styles.held}>now V</span> : null}
+                    <span className={`${styles.name} ${picked ? styles.pickedName : ''}`}>
+                      {displaySurname(player.name)}
+                    </span>
+                    {/* Who wears it *today*. The recommendation is the row's own
+                        styling — two marks competing to say the same thing was
+                        the first version's mistake. */}
+                    {player.isCaptain ? (
+                      <span className={`${styles.badge} ${styles.badgeC}`} title="Your captain">
+                        C
+                      </span>
+                    ) : null}
+                    {player.isVice ? (
+                      <span className={`${styles.badge} ${styles.badgeV}`} title="Your vice-captain">
+                        V
+                      </span>
+                    ) : null}
                   </div>
-                  {barred ? <div className={styles.because}>{row.because}</div> : null}
-                  {row.byCeiling ? <div className={styles.because}>chosen on ceiling, not the raw figure</div> : null}
+                  {barred ? <div className={styles.note}>{row.because}</div> : null}
+                  {!barred && !player.isStarter ? <div className={styles.note}>on the bench</div> : null}
+                  {row.byCeiling ? <div className={styles.note}>chosen on ceiling, not the raw figure</div> : null}
                 </td>
                 <td className={styles.figure}>{player.form === null ? '—' : player.form.toFixed(1)}</td>
                 <td className={styles.figure}>{row.projection.toFixed(1)}</td>
