@@ -28,7 +28,7 @@ import {
   templateReasoning,
   transferCostTenths,
 } from '@fpl/engine'
-import type { Breakdown, DecisionState, World, WorldCall, WorldPlayer } from '../api'
+import type { ArmbandRow, Breakdown, DecisionState, World, WorldCall, WorldPlayer } from '../api'
 
 export const playerIndex = (world: World): Map<number, WorldPlayer> =>
   new Map([...world.players, ...world.candidates].map((p) => [p.playerId, p]))
@@ -301,6 +301,31 @@ export function clearedLine(reopened: number): string {
   if (reopened === 0) return 'tap a decision to change it'
   if (reopened === 1) return '1 call reopened · tap again to put it back'
   return `${String(reopened)} calls reopened · tap again to put them back`
+}
+
+/**
+ * How the armband is named wherever it is listed (STE-151).
+ *
+ * **One definition, because two of them drifted the first day they existed.**
+ * The Captain tab stopped saying `X → Y` and the Overview went on saying it,
+ * for a week — the two screens label their rows in different files, and only
+ * one of them was changed. An arrow on the armband is the swap framing the
+ * whole redesign removed, still on screen.
+ *
+ * `name` is passed in because the two callers shorten differently: the Overview
+ * gives each row one line and cuts long names, the card has room for them.
+ */
+export function armbandLabel(
+  call: WorldCall,
+  name: (playerId: number) => string,
+): string | null {
+  const ranking = call.breakdown.armband
+  if (!ranking) return null
+  const named = (pick: (row: ArmbandRow) => boolean): string => {
+    const found = ranking.rows.find(pick)
+    return found === undefined ? '' : name(found.playerId)
+  }
+  return `Armband: ${named((r) => r.isCaptainPick)} (C) · ${named((r) => r.isVicePick)} (V)`
 }
 
 /**

@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 import type { WorldCall, WorldPlayer } from '../../apps/client/src/api'
 import { decide, defer, initialDecisions, reopen, restore } from '../../apps/client/src/calls/decisions'
 import {
+  armbandLabel,
   armbandNotes,
   clearVerdict,
   clearedLine,
@@ -205,6 +206,40 @@ describe('F3-AC-01, F3-AC-02, F3-AC-13, F3-AC-14, F3-AC-15 · decisions', () => 
     const restored = restore(reopened, 'a')
     expect(restored.decisions).toEqual({ a: 'rejected' })
     expect(restored.reopened).toEqual({})
+  })
+
+  it('STE-151: the armband is named as a result, and never with an arrow', () => {
+    /**
+     * **The defect this was written after.** The Captain tab stopped saying
+     * `X → Y` and the Overview went on saying it, because the two screens label
+     * their rows in different files and only one was changed. An arrow on the
+     * armband is the swap framing the whole redesign removed, still on screen.
+     *
+     * One definition now, and this is the test that holds it there.
+     */
+    const ranked = call('armband', 'captaincy', 0, {
+      shape: 'armband',
+      breakdown: {
+        ...call('x', 'captaincy').breakdown,
+        armband: {
+          captainId: 1,
+          viceId: 2,
+          rows: [
+            { playerId: 1, projection: 8, because: null, isCaptainPick: true, isVicePick: false, byCeiling: false },
+            { playerId: 2, projection: 7, because: null, isCaptainPick: false, isVicePick: true, byCeiling: false },
+          ],
+        },
+      },
+    })
+    const label = armbandLabel(ranked, (id) => (id === 1 ? 'Rogers' : 'Mbeumo'))
+
+    expect(label).toBe('Armband: Rogers (C) · Mbeumo (V)')
+    expect(label).not.toContain('→')
+  })
+
+  it('STE-151: a call with no ranking is not an armband, and names itself the usual way', () => {
+    // Every other call, and the rows written before the redesign.
+    expect(armbandLabel(call('t', 'transfer'), () => 'Someone')).toBeNull()
   })
 
   it('STE-131: an empty Sub tab names the player the Transfer tab has, rather than claiming the side is strongest', () => {
