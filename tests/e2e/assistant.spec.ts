@@ -496,3 +496,84 @@ test('F3-AC-12: with every call decided, the cleared screen says so rather than 
   await expect(page.getByTestId('all-decided')).toHaveText('Every call this week is decided.')
   await expect(page.getByText('Still to decide')).toHaveCount(0)
 })
+
+/**
+ * **The deadline stop, rendered** (STE-154).
+ *
+ * Its arithmetic is proven twice — `tests/refresh/guard.test.ts` for the clock
+ * comparison and `tests/world/routes.test.ts` for the server putting
+ * `gameweekStop` on the world, both directions. **Nothing had ever drawn the
+ * card.** So if it were broken — wrong at 390 wide, wrong wording, a crash on a
+ * field it does not carry — it would be found at the one moment it matters,
+ * which is rare and most likely coincides with the feeds being down.
+ *
+ * **This needs no real deadline**, which is the point. The original ticket asked
+ * for a live observation after GW5 locked and before GW6 became next; checked
+ * against the feed, FPL moves `is_next` at the deadline itself, so that interval
+ * never opens. The thing worth proving never needed it.
+ */
+test('F6-UP-03, F6-AC-15: a passed deadline stops the week on screen, and the stop cannot be dismissed', async ({ page }) => {
+  await open(page, {}, world.calls, {
+    gameweekStop: { reason: 'deadline_passed', gameweek: 5, deadline: '2026-09-18T17:30:00Z' },
+  })
+
+  const stop = page.getByTestId('gameweek-stop')
+  await expect(stop).toBeVisible()
+
+  // It names the week it is refusing to advise on. A stop that did not would
+  // leave the manager unable to tell which week the app thinks it is in.
+  await expect(stop).toContainText('Gameweek 5')
+  await expect(stop).toContainText('has already started')
+  await expect(stop).toContainText(/no longer change/i)
+
+  /**
+   * **A stop, not a prompt** (F6-AC-15). A refresh sheet can reasonably be
+   * declined; this says the week being advised on has already been played, so
+   * there is nothing to weigh and nothing to dismiss. If it ever became
+   * dismissible, the manager would learn to click past a broken state the same
+   * way he clicks past a routine one.
+   */
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(stop.getByRole('button')).toHaveCount(0)
+
+  // And it *replaces* the advice rather than sitting over it — stale calls
+  // still on screen under a stop would be the advice it is refusing to give.
+  await expect(page.getByTestId(`card-${T1}`)).toHaveCount(0)
+
+  /**
+   * **The way out stays available, because here it is the way out.** This stop
+   * can only fire when our own stored copy has fallen behind — FPL moves
+   * `is_next` at the deadline itself, so the gameweek being advised on is in
+   * the future by construction. Re-ingesting is precisely what clears it, so a
+   * refresh is the fix rather than a button that cannot help.
+   */
+  await expect(page.getByTestId('refresh')).toBeEnabled()
+})
+
+test('F6-UP-03, F6-UP-02: a stop with the feeds down offers no refresh, because there it cannot help', async ({ page }) => {
+  // The other way this stop is reached, and the one where the control would be
+  // a lie: our copy is stuck on a played week *because* the feeds are
+  // unreachable, so the run that would move it cannot run.
+  await open(page, {}, world.calls, {
+    gameweekStop: { reason: 'deadline_passed', gameweek: 5, deadline: '2026-09-18T17:30:00Z' },
+    feedsReachable: false,
+  })
+
+  await expect(page.getByTestId('gameweek-stop')).toBeVisible()
+  await expect(page.getByTestId('refresh')).toBeDisabled()
+})
+
+test('F6-UP-03: the projections arm says the sources disagree, not that the week has started', async ({ page }) => {
+  // The other reason the same card carries, and equally undrawn until now. The
+  // two must not share wording: one is "too late", the other is "we cannot tell
+  // what week this is", and they call for different things from the manager.
+  await open(page, {}, world.calls, {
+    gameweekStop: { reason: 'projections_disagree', gameweek: 5, deadline: '2026-09-18T17:30:00Z' },
+  })
+
+  const stop = page.getByTestId('gameweek-stop')
+  await expect(stop).toBeVisible()
+  await expect(stop).toContainText('not covered by the projections')
+  await expect(stop).toContainText(/disagree/i)
+  await expect(stop).not.toContainText('has already started')
+})
