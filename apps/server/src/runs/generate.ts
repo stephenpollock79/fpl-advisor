@@ -25,7 +25,7 @@ import {
   kFor,
   priceWatch,
 } from '@fpl/engine'
-import { type PlanInput, type PlanPlayer, type PlannedCall, isDecidable, planWeek } from '../calls/plan.js'
+import { type ArmbandRow, type PlanInput, type PlanPlayer, type PlannedCall, isDecidable, planWeek } from '../calls/plan.js'
 import type { EditorialInput, ModelCallRecord, ModelPort, ShortPlayer } from '../model/client.js'
 import { forcedLine, keepLine } from '../calls/keep-line.js'
 import { finalEditorial } from '../model/editorial.js'
@@ -87,6 +87,12 @@ export type Breakdown = {
   kLabel: string
   /** The captaincy ceiling tie-break chose this challenger (F4-AC-12). */
   byCeiling: boolean
+  /**
+   * The armband ranking — every squad member, highest projection first, with the
+   * top two marked and a reason against anyone who cannot be picked (STE-151).
+   * Present only on the armband call; nothing else is a ranking.
+   */
+  armband?: { rows: readonly ArmbandRow[]; captainId: number; viceId: number }
 }
 
 export type StoredCall = {
@@ -309,6 +315,9 @@ export async function generateWeek(input: {
         k: figures.k,
         kLabel: K_LABEL[call.outcome.type],
         byCeiling: call.byCeiling === true,
+        // The table the armband card renders (STE-151). Computed in the plan,
+        // stored with the call, and not recomputed on display.
+        ...(call.armband === undefined ? {} : { armband: call.armband }),
       },
       alternatives: figures.alternatives,
       position,
@@ -352,12 +361,23 @@ export async function composeEditorial(input: {
   context: { exception: 'blank' | 'double' | null; squadSource: 'deadline' | 'screenshot' }
 }): Promise<{ text: string; record: ModelCallRecord | null }> {
   /**
-   * **Who would wear the captain's armband once this week's captain call is
-   * taken** — the same derivation the plan, the world read and the refresh gate
-   * all make, from the same two calls (STE-144).
+   * **The armband is stated by code, never by the model** (STE-184, STE-151).
+   *
+   * Five editorials described the armbands wrongly, the last of them saying
+   * *"Haaland stays captain, but Rogers takes the vice armband"* over a screen
+   * whose calls said the opposite. Who wears the armband is a fact the plan has
+   * already decided — so code says it, and it cannot be wrong again. The model
+   * keeps the transfers and the substitutions, where prose earns its place.
    */
-  const captainCall = input.calls.find((c) => c.shape === 'captain' && !c.isReading)
-  const wouldCaptain = captainCall?.inPlayerId ?? null
+  const armbandCall = input.calls.find((c) => c.shape === 'armband')
+  const armbandLine = (): string | null => {
+    const rows = armbandCall?.breakdown.armband
+    if (!rows) return null
+    const captain = rows.rows.find((r) => r.isCaptainPick)
+    const vice = rows.rows.find((r) => r.isVicePick)
+    if (!captain || !vice) return null
+    return `Captain: ${input.nameOf(captain.playerId)}. Vice: ${input.nameOf(vice.playerId)}.`
+  }
 
   /**
    * **Why a call is on the list, where its own figures do not say.**
@@ -378,17 +398,13 @@ export async function composeEditorial(input: {
    * was which; it was never told.
    */
   const kindOf = (c: StoredCall): string => {
-    if (c.shape === 'captain') return 'captaincy change'
-    if (c.shape === 'vice') return 'vice-captaincy change'
+    if (c.shape === 'armband') return 'armband'
     if (c.shape === 'transfer') return 'transfer'
     if (c.shape === 'bench_order') return 'bench order'
     return 'substitution'
   }
 
   const whyOf = (c: StoredCall): string | undefined => {
-    if (c.shape === 'vice' && wouldCaptain !== null && wouldCaptain === c.outPlayerId) {
-      return 'the armband is moving to him, so the vice armband has to move too — not optional, and not about his fitness'
-    }
     if (c.isForced) return 'his club has no fixture, or the availability gate excludes him'
     return undefined
   }
@@ -400,12 +416,13 @@ export async function composeEditorial(input: {
     // is floored at zero — and is deliberately not hoisted: it is an obligation
     // to state, not the biggest gain to lead on.
     calls: [...input.calls]
-      .filter((c) => !c.isReading)
+      // The armband never reaches the model: code states it (see above).
+      .filter((c) => !c.isReading && c.shape !== 'armband')
       .sort((a, b) => b.net - a.net)
       .map((c) => ({
         out: input.nameOf(c.outPlayerId),
         in: input.nameOf(c.inPlayerId),
-        role: c.shape === 'captain' ? ('captain' as const) : c.shape === 'vice' ? ('vice' as const) : null,
+        role: null,
         kind: kindOf(c),
         net: c.net,
         band: c.band,
@@ -424,7 +441,15 @@ export async function composeEditorial(input: {
     console.error('[runs] the editorial could not be written; the template stands in', cause)
   }
 
-  return { text: finalEditorial(prose.text, editorialInput).text, record: prose.record }
+  /**
+   * **Checked before it is composed, never after.** The armband sentence is
+   * code's and always true; running the guard over the whole string would have
+   * it policing its own output, and a rule that checks the thing that cannot be
+   * wrong is a rule that proves nothing.
+   */
+  const paragraph = finalEditorial(prose.text, editorialInput).text
+  const armband = armbandLine()
+  return { text: armband === null ? paragraph : `${armband} ${paragraph}`, record: prose.record }
 }
 
 /**

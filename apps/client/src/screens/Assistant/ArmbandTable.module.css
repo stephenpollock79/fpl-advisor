@@ -1,0 +1,122 @@
+/* Built from the Squad stat table's idiom rather than beside it: same tokens,
+   same row rhythm, same figure alignment. A table that looked like a different
+   app would read as a different app. */
+
+.wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  padding: 6px 8px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.player {
+  text-align: left !important;
+  width: 100%;
+}
+
+.figure {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fixture {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.nameLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The recommendation. Weighted so the eye lands on the top two before it reads
+   a single figure — the table's answer arriving before its evidence. */
+.pickC,
+.pickV {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.pickC {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.pickV {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+}
+
+/* What he wears today. Quiet, because it is context and not advice. */
+.held {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+/* Set back, never hidden: the reason a high figure is not the pick is the most
+   useful thing on the row it sits on. */
+.barred .name,
+.barred .figure {
+  color: var(--ink-soft);
+}
+
+.because {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.blank {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+}

@@ -410,7 +410,12 @@ export function viceHeldByCaptain(figures: CardFigures, captainRejected: boolean
  */
 export function armbandNotes(call: WorldCall): string[] {
   const notes: string[] = []
-  if (call.shape === 'vice') notes.push('The vice armband only pays if the captain does not play.')
+  // Still worth saying, and now it belongs to the one armband call rather than
+  // to a vice card that no longer exists (STE-151). It is why the second row is
+  // a contingency and not a second gain.
+  if (call.shape === 'armband' || call.shape === 'vice') {
+    notes.push('The vice armband only pays if the captain does not play.')
+  }
   if (call.breakdown.byCeiling) {
     notes.push('Level on projected points, so the armband goes to the bigger ceiling.')
   }

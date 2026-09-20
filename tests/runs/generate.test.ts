@@ -221,7 +221,9 @@ describe('One run, end to end', () => {
       context: { exception: null, squadSource: 'deadline' },
     })
 
-    expect(seen).toBe(calls.filter((c) => !c.isReading).length + 1)
+    // The armband is not among them: code states who wears it, so the model is
+    // never told about it and cannot describe it wrongly (STE-184, STE-151).
+    expect(seen).toBe(calls.filter((c) => !c.isReading && c.shape !== 'armband').length + 1)
   })
 
   it('F3-AC-30, F3-AC-31: the breakdown holds every value the card explains, already computed', async () => {
@@ -272,7 +274,7 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
   it('F4-AC-04, F4-AC-11: a captaincy card uses the master row list, and its breakdown names the captaincy bar', async () => {
     const { plan, cards } = build()
     const { calls } = await generateWeek({ plan, cards, model: mockModel() })
-    const captain = calls.find((c) => c.shape === 'captain')
+    const captain = calls.find((c) => c.shape === 'armband')
     const transfer = calls.find((c) => c.category === 'transfer')
 
     expect(captain).toBeDefined()
@@ -289,7 +291,7 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
     const blanking = id('Semenyo')
     const squad = plan.squad.map((p) => (p.playerId === blanking ? { ...p, hasFixture: false } : p))
     const { calls } = await generateWeek({ plan: { ...plan, squad }, cards, model: mockModel() })
-    const captain = calls.find((c) => c.shape === 'captain')
+    const captain = calls.find((c) => c.shape === 'armband')
 
     expect(captain?.outPlayerId).toBe(blanking)
     expect(captain?.breakdown.out.projections).toEqual([0])
@@ -309,7 +311,8 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
     const { calls, modelCalls } = await generateWeek({ plan: { ...plan, squad }, cards, model: scriptedModel([], 'x') })
     const captaincy = calls.filter((c) => c.category === 'captaincy')
 
-    expect(captaincy).toHaveLength(2)
+    // One call now, not two: the armband is one decision (STE-151).
+    expect(captaincy).toHaveLength(1)
     for (const call of captaincy) {
       expect(call.isReading).toBe(true)
       expect(call.conviction).toBeNull()
@@ -318,41 +321,33 @@ describe('F4 · the captaincy calls, through the whole pipeline', () => {
       expect(call.reasoningSource).toBe('template')
       expect(call.reasoning.length).toBeGreaterThan(0)
     }
-    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.length - 2)
+    expect(modelCalls.filter((m) => m.step === 'reason')).toHaveLength(calls.length - 1)
   })
 })
 
-describe('A call that has to happen is explained in code, forced or not (STE-150)', () => {
+describe('STE-150, STE-151 · the armband can no longer contradict itself', () => {
   /**
-   * **The regression this exists to stop.** PR #121 routed *forced* calls to a
-   * code-written line, because the model can only build a comparison and on such
-   * a call the comparison runs the other way. PR #122 then correctly stopped the
-   * vice call being forced — `F4-AC-07` allows that word only where the holder
-   * cannot score.
+   * **This replaced a guard for a state that can no longer happen.**
    *
-   * **The explanation silently stopped applying.** The model was asked again and
-   * rebuilt the same false case: *"Rogers' superior form and season points
-   * outweigh Calvert-Lewin's slight xPts edge"*, printed above a row reading 7.9
-   * against 6.7.
+   * There used to be two armband calls, and promoting the vice to captain left
+   * the vice armband sitting on the new captain — one player on both armbands,
+   * worth nothing. The fix gave that call a code-written line, because the model
+   * could only build a comparison and on such a call the comparison runs the
+   * other way.
    *
-   * A behaviour keyed to a flag ends the moment that flag is corrected. This
-   * asserts it is keyed to the obligation, which is what it was always about.
+   * `chooseArmband` returns two different players by construction, and there is
+   * now one call carrying both (STE-151). **The inconsistency has no way to
+   * arise**, so the guard against it is gone rather than kept as scaffolding —
+   * and this asserts the property directly instead.
    */
-  it('a vice call whose holder is taking the captaincy is never argued by the model', async () => {
+  it('STE-151: the two armbands never land on the same player', async () => {
     const { plan, cards } = build()
-    const { calls } = await generateWeek({
-      plan,
-      cards,
-      // A line that passes every check and is still false on this call.
-      model: scriptedModel([], '{in} projects higher this week and has the easier fixture.'),
-    })
+    const { calls } = await generateWeek({ plan, cards, model: mockModel() })
+    const armband = calls.find((c) => c.shape === 'armband')?.breakdown.armband
 
-    const vice = calls.find((c) => c.shape === 'vice' && !c.isReading)
-    expect(vice).toBeDefined()
-    // Not forced — the holder can play — and still not the model's to argue.
-    expect(vice?.isForced).toBe(false)
-    expect(vice?.mustChange).toBe(true)
-    expect(vice?.reasoningSource).toBe('template')
-    expect(vice?.reasoning).toMatch(/cannot hold this armband/)
+    expect(armband).toBeDefined()
+    expect(armband?.captainId).not.toBe(armband?.viceId)
+    expect(armband?.rows.filter((r) => r.isCaptainPick)).toHaveLength(1)
+    expect(armband?.rows.filter((r) => r.isVicePick)).toHaveLength(1)
   })
 })

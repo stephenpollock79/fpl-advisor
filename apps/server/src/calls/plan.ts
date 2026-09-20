@@ -98,8 +98,34 @@ export type CallShape =
   | 'doubt_swap'
   | 'upgrade_swap'
   | 'bench_order'
+  /**
+   * One call carrying the whole ranking (STE-151). **`captain` and `vice`
+   * remain** for rows written before 2026-09-20 — the shape is stored, so
+   * removing them would make the week's own history unreadable — but nothing
+   * produces them any more.
+   */
+  | 'armband'
   | 'captain'
   | 'vice'
+
+/**
+ * One player's line in the armband table, in the order the card shows them.
+ *
+ * **Every squad member is here, pickable or not.** A high projection sitting on
+ * the bench is the answer to "why isn't he captain?", and a table that hid him
+ * would leave the question open — which is the whole reason this is a ranking
+ * rather than a swap.
+ */
+export type ArmbandRow = {
+  playerId: number
+  projection: number
+  /** Why he cannot take the armband. Null where he can. */
+  because: string | null
+  isCaptainPick: boolean
+  isVicePick: boolean
+  /** The ceiling tie-break chose him over the plain highest projection (F4-AC-12). */
+  byCeiling: boolean
+}
 
 type PlannedBase = {
   key: string
@@ -115,6 +141,11 @@ type PlannedBase = {
    * call, because the tie-break is captain and vice only.
    */
   byCeiling?: boolean
+  /**
+   * The ranking behind an armband call — the table the card renders (STE-151).
+   * Absent on every other call, because nothing else is a ranking.
+   */
+  armband?: { rows: readonly ArmbandRow[]; captainId: number; viceId: number }
 }
 
 /** A call the manager can act on. Everything transfers and substitutions produce. */
@@ -354,21 +385,27 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
   }
 
   /**
-   * The armband and the vice armband: two calls, every week, keeps included
-   * (F4-AC-01). Built after the greedy loop, because transfers and substitutions
-   * claim a contested player first (ruled 2026-09-14) — a transfer spends a
-   * scarce, multi-week resource, while the armband is free and re-taken every
-   * week, so the free decision must not block the scarce one.
+   * **The armband is one decision, not two swaps** (STE-151, ruled 2026-09-20).
    *
-   * **Only the challenger is subject to that claim.** The incumbent side is the
-   * squad's current state, not a bid for a player: if the captain is being sold,
-   * the armband has to move, and refusing to say so because a transfer holds him
-   * would leave the manager with advice that contradicts itself.
+   * It was two calls — captain and vice — each a head-to-head between a holder
+   * and a challenger. The engine never worked that way: `chooseArmband` ranks
+   * the eligible starters and takes the top two. Everything downstream then
+   * translated that ranking back into a pair of swaps, and **the translation is
+   * where it went wrong every time**: five editorials describing the armbands
+   * wrongly, a vice call scoring above its own captain call and sorting above it,
+   * and a conviction figure on the vice that read as points banked when it is
+   * collectable only in a week the captain does not play.
    *
-   * **Within the pair the no-two-calls rule does not apply** (ruled 2026-09-14).
-   * If the current vice is now the best captain, the two calls are *promote him*
-   * and *replace him as vice* — the same player in both, unavoidably. That is one
-   * armband decision shown as two cards, and there is nothing to double-count.
+   * So the ranking is now the thing that is carried, and the card renders it.
+   * **The pick cannot be misdescribed if the pick is a sorted list.**
+   *
+   * Built after the greedy loop, because transfers and substitutions claim a
+   * contested player first (ruled 2026-09-14) — a transfer spends a scarce,
+   * multi-week resource, while the armband is free and re-taken every week, so
+   * the free decision must not block the scarce one. **Only the challenger side
+   * is subject to that claim:** if the captain is being sold the armband has to
+   * move, and refusing to say so would leave the manager with advice that
+   * contradicts itself.
    */
   const armbandCalls = (): PlannedCall[] => {
     const captain = input.squad.find((p) => p.isCaptain)
@@ -392,92 +429,92 @@ export function planWeek(raw: PlanInput): PlannedCall[] {
 
     const armband = chooseArmband(candidates)
 
-    /** The best eligible candidate nobody in `bar` already holds. */
-    const runnerUp = (bar: ReadonlySet<number>): number | undefined =>
-      [...eligible]
-        .filter((c) => !bar.has(c.playerId))
-        .sort((a, b) => b.projection - a.projection || a.playerId - b.playerId)[0]?.playerId
+    /**
+     * **Why a player cannot take the armband, in the order the manager would
+     * ask it.** Every row of the table is shown, including the ones that cannot
+     * be picked — a high projection sitting on the bench is the answer to "why
+     * isn't he captain?", and hiding it leaves the question open.
+     */
+    const barredBecause = (p: SquadEntry): string | null => {
+      if (!p.isStarter) return 'on the bench'
+      if (!p.availability.eligible) return p.availability.reason ?? 'unavailable'
+      if (!p.hasFixture) return 'no fixture this gameweek'
+      if (touched.has(p.playerId)) return 'already in another call this week'
+      return null
+    }
 
-    const armbandCall = (
-      shape: 'captain' | 'vice',
-      holder: SquadEntry,
-      pick: number,
-      byCeiling: boolean,
-      bar: ReadonlySet<number>,
+    const rows: ArmbandRow[] = [...input.squad]
+      .map((p) => ({
+        playerId: p.playerId,
+        projection: thisWeek(p),
+        because: barredBecause(p),
+        isCaptainPick: p.playerId === armband.captainId,
+        isVicePick: p.playerId === armband.viceId,
+        byCeiling:
+          (p.playerId === armband.captainId && armband.captainByCeiling) ||
+          (p.playerId === armband.viceId && armband.viceByCeiling),
+      }))
+      // Highest first, then by id so the same squad always sorts the same way.
+      .sort((a, b) => b.projection - a.projection || a.playerId - b.playerId)
+
+    /**
+     * **The figure is the captain's, because the captain is what doubles.**
+     *
+     * Moving the armband from A to B is worth exactly `B - A`, once: the week
+     * scores `2B + A` instead of `2A + B`, and the doubling cancels. So the
+     * plain difference the engine already computes is the true gain, and no new
+     * arithmetic is needed.
+     *
+     * **Where the captain does not move but the vice does, the figure is the
+     * vice's** — there is still something to do, and a call reading +0.00 over a
+     * real change would say the opposite. The two are never added: you collect
+     * one or the other, never both, and summing them would assert an equivalence
+     * that F4-AC-10 exists to deny.
+     */
+    const pair =
+      armband.captainId !== captain.playerId
+        ? { holder: captain, pickId: armband.captainId, role: 'captain' as const }
+        : armband.viceId !== vice.playerId
+          ? { holder: vice, pickId: armband.viceId, role: 'vice' as const }
+          : { holder: captain, pickId: armband.captainId, role: 'captain' as const }
+
+    const challenger = squadById.get(pair.pickId)
+    if (!challenger) return []
+
+    const identity: CallIdentity =
+      pair.role === 'captain'
+        ? { type: 'captain', fromPlayerId: pair.holder.playerId, toPlayerId: challenger.playerId }
+        : { type: 'vice', fromPlayerId: pair.holder.playerId, toPlayerId: challenger.playerId }
+
+    const outcome = evaluateCall({
+      identity,
+      incumbent: side(pair.holder, 1),
+      challenger: side(challenger, 1),
       /**
-       * The vice armband cannot stay on the player being made captain, and the
-       * arithmetic cannot see why on its own: compared as a vice he is the best
-       * available and the call would read *keep*, leaving the manager holding
-       * one player on both armbands — the inconsistency F4-UP-02 exists to stop.
-       *
-       * He is unplayable in the role for the same reason a blanking club is
-       * unplayable in the week: a vice armband only pays if the captain does not
-       * play, and it is worth exactly nothing on the captain himself. So the call
-       * takes the treatment F4-AC-07 gives a holder who cannot score — forced,
-       * with the net floored at zero rather than shown negative.
+       * **Forced when, and only when, the holder cannot score this gameweek** —
+       * the gate, or no fixture (F4-AC-07). The same predicate the substitution
+       * search uses. It needs no special figure: a holder who cannot play
+       * projects zero, so the gap to the best available is the whole of it and
+       * the conviction follows on its own.
        */
-      cannotHoldTheRole = false,
-    ): PlannedCall | null => {
-      // Never a player against himself. Where the armband is already on the right
-      // player, the card puts him against the next-best candidate and reads as a
-      // keep; comparing him with himself would tie every row and say nothing.
-      const challengerId = pick === holder.playerId ? runnerUp(bar) : pick
-      const challenger = challengerId === undefined ? undefined : squadById.get(challengerId)
-      if (!challenger || !challenger.availability.eligible) return null
+      incumbentUnplayable: !pair.holder.hasFixture,
+    })
 
-      const identity: CallIdentity =
-        shape === 'captain'
-          ? { type: 'captain', fromPlayerId: holder.playerId, toPlayerId: challenger.playerId }
-          : { type: 'vice', fromPlayerId: holder.playerId, toPlayerId: challenger.playerId }
-
-      const outcome = evaluateCall({
-        identity,
-        incumbent: side(holder, 1),
-        challenger: side(challenger, 1),
-        // Forced when, and only when, the holder cannot score this gameweek —
-        // the gate, or no fixture. The same predicate the substitution search
-        // uses (F4-AC-07).
-        incumbentUnplayable: !holder.hasFixture,
-        // **Not forced — he can play** (F4-AC-07, F4-AC-08, STE-144). The
-        // armband still has to move; the obligation is in the line, not a flag.
-        incumbentCannotHoldRole: cannotHoldTheRole,
-      })
-
-      return planned(
+    return [
+      planned(
         {
           key: outcome.key,
           category: 'captaincy',
-          shape,
-          outPlayerId: holder.playerId,
+          shape: 'armband',
+          outPlayerId: pair.holder.playerId,
           inPlayerId: challenger.playerId,
           identity,
-          byCeiling,
+          byCeiling: pair.role === 'captain' ? armband.captainByCeiling : armband.viceByCeiling,
+          armband: { rows, captainId: armband.captainId, viceId: armband.viceId },
         },
         outcome,
-      )
-    }
-
-    const captainCall = armbandCall(
-      'captain',
-      captain,
-      armband.captainId,
-      armband.captainByCeiling,
-      new Set([captain.playerId]),
-    )
-    // Whoever wears the armband once the captain call is taken — the challenger
-    // where it proposes a change, the holder where it reads as a keep.
-    const wouldCaptain = captainCall?.inPlayerId ?? captain.playerId
-    const captainMoves = captainCall?.outcome.reading === 'call'
-    const viceCall = armbandCall(
-      'vice',
-      vice,
-      armband.viceId,
-      armband.viceByCeiling,
-      new Set([vice.playerId, armband.captainId, wouldCaptain]),
-      captainMoves && wouldCaptain === vice.playerId,
-    )
-
-    return [captainCall, viceCall].filter((c): c is PlannedCall => c !== null)
+      ),
+    ]
   }
 
   const chosen: DecidableCall[] = []

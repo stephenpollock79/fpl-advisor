@@ -180,6 +180,25 @@ export type WorldPlayer = {
   priceLockedUntil: string | null
 }
 
+/**
+ * One player's line in the armband table (STE-151).
+ *
+ * **Hand-maintained alongside the server's copy**, like every other wire type
+ * here. Every squad member appears, pickable or not: a high projection sitting
+ * on the bench is the answer to "why isn't he captain?", and hiding it would
+ * leave the question open.
+ */
+export type ArmbandRow = {
+  playerId: number
+  projection: number
+  /** Why he cannot take the armband. Null where he can. */
+  because: string | null
+  isCaptainPick: boolean
+  isVicePick: boolean
+  /** The ceiling tie-break chose him over the plain highest projection (F4-AC-12). */
+  byCeiling: boolean
+}
+
 /** Each value the *How this was calculated* panel shows (F3-AC-30). Nothing in it is computed on display. */
 export type Breakdown = {
   weights: number[]
@@ -190,6 +209,12 @@ export type Breakdown = {
   k: number
   /** Which category's k that is, in words — 0.5 alone does not say (F4-AC-11). */
   kLabel: string
+  /**
+   * The armband ranking — every squad member, highest projection first, with
+   * the top two marked and a reason against anyone who cannot be picked
+   * (STE-151). Present only on the armband call; nothing else is a ranking.
+   */
+  armband?: { rows: readonly ArmbandRow[]; captainId: number; viceId: number }
   /** The captaincy ceiling tie-break chose this challenger over the plain highest projection (F4-AC-12). */
   byCeiling: boolean
 }
@@ -198,7 +223,8 @@ export type Breakdown = {
 export type WorldCall = {
   key: string
   category: 'transfer' | 'substitution' | 'captaincy'
-  shape: 'transfer' | 'forced_swap' | 'doubt_swap' | 'upgrade_swap' | 'bench_order' | 'captain' | 'vice'
+  /** `captain` and `vice` are rows written before 2026-09-20; nothing produces them now (STE-151). */
+  shape: 'transfer' | 'forced_swap' | 'doubt_swap' | 'upgrade_swap' | 'bench_order' | 'armband' | 'captain' | 'vice'
   outPlayerId: number
   inPlayerId: number
   net: number

@@ -522,6 +522,22 @@ refresh, and see the card still there reading *selected · locked*.
 **What would close it:** an end-to-end spec that decides a call, runs a refresh,
 and asserts the card survives it. *Home: STE-177.*
 
+**F4's end-to-end specs still render the shape nothing produces.** The armband
+became one ranked call on 2026-09-20 (STE-151), and `tests/e2e/assistant.spec.ts`
+builds its captaincy fixtures as the old `captain` and `vice` shapes. Those
+shapes are still readable — every call ever written carries one, so the union
+keeps them — and the card still renders them as a head-to-head, so the specs
+pass.
 
+**They pass over a screen the app no longer produces.** That is the P16 shape
+exactly: a test naming a criterion and exercising the half the criterion is no
+longer about. F4-AC-02, F4-AC-04 and F4-UP-02 are the ones affected.
 
+The unit and pipeline layers are on the new model and prove the ranking, the two
+picks, the reasons against barred players and the figure. **What is unproven is
+the table on a screen** — nobody has seen it render, and no spec draws it.
 
+**What would close it:** rebuild the F4 fixtures as an `armband` call with a
+`breakdown.armband` ranking, and assert the table — the two marks, a barred row
+carrying its reason, no cost cell, and the figure labelled *worth changing*
+rather than *strength*. *Home: STE-151.*
