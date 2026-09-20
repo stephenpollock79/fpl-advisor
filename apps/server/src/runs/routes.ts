@@ -56,6 +56,7 @@ import { committedPairs, suppressed } from '../refresh/locks.js'
 import type { SideNow } from '../refresh/recompute.js'
 import { recomputeCall } from '../refresh/recompute.js'
 import { identityOf } from '../calls/identity.js'
+import { describeFailure } from './failure.js'
 import { type CardInfo, type StoredCall, composeEditorial, generateWeek } from './generate.js'
 
 export type WeekInputs = {
@@ -134,6 +135,9 @@ export type RunDeps = {
  * never contradict each other: the screen renders what the server says it is
  * doing, and has no second opinion about what happens next.
  */
+/** The stage a run is in, and the thing a failure is described by (STE-187). */
+export type RunStepId = (typeof RUN_STEPS)[number]['id']
+
 export const RUN_STEPS = [
   { id: 'read', label: 'Reading the feeds' },
   { id: 'diff', label: 'Checking what has changed' },
@@ -271,7 +275,21 @@ export function runRoutes(deps: RunDeps) {
     return streamSSE(c, async (stream) => {
       let runId: string | null = null
       let closed = false
-      const send = (event: string, data: unknown) => stream.writeSSE({ event, data: JSON.stringify(data) })
+      // **The last stage reached, which is what a failure is described by**
+      // (STE-187). Structural, so nothing has to match on an exception message
+      // that a library can reword in a patch release.
+      let stage: RunStepId | null = null
+
+      /**
+       * **The stage is recorded here, not at five call sites** (STE-187). A
+       * failure is described by the last step reached, and five places to
+       * remember is five places to forget one — leaving a run that fails at that
+       * step described as though it never started.
+       */
+      const send = (event: string, data: unknown) => {
+        if (event === 'step') stage = (data as { id: RunStepId }).id
+        return stream.writeSSE({ event, data: JSON.stringify(data) })
+      }
 
       /**
        * **The abort has to be listened for, not waited for.**
@@ -452,7 +470,13 @@ export function runRoutes(deps: RunDeps) {
         const cancelled = closed || c.req.raw.signal.aborted
         console.error(`[runs] streamed run ${runId ?? 'unstarted'} ${cancelled ? 'cancelled' : 'failed'}`, cause)
         if (runId) await deps.endRun(user, runId, cancelled ? 'cancelled' : 'failed')
-        if (!cancelled) await send('error', { reason: 'run_failed', runId })
+        if (!cancelled) {
+          // **The server knows why and now says so** (STE-187). It knew before
+          // too, and threw it away at the last step — leaving the cause in a log
+          // the manager has to go and find.
+          const failure = describeFailure(cause, stage)
+          await send('error', { ...failure, runId })
+        }
       }
     })
   })

@@ -131,6 +131,13 @@ export function armbandTitle(call: WorldCall, players: ReadonlyMap<number, World
   return `Armband: ${named((r) => r.isCaptainPick)} (C) · ${named((r) => r.isVicePick)} (V)`
 }
 
+/**
+ * What a failure says when the server did not say anything — the connection
+ * dropped, or the run predates STE-187. *Try again* is honest only where there
+ * is no reason to think otherwise, which is exactly this case.
+ */
+const RUN_FAILED = 'The run did not finish, and nothing has changed. Try again.'
+
 /** A wall clock, for the last-run line (F8-AC-18). */
 const clockOf = (iso: string): string => {
   const at = new Date(iso)
@@ -421,12 +428,16 @@ export function AssistantScreen({
           else setShowDiff(true)
           onReload()
         } else {
-          setError('The run did not finish, and nothing has changed. Try again.')
+          // **The server's sentence, not ours** (STE-187). It knows which stage
+          // broke; a run written before this shipped carries none, and then the
+          // old wording stands.
+          setError(event.message ?? RUN_FAILED)
         }
       }
     } catch (cause) {
       // An abort is the manager's own doing and is not an error to report at him.
-      if (!controller.signal.aborted) setError('The run did not finish, and nothing has changed. Try again.')
+      // The stream itself broke, so there is no server verdict to show.
+      if (!controller.signal.aborted) setError(RUN_FAILED)
     } finally {
       abort.current = null
       setRunning(false)

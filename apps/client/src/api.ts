@@ -327,7 +327,18 @@ export type RunStep = {
 export type RunEvent =
   | { kind: 'step'; step: RunStep }
   | { kind: 'done'; runId: string; calls: WorldCall[]; reused: boolean; changed?: number }
-  | { kind: 'error'; reason: string }
+  | {
+      kind: 'error'
+      reason: string
+      /**
+       * **What the manager is told, written by the server** (STE-187). It knows
+       * which stage broke and whether retrying could help; the screen used to
+       * throw that away and print one fixed sentence ending *try again* — which
+       * was the worst possible advice for the fault that produced it.
+       */
+      message?: string
+      retryable?: boolean
+    }
 
 /**
  * The streamed run behind the Thinking state (F6-AC-16 to F6-AC-20).
@@ -382,7 +393,14 @@ export async function* streamRun(signal: AbortSignal): AsyncGenerator<RunEvent> 
           reused: data['reused'] === true,
           changed: data['changed'] as number | undefined,
         }
-      else if (event === 'error') yield { kind: 'error', reason: (data['reason'] as string) ?? 'run_failed' }
+      else if (event === 'error') {
+        yield {
+          kind: 'error',
+          reason: (data['reason'] as string) ?? 'run_failed',
+          ...(typeof data['message'] === 'string' ? { message: data['message'] } : {}),
+          ...(typeof data['retryable'] === 'boolean' ? { retryable: data['retryable'] } : {}),
+        }
+      }
     }
   }
 }
