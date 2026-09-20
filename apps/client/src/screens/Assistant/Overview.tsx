@@ -89,7 +89,8 @@ function Marker({ player, move }: { player: WorldPlayer; move: Move }) {
             manager could see the whole recommendation at a glance — so the half
             that changed silently was the half he could not check. Filled for the
             captain, outlined for the vice, exactly as the Captain tab draws
-            them. */}
+            them, and both on the same corner so the pair reads as one kind of
+            mark. */}
         {player.isCaptain ? <span className={styles.armband}>C</span> : null}
         {player.isVice ? <span className={`${styles.armband} ${styles.armbandVice}`}>V</span> : null}
       </span>

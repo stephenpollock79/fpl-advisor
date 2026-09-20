@@ -123,18 +123,22 @@
 .out { border-color: var(--red-disc); }
 .moved { border-color: #d6960f; }
 
+/* **Both marks sit on the same corner** (2026-09-20). The captain was bottom
+   left and the vice bottom right, which read as two different kinds of thing
+   whenever the pair stood next to each other on the pitch — and they usually do.
+   One corner for both, so the eye finds them in the same place on every shirt
+   and the difference between them is the fill, not the position. */
 .armband {
-  position: absolute; left: -4px; bottom: -4px;
+  position: absolute; left: -4px; top: -4px;
   width: 10px; height: 10px; border-radius: 50%;
   background: var(--ink); color: #fff;
   font-family: var(--font-mono); font-size: 7px; font-weight: 700; line-height: 10px; text-align: center;
 }
 
 /* The vice, outlined where the captain is filled — the Captain tab's convention,
-   and the right way round: the armband that pays is the solid one. Opposite
-   corner so the two never overlap on a player who somehow holds both. */
+   and the right way round: the armband that pays is the solid one. The two are
+   never on the same shirt, so sharing a corner costs nothing. */
 .armbandVice {
-  left: auto; right: -4px;
   background: var(--paper, #fff); color: var(--ink);
   box-shadow: inset 0 0 0 1.5px var(--ink);
 }
