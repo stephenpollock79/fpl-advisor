@@ -681,8 +681,57 @@ your mind"*. It is — and so is every other disconnect, because **cancellation
 navigation away and a deploy are indistinguishable by construction. Worth
 knowing; not a fault to fix.
 
-**So what remains unproven is narrow: a cancel the manager actually taps.** Every
-other route to `cancelled` is evidenced. *Home: STE-180.*
+**Closed 2026-09-21, 01:14 UTC.** Stephen refreshed and cancelled on his phone
+against production, and the row reads:
+
+```
+status      cancelled
+trigger     refresh
+gameweek    6
+started_at  2026-09-21 01:14:17.627
+finished_at 2026-09-21 01:14:17.643   (16ms)
+```
+
+`cancelled`, **not** `failed`. That is the whole of what `F6-AC-20` asks, on the
+real thing, for the first time in the app's life.
+
+**It took four attempts, and the three failures each taught something.** The
+first ran to completion before the tap landed — 6.5 seconds, against a screen
+that says *"usually under a minute"*. The second and third started no run at all,
+because the live build matched the stored one and the gate correctly reused; a
+reuse writes no row. Only the fourth met a run that was both started and still
+in flight.
+
+**So the window is real and narrow**, and nothing on screen describes it: a run
+lasts about six seconds, and the stated duration is an order of magnitude longer.
+That is not a fault — `F6-AC-19` asks for the state to be cancellable throughout,
+and it is — but it is why this took a fortnight to observe.
+
+**And the 21ms row is no longer suspicious.** This entry previously wondered
+whether a server restart was being filed as *"you changed your mind"*. The new
+row is **16ms**, from a tap, sitting between the two historical rows at 11ms and
+21ms. **The simplest reading is that those were also taps**, landing just after
+the run record was created — which is where a deliberate cancel lands. The
+restart theory was a guess about an unfamiliar number, and the number turned out
+to be ordinary.
+
+The design does still conflate a tap with any other disconnect, because
+cancellation *is* the connection closing. That remains true, remains defensible,
+and is no longer evidence of anything going wrong.
+
+**One thing found on the way out, and it is the reason this entry existed.**
+`F6-AC-20` has been *counted as covered* throughout — two `describe` blocks in
+`tests/runs/routes.test.ts` name it, while a comment inside that same file says
+**"F6-AC-20 is not asserted here, and the reason is the harness."** Two other
+test files had already noticed in passing; one calls it *"the same half-truth
+`F6-AC-20` carries today."*
+
+So the identifier was claiming a criterion the file it sits in openly disclaims,
+and the coverage figure has said *covered* for a fortnight over behaviour nobody
+had ever observed. **It is left named**, because the blocks around it do prove
+the streamed run and the returning-call labelling, and stripping it would
+understate two real tests. What closes the criterion is the manual row, now in
+`docs/manual-coverage.md`, and this entry is what says so.
 
 **F6-UP-03's stop has been run against real data once, and only in the direction
 that proves nothing.** On 2026-09-14, on `97bc6c7`, opening the app with gameweek
