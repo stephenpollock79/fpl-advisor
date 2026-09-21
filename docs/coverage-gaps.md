@@ -486,8 +486,31 @@ written at all.
 decision and no money. Corrosive, because a badge that never goes away stops
 being read, and the next one that matters is not read either.
 
-**F6-AC-13 must not be read as met.** *Home: STE-127*, filed Post MVP on
-2026-09-14 — moved there from STE-65, which owns the slice and not this.
+**Ruled won't-do on 2026-09-21 (STE-127).** The judgement is the one above: a
+stale sticker is corrosive and not dangerous, and it never rose above the things
+that were. **No home**, deliberately — there is no future work to point at, and
+naming a cancelled ticket would imply there is.
+
+**Closing it exposed a false green that had been standing for a week, and that
+is the part worth keeping.** `F6-AC-13` was *counted as covered* while this entry
+said it must not be read as met — both in the same repo, disagreeing. A test
+named the identifier, so `scripts/criteria-coverage.mjs` counted it, and F6 read
+33 of 34.
+
+The test proves the tag **appears on the right card**, which it does. The
+criterion is that the tag is **transient**. Those are different halves, and `P16`
+is explicit about exactly this: where a criterion's trigger cannot be reached,
+*"the identifier must not be named in a test that reaches only the other half."*
+
+So the identifier has come off the test name. The assertions stay — it is a
+placement test, which is what it always was — and **F6 now reads 32 of 34.** The
+number got more honest; nothing about the app changed.
+
+**Not introduced by the rename on 2026-09-20 (STE-183), which is worse rather
+than better:** the original test named the criterion too, and moving the tag
+carried the identifier along without anyone re-asking whether it had earned it.
+A criterion identifier in a test name is a claim, and it survives edits that
+never re-examine the claim.
 
 **F6-UP-03 — named by a test that proves a different half.** The criterion is
 that a gameweek rollover is a clean slate: the previous shortlist, decisions,
