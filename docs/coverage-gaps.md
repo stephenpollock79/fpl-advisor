@@ -58,13 +58,29 @@ password is set.
 
 **Asserted since 2026-09-16 by `scripts/live-rls-check.mjs`** (slice 10, STE-68),
 which attempts a registration and a password sign-in against whichever project is
-named. **F7-AC-03 passed on both projects. F7-AC-01 failed on both** — public
-registration was on at dev *and* prod, so anyone could create an account at
-Supabase's own endpoint, then sign in through our login normally and spend against
-the £50 cap. `shouldCreateUser: false` in the route blocks creation through *our*
-route only; the provider's signup endpoint never passes through it. *Home:
-STE-159.* Neither may be read as met from the coverage figure — one is a live
-provider fact that only this hand-run script can see, and the other was false.
+named. **On the first run, F7-AC-03 passed on both projects and F7-AC-01 failed
+on both** — public registration was on at dev *and* prod, so anyone could create
+an account at Supabase's own endpoint, then sign in through our login normally
+and spend against the £50 cap. `shouldCreateUser: false` in the route blocks
+creation through *our* route only; the provider's signup endpoint never passes
+through it.
+
+**Both were closed the same day (2026-09-16, STE-159):** sign-up was turned off
+at both projects and the check went to 51/51 on each. `docs/manual-coverage.md`
+carries the rows, so **both are legitimately counted covered.**
+
+*Corrected 2026-09-21.* This paragraph still read as though F7-AC-01 were open —
+it said *"neither may be read as met"*, four days after it was met, while the
+register in the same repo recorded it verified. **A reader checking whether
+production sign-up was still open would have been told the wrong thing by the
+file whose whole job is qualifying the coverage figure.** The ticket it named as
+its home had closed the same day it was written.
+
+**What genuinely remains is narrower and unchanged:** these are provider
+settings, so they are true on the day they are checked and nothing in CI can
+re-check them. **Re-run `node scripts/live-rls-check.mjs` against both projects
+whenever the provider's auth configuration is touched** — that, not a test, is
+what keeps them true.
 
 **F7-AC-04 remains unasserted and unassertable**: it is about a code being typed
 rather than a link being tapped, which is a fact about the email template and the
@@ -378,9 +394,10 @@ component that recomputed a band from a stored conviction would pass every test
 in the engine suite while producing exactly the disagreement between two screens
 that the rule forbids.
 
-*Home: STE-176.* That is where conviction first renders, and the check
-is not another engine test — it is that F3's components take net, conviction and
-band as values and hold no arithmetic over them.
+*Was homed on STE-176, closed 2026-09-20 when the check below landed.* What it
+asked for is recorded rather than deleted: the check is not another engine test
+— it is that F3's components take net, conviction and band as **values** and
+hold no arithmetic over them.
 
 *Partly closed 2026-09-11 (slice 5).* `tests/client/surface-rules.test.ts` reads
 the source of every screen and fails on any value import from the engine, and
@@ -694,7 +711,8 @@ the honest reading of *"offers no refresh that cannot help"*: it stays enabled
 under a stop, because re-ingesting is exactly what clears one, and it is already
 disabled when the feeds are unreachable, which is the case where it could not.
 
-*Home: STE-154.*
+*Was homed on STE-154, closed 2026-09-20 when the rendering specs landed.* No
+open home, because nothing is outstanding.
 
 **F6-AC-02 is asserted on a screen, never across a refresh — which is the only
 circumstance the criterion is about.** `tests/e2e/assistant.spec.ts` names it and
