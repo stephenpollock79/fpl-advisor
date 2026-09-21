@@ -105,23 +105,44 @@ model: it has no news, fitness or availability data, and asked to fill a gap it
 invents one (ADR 0012). Closing the ticket makes that shortcut more tempting,
 not less, because the criterion still describes the behaviour.
 
-**Superseded 2026-09-21 by the PRD itself, and this needs one more look.** The
-criterion was reworded to describe what the app actually does: team news reaches
-it through FPL's own published fields — status code, news line and timestamp,
-chance of playing — diffed like any other input, with the two sites stated as
-not a source this product has. The reword also carries a fact the ticket did not
-have: **their terms forbid systematic extraction**, so there was never anything
-to build against.
+**Reworded in the PRD on 2026-09-21, and what it now asks for is one sentence.**
+The criterion has three: *"team news counts as evidence through FPL's status
+code, news line and timestamp, and chance-of-playing figure, diffed since the
+last successful run"* is **behaviour, and it is built**. *"The sites are not
+read"* is a negative — nothing can test the absence of a fetch that was never
+written — and the accepted-delay sentence is a consequence. **So covering
+`F6-RS-03` means covering the first sentence, and no gap record is owed for the
+other two.**
 
-**So the prohibition written here hours earlier — *"no test may name it"* — was
-written against wording that no longer exists.** Under the new wording the
-criterion describes behaviour that is built and exercised by the evidence diff.
+**The earlier prohibition here is void.** Hours before the reword, this entry
+said no test may name the identifier. That was written against wording asking
+for two outside websites. It does not survive the sentence that replaced it.
 
-**Left uncovered deliberately, pending a look.** Whether the diff tests should
-now name it is a judgement about what those tests actually cause, and `P16` is
-the rule that decides it — not a number worth raising by assertion at the end of
-a long session. Until someone checks, uncovered understates rather than
-overstates, which is the safe direction to be wrong in.
+**What the covering test has to cause, and the trap in it.** `P16`: two
+successive runs in which **exactly one of status, news line or chance-of-playing
+has moved and nothing else**, with the second run treating it as new evidence and
+taking the **spend** path rather than reuse.
+
+**A test that moved a price instead would be a false green of precisely the shape
+`P16` exists for.** Price movement is its own evidence under a different rule, so
+the run takes the spend path whether or not team news is diffed at all — the
+assertion would pass over a build with this criterion entirely absent. **The
+news-line-only case is the one that proves this criterion, and the one least
+likely to be reached by accident.**
+
+And as with `P16`'s third example: **take that fixture's figures from a real
+run** rather than writing them by hand. A hand-written conviction disagrees with
+the fixture, every such test takes the spend path for the wrong reason, and the
+reuse path it was written to contrast against is never once executed.
+
+**What exists today, and why it is not enough.** `tests/refresh/evidence.test.ts`
+proves the news field is diffed and counted — but at the level of `diffEvidence`,
+and named `F6-RS-04`. That is the diff, not the run. Nothing joins it to a second
+run actually spending.
+
+**Not written now, deliberately.** The assertion is small; the fixture is not,
+because the figures have to come from a real run and fabricating them reproduces
+the exact defect the test exists to catch. *Home: STE-192.*
 
 **F6-AC-07 — closed 2026-09-16 (STE-158).** The PRD now says the control
 *"always rewrites the whole week — every category — whichever screen it was

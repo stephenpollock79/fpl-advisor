@@ -1,6 +1,6 @@
 <!-- DERIVED FILE - DO NOT EDIT. Regenerate with extract-build-plan.py in the vault. -->
 <!-- source: Build Plan - The FPL Advisor.md -->
-<!-- source-sha256: a59adb2f776c6aa1 -->
+<!-- source-sha256: ed304921cde93311 -->
 
 # Build order and schedule
 
@@ -63,16 +63,24 @@ status from Linear — never restate one in another.
 | **Tue 15**    | 8 · F8 + F7-surface (STE-66) · 9 · F2 (STE-67)      | —                                                                              | The surface                                         |
 | **Wed 16**    | 10 · F7 hardening (STE-68)                          | STE-38, STE-80, STE-119, STE-122, STE-125, STE-139, STE-152 · and the queue the day opened and closed behind them — security (STE-161, STE-174), visual polish (STE-79, STE-164–STE-169, STE-171), the open screen (STE-170), the spec word budget (STE-172) · STE-39 and STE-133 closed here too | E2E week opens, and clears                          |
 | **Thu 17**    | —                                                   | STE-40                                                                         | The retro, the shipped entry, and **the MVP cut**   |
-| **Fri 18**    | —                                                   | STE-154                                                                        | **Launch — the deadline stop, just after 18:30 UK** |
+| **Fri 18**    | —                                                   | STE-154                                                                        | **Launch — GW5's deadline, 18:30 UK**               |
 | **Sat 19 – Sun 20** | —                                             | —                                                                              | No work. GW5 plays out                              |
-| **Mon 21**    | —                                                   | STE-155                                                                        | The settled-data check                              |
+| **Mon 21**    | —                                                   | STE-155                                                                        | The season-total check, once bonus has settled      |
 | not committed | 11 · F5 (STE-70) · 12 · F9 (STE-71)                 | —                                                                              | Below the cut line                                  |
 
 **The three days after launch are verification, not build days, and the launch date has not moved.** GW5's
 deadline is still Friday 18 September, 18:30 UK. What Saturday to Monday adds is the only window in which two
-checks can be run at all: `STE-154` wants the deadline stop observed *just after* 18:30, and `STE-155` wants
-last gameweek's points read *after* bonus has settled on the Monday. Neither can be brought forward and
-neither is code — they are the first weekend the app has ever been live across a deadline.
+live checks can be attempted at all: neither is code, neither can be brought forward, and they are the first
+weekend the app has ever been live across a deadline.
+
+**What the two checks turned out to be is not what this plan assumed, and both corrections are worth keeping.**
+`STE-154` reserved the Friday for watching the deadline stop fire just after 18:30 — **and that observation
+cannot be made at all.** FPL moves `is_next` at the deadline itself, so there is never an interval in which the
+app is pointed at a gameweek whose deadline has passed; the fabricated-clock unit tests are this criterion's
+verification, and were always going to be (Decision Log #103). `STE-155` was written as a check on *last
+gameweek's* points, and **no such figure is displayed** — the value is computed and rendered nowhere. What it
+actually checks is FPL's season total once bonus has settled, and the rule the original wording leaned on has
+since gone dormant with the figure nothing showed (Decision Log #111).
 
 **The MVP cut was held to Monday 21 with them, and has since moved to Thursday 17.** The reason for the hold
 stands on its own terms: the cut should be called against what was seen working rather than what was built,
