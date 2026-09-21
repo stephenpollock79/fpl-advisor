@@ -9,22 +9,19 @@ disable-model-invocation: true
 **The last step of every slice (P10): a reader who did not build it says what was built that nobody asked
 for, what was asked for and is missing, and what the spec failed to say.**
 
-Three questions, one pass, in plain English (G9). **The third is the point.** The specs are written
+Three questions, one pass, in plain English (G0). **The third is the point.** The specs are written
 just in time, one slice ahead of the build — but that only makes a later spec better if something
 carries back what the earlier build had to invent, and `slice-spec` opens this review before it
-writes (P12). **That pairing is the mechanism** — without both halves, just-in-time speccing is an
-opportunity nothing takes.
+writes — its fourth input. **That pairing is the mechanism** — without both halves, just-in-time
+speccing is an opportunity nothing takes.
 
 ## Why this runs in a subagent
 
-**The session that built the slice cannot review it.** It spent the session deciding each of those
-files was necessary and will decide it again, with better arguments the second time. The reviewer
-has to open the diff with no memory of why any of it is there.
+**G27**, applied here: the review runs cold, in a subagent, given identifiers only.
 
-So the review runs in a subagent, and **what that subagent is told is fixed by this skill, below**.
-A summary of the build, an explanation of a decision, a reason a file exists — each one puts back
-the context the split is there to remove. **Identifiers only: paths and a commit range.** The
-subagent reads the files and runs the diff itself.
+What that subagent is told is therefore **fixed by this skill, below** — substitute the bracketed
+values and add nothing. **Identifiers only: paths and a commit range.** The subagent reads the
+files and runs the diff itself.
 
 If a finding is wrong, let it be wrong in the comment where Stephen can see it and say so. Do not
 pre-empt it, soften it, or answer it on the way past.
@@ -43,7 +40,7 @@ pre-empt it, soften it, or answer it on the way past.
 
 ### 1. Fix the slice and the range
 
-Re-read `docs/build-plan.md` (P6). Name the slice back in one line: number, name, build ticket,
+Re-read `docs/build-plan.md` (P1). Name the slice back in one line: number, name, build ticket,
 day. Resolve the diff range and check it is not empty. **An empty range means the review has
 nothing to look at — say so and stop.** Do not review the working tree instead.
 
@@ -119,17 +116,16 @@ reviewing its own work through the back door.
 
 ### 4. The trap: this is surfaced, never a gate
 
-Nothing in the review blocks the slice, and **the review fixes nothing** (P11). Removing something the
-first section names is a scope decision and Stephen's to make (G13); it is also a separate unit of
-work (G10). Reverting it inside this session — or in the same session that built it — is exactly the
-failure this skill exists to catch, arriving one step later.
+Nothing in the review blocks the slice, and **the review fixes nothing** — G27 settles that, and
+what it means for a finding here. Reverting one inside this session — or in the same session that
+built it — is exactly the failure this skill exists to catch, arriving one step later.
 
 The second section is the same: a missing criterion is reported, not quietly implemented.
 
 ### 5. When the same gap shows up twice
 
 A recurring entry in the third section is no longer an observation about one spec — it is a rule
-`slice-spec` is missing. **Say so and propose the `P` rule; do not add it** (P11). `docs/working-rules.md`
+`slice-spec` is missing. **Say so and propose the `P` rule; do not add it** (P10). `docs/working-rules.md`
 expects to change over the first few slices, and changing it is Stephen's call.
 
 ### 6. Finish

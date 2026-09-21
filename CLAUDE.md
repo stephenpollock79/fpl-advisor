@@ -174,7 +174,8 @@ only at the prompt. ADR 0012.
   `reset --hard`, `clean`, force-deleting a branch and discarding the working tree are blocked. The push
   allowance is a decision, not a misconfiguration — do not "tighten" it into a block, and do not loosen
   it into an `allow` rule either.
-- **A guardrail block is a stop, not a detour** (ruled 2026-09-16, STE-80). If the hook refuses a
+- **A guardrail block is a stop, not a detour** — `G21`'s "the boundary working, not an obstacle to route
+  around", applied to this hook (ruled 2026-09-16, STE-80). If the hook refuses a
   command, **reaching the same end state with a different tool is working around it.** Closing a pull
   request with its branch through `gh` destroys exactly what force-deleting that branch destroys, and
   the hook not seeing it changes nothing about what it does. Do not reach for the other tool, and do not
@@ -225,11 +226,10 @@ only at the prompt. ADR 0012.
   slice's spec into `docs/specs/`, and `slice-tickets` publishes that slice's tickets into Linear beneath
   the build ticket the plan already names. Both are in `.claude/skills/`, both are user-invoked only, and
   neither may re-slice, re-date, or create a top-level ticket for a slice.
-- **`slice-review` is this repo's own, adapted from nothing.** It reviews a finished slice from cold — in a
-  subagent, because the session that built the slice cannot review it — and posts what was built beyond the
-  spec, what the spec asked for and is missing, and what the spec left open, to the slice's build ticket. Also
-  in `.claude/skills/`, also user-invoked. It changes no files and gates nothing; the rules governing it are
-  `P10`–`P12`.
+- **`slice-review` is this repo's own, adapted from nothing.** It reviews a finished slice from cold, in a
+  subagent (`G27`), and posts what was built beyond the spec, what the spec asked for and is missing, and what
+  the spec left open, to the slice's build ticket. Also in `.claude/skills/`, also user-invoked. It changes no
+  files and gates nothing; the rules governing it are `G27` and `P10`.
 - Cost: the model call is the expensive step. Cache what is stable within a gameweek, and never put raw
   `bootstrap-static` into a prompt.
 

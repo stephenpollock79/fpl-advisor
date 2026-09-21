@@ -23,7 +23,7 @@ That one stays source-only — see the skills bullet in `CLAUDE.md`.
    `NFR.criteria.md` applies to every slice.
 3. **`docs/specs/architecture.md`** — 1–7 for shape and contracts, 8 for what is still open, 9 for
    migrations, 12 for what is deliberately not built.
-4. **The previous slice's review comment in Linear** (P12), on that slice's build ticket. Its third
+4. **The previous slice's review comment in Linear**, on that slice's build ticket. Its third
    section — what the last spec left open that the build had to decide — is an input to this one.
    If there is no previous slice, or Linear is unreachable, say so in one line and carry on. Never
    infer what the review would have said.
@@ -35,7 +35,7 @@ words, verbatim.
 
 ### 1. Fix the slice
 
-Re-read `docs/build-plan.md` — it can change mid-session (P6). Take the **next slice in order** (P4).
+Re-read `docs/build-plan.md` — it can change mid-session (P1). Take the **next slice in order** (P4).
 Name it back in one line before writing anything: number, name, build ticket, test ticket, day.
 
 The twelve slices and their ticket identity are fixed. If the work looks like it wants a thirteenth,
@@ -43,7 +43,7 @@ or a different order, that is a Challenge (G3): say so, stop, and wait.
 
 **Then read the previous slice's review** (input 4). Name, in one line each, the gaps from its third
 section that this spec closes — and any it does not, with why. A gap that recurs here after showing
-up in two reviews is a rule `slice-spec` is missing: raise it as a proposed `P` rule (P11) rather
+up in two reviews is a rule `slice-spec` is missing: raise it as a proposed `P` rule (P10) rather
 than absorbing it silently into this one spec and losing it again.
 
 ### 2. Count the criteria in scope
@@ -61,7 +61,7 @@ coverage figure.
 Where a criterion is true but too coarse to build from, the interaction detail belongs in this
 spec's *Interfaces* section, citing the criterion. **Do not propose new PRD criteria to carry it** —
 criteria are capped at five per feature and stay at PRD level, and `docs/criteria/` is derived and
-regenerates over any edit (P5). A slice that genuinely cannot proceed without a new criterion is a
+regenerates over any edit (P4). A slice that genuinely cannot proceed without a new criterion is a
 Challenge (G3), not a spec section.
 
 ### 3. Decide the seams, and declare the blocking edges
@@ -161,25 +161,27 @@ The actual contracts: route request and response shapes, types, component props,
 and their migration. Interaction detail that a criterion implies but does not spell out lives here,
 citing the criterion.
 
-**Every behaviour here names its value** (P17): the threshold, the window, the field it reads,
+**Every behaviour here names its value**: the threshold, the window, the field it reads,
 which list it counts, which of two figures it shows. Read each sentence back and ask whether two
 competent people would build the same thing from it — where they would not, the missing word is a
 value. Where one genuinely cannot be fixed yet, say so and name who decides it in the build.
+**If the word budget below and this rule collide, say so rather than drop either.**
 
-**And two more passes over the same section, because P17 alone does not catch either.**
+**And two more passes over the same section, because naming the values does not catch either.**
 
-**What this change breaks elsewhere** (P18): where the slice changes a value, removes a feature or
+**What this change breaks elsewhere**: where the slice changes a value, removes a feature or
 moves a control, say what else was reading that thing and what happens to it now. A change can be
 entirely correct in itself and still leave a criterion unmet, a label orphaned, or a decision
 standing against figures that have moved.
 
-**What happens when something is absent, broken or expired** (P19): for each dependency the
+**What happens when something is absent, broken or expired**: for each dependency the
 behaviour leans on and each input it takes, say the posture when it is unavailable, missing,
 malformed or out of date — and, where the manager is looking at a screen, what he sees and what he
 can do next. **Fail closed is the default nobody chose**, and it is right for a send nobody is
 waiting on and wrong for a code he is holding in his hand.
 
-All three are the same failure wearing different clothes: a question the spec did not ask, answered
+**Those last two are deliberately separate**: they read alike and catch different misses. And all
+three are the same failure wearing different clothes — a question the spec did not ask, answered
 silently and correctly-looking by whoever wrote the line.
 
 ## Criteria in scope
@@ -242,7 +244,7 @@ counts an identifier appearing anywhere in a test file — including inside a co
 file; a false green costs whatever it was hiding.
 
 **Manual** — anything visual or tactile, and anything graded on model output. Write the checklist:
-what to do, why it matters, plain English (G9). Never fake it with a class-name assertion.
+what to do, why it matters, plain English (G7). Never fake it with a class-name assertion.
 
 Then the trap. **`docs/manual-coverage.md` records only criteria that have already been verified**,
 with the date and where the record is. This skill writes **nothing** into that register: an entry

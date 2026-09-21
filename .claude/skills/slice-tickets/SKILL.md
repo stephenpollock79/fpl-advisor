@@ -91,8 +91,11 @@ really a separate day's work? Granularity of the *slice* is not on the table —
 | **Priority** | The parent build ticket's priority. |
 | **Milestone** | The parent build ticket's milestone. |
 
-**Fetch milestones live with `list_milestones` every run. Never hardcode one.** No issue is created
-unlinked — an issue with no milestone is not done, however complete it looks.
+**Every ticket has a milestone from the moment it exists** — the milestone of the work it was found
+in, or *Post MVP* where Stephen has ruled it so. **Fetch milestones live with `list_milestones`
+every run; never hardcode an id.** No issue is created unlinked — an issue with no milestone is not
+done, however complete it looks. **Moving an open ticket to a different milestone is a scope change
+and is asked first.**
 
 **Issue Type options:** `Task`, `Bug - Coding`, `Create Test - Coding`, `Decision`,
 `Feature - Coding`, `Manual Test`. **Verify this list against `list_issue_labels` before relying on
