@@ -14,13 +14,13 @@ Reads my real squad from FPL's public feed, corrected by uploaded screenshots wh
 
 ## Why there's no public link
 
-The app runs on a Claude API licence, so every recommendation carries a real usage cost. Access is restricted to me for that reason. The video above is the demo.
+Every recommendation calls the Claude API, which is paid for by use. Keeping the app to my own account keeps both the cost and who can use it under my control. The video above is the demo.
 
 ## How it was built
 
-**Process.** Problem brief → clickable prototype and design system → PRD and architecture decision records → sliced into tickets → built in daily slices, each reviewed by a fresh AI session before it was called done.
+**Process.** Problem brief → clickable prototype and design system → PRD and architecture decision records → sliced into tickets → built and tested in daily slices, each reviewed by a fresh AI session before it was called done.
 
-**Scale.** An 11-screen clickable prototype in about two days · 240 acceptance criteria extracted from the PRD · 12 build slices.
+**Scale.** An 11-screen clickable prototype in about two days · 12 build slices.
 
 The full phase-by-phase story, including what didn't work: **[My project workflow](https://github.com/stephenpollock79/stephenpollock79/blob/main/playbook/project-workflow.md)**.
 
