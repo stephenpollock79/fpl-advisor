@@ -2,7 +2,7 @@
 
 A personal decision-support app for Fantasy Premier League. Before each weekly deadline it issues a short list of **calls** — transfers, substitutions, captain and vice — each with a conviction percentage, the projected points it gains or costs, and the reasoning behind it.
 
-Built solo in three weeks (31 Aug – 16 Sep 2026) during a self-directed sabbatical in AI-assisted product development. I'm a product manager: I directed this build rather than hand-wrote it.
+Built solo in under three weeks during a self-directed sabbatical in AI-assisted product development. I'm a product manager: I directed this build rather than hand-wrote it.
 
 ## Demo Video
 
