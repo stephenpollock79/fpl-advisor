@@ -646,7 +646,43 @@ half the criterion is about, because a cancel recorded as `failed` is a failure
 put in front of him for something he chose to do.
 
 **What would close it:** read the `run` row after cancelling a real run and
-confirm its status is `cancelled`. *Home: STE-180.*
+confirm its status is `cancelled`.
+
+*Attempted against production on 2026-09-21, and the attempt is worth more than
+the result.* Stephen refreshed and cancelled on his phone while the `run` table
+was read directly. **Two attempts, neither produced a cancelled row, and each
+failed for a different reason — both of which are the criterion's own design
+working.**
+
+**The first refresh started a run and finished before the cancel landed.** It
+took **6.5 seconds**; the last three real runs took 6.5, 6.9 and 11.5 seconds.
+**The Thinking state says *"usually under a minute"***, which is true and badly
+calibrated: it invites the manager to read the screen, decide, and reach for
+cancel long after the chance has gone. `F6-AC-19` asks for the state to be
+cancellable for the whole of its stated duration — it is, but the stated
+duration is an order of magnitude longer than the real one, so **the window is
+about six seconds and nothing on screen says so.**
+
+**The second refresh started no run at all**, because the build commit now
+matched and nothing in the world had moved — a reuse writes no row (`F6-RS-08`).
+That is the trap this entry already describes, met head-on.
+
+**What the table does show, from 37 runs.** Two cancelled rows, at **11ms and
+21ms** — both far too fast for a tap, so both are connection-closes rather than
+deliberate cancels. Three failed rows, all **5–7 seconds**, all on one evening.
+**The two populations do not overlap, and nothing cancelled was ever filed as
+failed** — which is the substance of what `F6-AC-20` protects, observed across
+every run the app has made.
+
+**The 21ms row is explained and is not the defect it was filed as.** STE-180
+wondered whether a server restart mid-run was being recorded as *"you changed
+your mind"*. It is — and so is every other disconnect, because **cancellation
+*is* the connection closing**. From the server's side a tapped cancel, a
+navigation away and a deploy are indistinguishable by construction. Worth
+knowing; not a fault to fix.
+
+**So what remains unproven is narrow: a cancel the manager actually taps.** Every
+other route to `cancelled` is evidenced. *Home: STE-180.*
 
 **F6-UP-03's stop has been run against real data once, and only in the direction
 that proves nothing.** On 2026-09-14, on `97bc6c7`, opening the app with gameweek
