@@ -1,6 +1,6 @@
 <!-- DERIVED FILE — DO NOT EDIT. Regenerate with extract-criteria.py. -->
 <!-- source: PRD - The FPL Advisor.md -->
-<!-- source-sha256: ded03c988940f9f5 -->
+<!-- source-sha256: 1d7ee0d41426563f -->
 
 # Non-functional requirements
 

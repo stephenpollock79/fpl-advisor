@@ -105,7 +105,23 @@ model: it has no news, fitness or availability data, and asked to fill a gap it
 invents one (ADR 0012). Closing the ticket makes that shortcut more tempting,
 not less, because the criterion still describes the behaviour.
 
-`F6-RS-03` may not be read as met, and no test may name it.
+**Superseded 2026-09-21 by the PRD itself, and this needs one more look.** The
+criterion was reworded to describe what the app actually does: team news reaches
+it through FPL's own published fields — status code, news line and timestamp,
+chance of playing — diffed like any other input, with the two sites stated as
+not a source this product has. The reword also carries a fact the ticket did not
+have: **their terms forbid systematic extraction**, so there was never anything
+to build against.
+
+**So the prohibition written here hours earlier — *"no test may name it"* — was
+written against wording that no longer exists.** Under the new wording the
+criterion describes behaviour that is built and exercised by the evidence diff.
+
+**Left uncovered deliberately, pending a look.** Whether the diff tests should
+now name it is a judgement about what those tests actually cause, and `P16` is
+the rule that decides it — not a number worth raising by assertion at the end of
+a long session. Until someone checks, uncovered understates rather than
+overstates, which is the safe direction to be wrong in.
 
 **F6-AC-07 — closed 2026-09-16 (STE-158).** The PRD now says the control
 *"always rewrites the whole week — every category — whichever screen it was
@@ -440,9 +456,21 @@ by slice 8 (STE-66).** Each was counted covered off a test proving one half.
   fixture date is the same failure with a calendar attached. **It stays
   forbidden now the ticket is closed.**
 
-`F3-AC-17` may not be read as met from the coverage figure, and **no test may
-name it for the unbuilt half** — the identifier is already named by tests
-proving *FORCED* and the price trigger, both of which are real.
+**Superseded 2026-09-21 by the PRD itself.** The criterion was reworded to carry
+the one trigger that exists: the press-conference clause now states plainly that
+it is not a trigger and never was built as one, citing the ruling. So
+`F3-AC-17` describes what is built, the tests naming it are naming the whole of
+it, and **it is legitimately covered rather than covered-in-the-easy-half.**
+
+**That is what this entry was for, and why it is kept rather than deleted.** The
+identifier was being counted as covered while the old wording asked for two
+triggers — a live false claim, of exactly the shape `F6-AC-13` had. It was fixed
+at the source instead of by stripping a test, because *FORCED* and the price
+trigger are real, built and worth counting; taking the identifier off would have
+understated the truth in the other direction.
+
+The history above stays because the price half was once thought impossible and
+was not — **check the payload before concluding a feed lacks something.**
 
 
 **F4-AC-02 — the tiles are tested, the swipe is not.** The criterion is that a
