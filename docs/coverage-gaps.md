@@ -121,44 +121,36 @@ model: it has no news, fitness or availability data, and asked to fill a gap it
 invents one (ADR 0012). Closing the ticket makes that shortcut more tempting,
 not less, because the criterion still describes the behaviour.
 
-**Reworded in the PRD on 2026-09-21, and what it now asks for is one sentence.**
-The criterion has three: *"team news counts as evidence through FPL's status
-code, news line and timestamp, and chance-of-playing figure, diffed since the
-last successful run"* is **behaviour, and it is built**. *"The sites are not
-read"* is a negative — nothing can test the absence of a fetch that was never
-written — and the accepted-delay sentence is a consequence. **So covering
-`F6-RS-03` means covering the first sentence, and no gap record is owed for the
-other two.**
+**F6-RS-03 — reworded, then covered, and the wrong turn in between is the part
+worth keeping.** The criterion was reworded on 2026-09-21 to describe what the
+app actually does: team news reaches it through FPL's own published fields —
+status code, news line and timestamp, chance of playing — diffed since the last
+successful run. The two sites are stated as not a source this product has, their
+terms forbidding systematic extraction.
 
-**The earlier prohibition here is void.** Hours before the reword, this entry
-said no test may name the identifier. That was written against wording asking
-for two outside websites. It does not survive the sentence that replaced it.
+**Of its three sentences only one is testable.** The diff is behaviour. *"The
+sites are not read"* is a negative, and nothing can test the absence of a fetch
+that was never written; the accepted-delay sentence is a consequence. **No gap
+record is owed for either.**
 
-**What the covering test has to cause, and the trap in it.** `P16`: two
-successive runs in which **exactly one of status, news line or chance-of-playing
-has moved and nothing else**, with the second run treating it as new evidence and
-taking the **spend** path rather than reuse.
+*Closed 2026-09-21.* `tests/refresh/evidence.test.ts` now names it. That test
+moves the status code, the news line with its timestamp, and the
+chance-of-playing figure **each on its own** and asserts each counts as
+evidence — which is the criterion, exactly.
 
-**A test that moved a price instead would be a false green of precisely the shape
-`P16` exists for.** Price movement is its own evidence under a different rule, so
-the run takes the spend path whether or not team news is diffed at all — the
-assertion would pass over a build with this criterion entirely absent. **The
-news-line-only case is the one that proves this criterion, and the one least
-likely to be reached by accident.**
+**The wrong turn, recorded because it is the more useful half.** The ticket
+holding this (STE-192) specified a different test: two runs with one news field
+moved, the second taking the **spend** path rather than reuse. That was written
+on a misreading — **it conflates counting with paying.** Ordinary news churn is
+counted and deliberately *not* paid for (`F6-RS-08`, `F6-AC-11`), and only a
+change crossing the availability gate is worth a model call (`F6-RS-11`, which
+covers that). A test built to the ticket's specification fails against correct
+code, and it was written and run before that was noticed.
 
-And as with `P16`'s third example: **take that fixture's figures from a real
-run** rather than writing them by hand. A hand-written conviction disagrees with
-the fixture, every such test takes the spend path for the wrong reason, and the
-reuse path it was written to contrast against is never once executed.
-
-**What exists today, and why it is not enough.** `tests/refresh/evidence.test.ts`
-proves the news field is diffed and counted — but at the level of `diffEvidence`,
-and named `F6-RS-04`. That is the diff, not the run. Nothing joins it to a second
-run actually spending.
-
-**Not written now, deliberately.** The assertion is small; the fixture is not,
-because the figures have to come from a real run and fabricating them reproduces
-the exact defect the test exists to catch. *Home: STE-192.*
+**So the criterion was covered all along and nobody had named it.** The hours
+between reading a criterion and believing you know what it claims are where
+this kind of error lives — and the specification was confident, detailed, and
+wrong.
 
 **F6-AC-07 — closed 2026-09-16 (STE-158).** The PRD now says the control
 *"always rewrites the whole week — every category — whichever screen it was

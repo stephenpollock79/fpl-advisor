@@ -29,7 +29,25 @@ describe('F6-RS-02, F6-RS-04 · what counts as new evidence', () => {
     expect(evidence.changed).toHaveLength(0)
   })
 
-  it('F6-RS-02: each of the four fields counts on its own', () => {
+  /**
+   * **This is also the whole of `F6-RS-03`'s testable claim** (named here
+   * 2026-09-21, STE-192). That criterion says team news reaches the app through
+   * FPL's own published fields — the status code, the news line and its
+   * timestamp, and the chance-of-playing figure — diffed since the last
+   * successful run like any other input. Rows 1, 2 and 3 below are exactly
+   * those three, each moved on its own. Its other two sentences are not
+   * testable: *"the sites are not read"* is a negative, and nothing can test
+   * the absence of a fetch that was never written.
+   *
+   * **Counting is not the same as paying, and conflating them is the trap.**
+   * A first attempt at covering `F6-RS-03` asserted that a news line moving
+   * makes a run *spend* — which the product deliberately does not do, and which
+   * `tests/runs/routes.test.ts` asserts the opposite of: churn below the
+   * availability gate is counted and not paid for (`F6-RS-08`, `F6-AC-11`).
+   * Only a change crossing that gate is worth a model call, and `F6-RS-11`
+   * covers that. **`F6-RS-03` is about the diff, and the diff is here.**
+   */
+  it('F6-RS-02, F6-RS-03: each of the four fields counts on its own', () => {
     const before = [row(1), row(2), row(3), row(4)]
     const after = [
       row(1, { status: 'i' }),
