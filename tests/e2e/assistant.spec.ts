@@ -311,7 +311,29 @@ test('F6-AC-07, F6-AC-10: the refresh control rewrites the whole week from any t
   await expect(page.getByTestId('thinking')).toHaveCount(0)
 })
 
-test('F6-AC-13: the tag sits on its own call\'s card beside the title, and an untouched call carries none', async ({ page }) => {
+/**
+ * **This test deliberately does not name F6's diff-tag criterion** — the one
+ * requiring the tag to last only until the card has been viewed. Ruled won't-do
+ * on 2026-09-21 (STE-127); the entry in `docs/coverage-gaps.md` carries the
+ * argument.
+ *
+ * What this proves is that the tag is on the right card, in the right place.
+ * What the criterion additionally requires is that the tag is **transient**, and
+ * that half is unbuilt: `RESURFACED` is stamped on by a run, `call.viewed_at` is
+ * written by nothing, and `NEW` and `UPDATED` are never written at all.
+ *
+ * Naming the identifier here counted the criterion as covered while the gaps
+ * file said, in the same repo, that it must not be read as met. `P16`: where the
+ * trigger cannot be reached, the identifier must not be named in a test that
+ * reaches only the other half.
+ *
+ * **And the identifier is left out of this comment on purpose.**
+ * `scripts/criteria-coverage.mjs` matches an identifier **anywhere in a test
+ * file**, not only in a test name — so writing it here, even to explain why it
+ * is absent, silently re-claims the coverage. Found the hard way while making
+ * this very change.
+ */
+test('STE-183: the diff tag sits on its own call\'s card beside the title, and an untouched call carries none', async ({ page }) => {
   const moved = {
     ...call(0, T1, 'transfer', 'transfer', 7, 124, 1.95, 49, 'thin', 6, 'Gro\u00df over MidB.', { out: [6], in: [200] }),
     diffTag: 'band_move',
