@@ -39,18 +39,18 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
      * and null means everything is new, which is the safe direction: a first run
      * must never be skipped on the strength of a comparison it could not make.
      */
-    async refreshInputs(user) {
+    async refreshInputs(user, gameweek) {
       const db = userClient(user.accessToken)
       const reference = referenceClient()
 
       const { data: runs } = await db
         .from('run')
-        .select('id, feed_read_id, squad_snapshot_id, build_commit')
+        .select('id, gameweek, feed_read_id, squad_snapshot_id, build_commit')
         .eq('status', 'succeeded')
         .order('finished_at', { ascending: false })
         .limit(1)
       const lastRun =
-        (runs as { id: string; feed_read_id: string | null; squad_snapshot_id: string | null; build_commit: string | null }[] | null)?.[0] ??
+        (runs as { id: string; gameweek: number; feed_read_id: string | null; squad_snapshot_id: string | null; build_commit: string | null }[] | null)?.[0] ??
         null
 
       const { data: newest } = await reference
@@ -92,12 +92,18 @@ export function runDeps(authenticate: RunDeps['authenticate']): RunDeps {
             )
             .eq('run_id', lastRun.id)
         : { data: [] as Record<string, unknown>[] }
-      const { data: decisionRows } = await db.from('decision').select('call_key, state')
+      // **This gameweek's answers only** (STE-194). A call key names a pair of
+      // players, not a week, so last week's rejection of the same pair would
+      // otherwise suppress this week's call — and a selection would carry.
+      const { data: decisionRows } = await db.from('decision').select('call_key, state').eq('gameweek', gameweek)
 
       return {
         // **What squad that run was built on**, so a correction cannot be
         // answered with advice about the squad it replaced (F6-RS-06, STE-141).
         fromSnapshotId: lastRun?.squad_snapshot_id ?? null,
+        // Which week that run advised on; the route drops its calls when it is
+        // not this one (`scopedToWeek`, STE-194).
+        fromGameweek: lastRun?.gameweek ?? null,
         before: await rows(lastRun?.feed_read_id ?? null),
         after: (await rows(feedReadId)) ?? [],
         feedReadId,

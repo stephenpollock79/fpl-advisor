@@ -98,6 +98,32 @@ export type RefreshInputs = {
    * successful run — and null means everything is new, the safe direction.
    */
   fromSnapshotId: string | null
+  /**
+   * **The gameweek that run advised on** (STE-194). Null where there has never
+   * been a successful run. A run from an earlier gameweek is still the right
+   * baseline for the feed diff, but its calls and decisions belong to a week
+   * whose deadline has passed — see `scopedToWeek`.
+   */
+  fromGameweek: number | null
+}
+
+/**
+ * **A decision belongs to the gameweek it was taken in** (STE-194).
+ *
+ * The last successful run is read without regard to its week, because the feed
+ * diff wants it whatever week it was. Its calls are another matter. On
+ * 2026-10-13 the first GW7 run carried GW6's selected transfer — Barnes in for
+ * Szoboszlai, already made — into the week, and the editorial recommended it
+ * over a squad that already had Barnes. The screen hid it, because the world
+ * read is scoped by gameweek and drops a call naming a player no longer in the
+ * squad; the paragraph had been written by then.
+ *
+ * So a run from another week contributes nothing to carry, nothing committed,
+ * nothing suppressed and nothing to re-derive. A selected call was a move to
+ * make before that deadline; after it, the squad itself says whether it was made.
+ */
+function scopedToWeek(refresh: RefreshInputs, gameweek: number): RefreshInputs {
+  return refresh.fromGameweek === gameweek ? refresh : { ...refresh, calls: [], decisions: {} }
 }
 
 export type RunDeps = {
@@ -105,7 +131,8 @@ export type RunDeps = {
   /** Read both feeds fresh and fill any purchase price the squad is missing. */
   prepare: (user: AuthenticatedUser) => Promise<void>
   loadWeek: (user: AuthenticatedUser) => Promise<WeekInputs | null>
-  refreshInputs: (user: AuthenticatedUser) => Promise<RefreshInputs>
+  /** Decisions are read for `gameweek` only; the last run is read from any week. */
+  refreshInputs: (user: AuthenticatedUser, gameweek: number) => Promise<RefreshInputs>
   model: () => ModelPort
   /**
    * Which build this server is (STE-185). Injected like every other
@@ -319,7 +346,7 @@ export function runRoutes(deps: RunDeps) {
         // the first moment it can rather than a beat later.
         const scale = { players: week.plan.squad.length + week.plan.pool.length, squad: week.plan.squad.length }
         await send('step', { id: 'diff', label: RUN_STEPS[1].label, scale })
-        const refresh = await deps.refreshInputs(user)
+        const refresh = scopedToWeek(await deps.refreshInputs(user, week.gameweek), week.gameweek)
         const evidence = refresh.before === null ? null : diffEvidence(refresh.before, refresh.after)
         const moved = materiallyMoved(refresh, week)
 
