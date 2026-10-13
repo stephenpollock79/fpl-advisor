@@ -50,6 +50,14 @@ const BLOCKLIST: readonly RegExp[] = [
   /\brotat\w*/i,
   /\bminutes\b/i,
   /\bknock\b/i,
+  /**
+   * **No count of the calls** (STE-196). The prompt has forbidden one since
+   * STE-142, and nothing checked: on 2026-10-13 the GW7 editorial called two
+   * transfers and a substitution "the three transfers". A count next to the
+   * thing counted, one word allowed between ("two weaker transfers"). A number
+   * that counts nothing — a net, a gameweek — is not matched.
+   */
+  /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|both|pair of|couple of)\s+(\w+\s+)?(transfers?|substitutions?|subs|swaps?|calls?|changes?|moves?)\b/i,
   // Structure the card cannot render: it is a paragraph with a five-line clamp.
   /^\s*[-*•]\s/m,
   /^#{1,6}\s/m,
