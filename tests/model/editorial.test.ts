@@ -108,6 +108,47 @@ describe('A paragraph reaching for a cause it cannot know is refused (STE-146)',
   })
 })
 
+describe('STE-196 · a paragraph that counts the calls is refused', () => {
+  /**
+   * **The prompt forbids a count; until this, nothing checked.** On 2026-10-13
+   * the GW7 editorial called a week of two transfers and a substitution "the
+   * three transfers". A number in prose cannot follow the screen (STE-142), and
+   * the template already obeys that — so a paragraph that breaks it gives way
+   * to the template.
+   */
+  it('rejects the sentence that shipped', () => {
+    expect(
+      editorialIsAcceptable(
+        'Start with Semenyo to Cherki, the clearest gain of the three transfers, then Ajayi to Hall right behind it.',
+      ),
+    ).toBe(false)
+  })
+
+  it('rejects every other way of counting them', () => {
+    for (const text of [
+      'Both swaps are worth making.',
+      'There are 2 calls this week.',
+      'Two substitutions and a captaincy change.',
+      'Of the four moves, this one leads.',
+      'The pair of transfers go together.',
+      'All three changes are thin.',
+      'Two weaker transfers follow.',
+    ]) {
+      expect(editorialIsAcceptable(text), text).toBe(false)
+    }
+  })
+
+  it('and leaves a number that counts nothing alone', () => {
+    for (const text of [
+      'Semenyo to Cherki gains +2.20 projected points in GW7.',
+      'Haaland is the one to back, and Calafiori to van Hecke is the weaker substitution.',
+      'This transfer is the one to act on; the substitution barely moves the needle.',
+    ]) {
+      expect(editorialIsAcceptable(text), text).toBe(true)
+    }
+  })
+})
+
 describe('F8-AC-36, STE-184 · the paragraph has to describe the calls it was given', () => {
   /**
    * **The week off Stephen's screen on 2026-09-20**, figures and all. The
@@ -121,12 +162,16 @@ describe('F8-AC-36, STE-184 · the paragraph has to describe the calls it was gi
   ]
 
   it('F8-AC-36: the sentence that shipped is refused, on both of its errors', () => {
-    // Every word here is allowed by the blocklist. What is wrong is that it
-    // contradicts the calls underneath it.
     const shipped =
       'Start with the two locked substitutions. Haaland stays captain, but Rogers takes the vice armband instead of Calvert-Lewin.'
+    // The armband sentence alone: every word of it is allowed by the blocklist.
+    // What is wrong is that it contradicts the calls underneath it. (The
+    // opening sentence is a count, which the blocklist refuses since STE-196 —
+    // so it is left out of the half that proves no word filter can see this.)
+    const armbandSentence = 'Haaland stays captain, but Rogers takes the vice armband instead of Calvert-Lewin.'
 
-    expect(editorialIsAcceptable(shipped)).toBe(true)
+    expect(editorialIsAcceptable(armbandSentence)).toBe(true)
+    expect(editorialMatchesCalls(armbandSentence, armbands)).not.toBe(true)
     expect(editorialMatchesCalls(shipped, armbands)).not.toBe(true)
   })
 
