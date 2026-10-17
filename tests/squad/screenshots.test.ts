@@ -380,6 +380,7 @@ describe('F2-AC-04 · an uploaded squad is not thrown away on the next open', ()
         superseded.push(id)
       },
       loadParts: async () => parts(source, picksFrom),
+      lastKnownParts: async () => parts(source, picksFrom),
     }
     await worldRoutes(deps).request('/api/world', { headers: { Cookie: 'session=x' } })
     return superseded

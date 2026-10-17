@@ -42,6 +42,11 @@ export type WorldDeps = {
   lastCompletedGameweek: () => Promise<number>
   captureSquad: (user: AuthenticatedUser, fplTeamId: number, gameweek: number, picksFrom: number) => Promise<string>
   loadParts: (user: AuthenticatedUser) => Promise<WorldParts | null>
+  /**
+   * The newest squad on file from any gameweek, assembled against the week being
+   * advised. Only for when the new week's squad cannot be read (STE-198).
+   */
+  lastKnownParts: (user: AuthenticatedUser) => Promise<WorldParts | null>
   /** Retire a snapshot the gameweek has moved past, so the next read captures again. */
   supersedeSnapshot: (user: AuthenticatedUser, snapshotId: string) => Promise<void>
   /**
@@ -120,21 +125,39 @@ export function worldRoutes(deps: WorldDeps) {
      */
     const completed = await deps.lastCompletedGameweek()
     const fromFpl = parts?.snapshot.source !== 'screenshot'
-    if (parts && fromFpl && (parts.picksFrom ?? -1) < completed) {
-      await deps.supersedeSnapshot(user, parts.snapshot.id)
-      parts = null
+    const stale = parts !== null && fromFpl && (parts.picksFrom ?? -1) < completed
+
+    /**
+     * **A turnover that cannot be read is the frozen state, not a crash** (STE-198).
+     *
+     * First open of the gameweek, or the squad has moved on: fetch the world, then
+     * the squad — in that order, because the squad's rows point at players and
+     * gameweeks. Either can fail: the feeds (2026-10-17, a value the database
+     * refused) or FPL's picks, which answer "the game is being updated" for a
+     * while after every deadline. This used to run outside any catch, so the one
+     * moment the app most needs to work was the one moment a feed problem became
+     * a bare 500.
+     *
+     * The old snapshot is retired only once its replacement is stored. Retiring it
+     * first and then failing would leave nothing on file to fall back to.
+     */
+    if (!parts || stale) {
+      try {
+        // Already failed once on this read; a second attempt would only fail again.
+        if (!feedsReachable) throw new Error('the feeds could not be read earlier in this request')
+        const { gameweek } = await deps.ingest()
+        await deps.captureSquad(user, fplTeamId, gameweek, completed)
+        if (parts && stale) await deps.supersedeSnapshot(user, parts.snapshot.id)
+        parts = await deps.loadParts(user)
+      } catch (cause) {
+        console.error('[world] the new gameweek could not be read; answering with the squad on file', cause)
+        feedsReachable = false
+        parts = parts ?? (await deps.lastKnownParts(user))
+      }
     }
 
     if (!parts) {
-      // First open of the gameweek, or the squad has moved on. Fetch the world,
-      // then the squad — in that order, because the squad's rows point at
-      // players and gameweeks.
-      const { gameweek } = await deps.ingest()
-      await deps.captureSquad(user, fplTeamId, gameweek, completed)
-      parts = await deps.loadParts(user)
-    }
-
-    if (!parts) {
+      if (!feedsReachable) return c.json({ error: 'feeds_unreachable' }, 503)
       throw new Error('The world is still empty after ingesting it. Refusing to answer with nothing.')
     }
 

@@ -22,7 +22,17 @@ import { latestRead } from './reads.js'
 
 type Row = Record<string, unknown>
 
-export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldParts | null> {
+/**
+ * `anyGameweek` takes the newest squad on file whatever week it was captured for,
+ * still assembled against the week being advised. It exists for one case: the new
+ * week's squad could not be read, and last week's is the best true thing on file
+ * (STE-198). Runs and decisions stay keyed to the advised week, so nothing from
+ * last week's advice comes with it.
+ */
+export async function loadWorldParts(
+  user: AuthenticatedUser,
+  { anyGameweek = false }: { anyGameweek?: boolean } = {},
+): Promise<WorldParts | null> {
   const reference = referenceClient()
   const mine = userClient(user.accessToken)
 
@@ -48,10 +58,10 @@ export async function loadWorldParts(user: AuthenticatedUser): Promise<WorldPart
   // The manager's own rows, read as the manager. A superseded snapshot is one a
   // correction replaced; it is kept rather than deleted so a disclosure line can
   // never point at a squad that no longer exists.
-  const { data: snapshots } = await mine
+  const snapshotQuery = mine
     .from('squad_snapshot')
     .select('id, source, captured_at, bank_tenths, free_transfers, chips_remaining, picks_from')
-    .eq('gameweek', gameweek.id)
+  const { data: snapshots } = await (anyGameweek ? snapshotQuery : snapshotQuery.eq('gameweek', gameweek.id))
     .is('superseded_at', null)
     .order('captured_at', { ascending: false })
     .limit(1)
