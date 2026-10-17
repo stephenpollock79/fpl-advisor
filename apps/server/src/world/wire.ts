@@ -88,6 +88,8 @@ export function worldDeps(
 
     captureSquad,
 
+    lastKnownParts: (user) => loadWorldParts(user, { anyGameweek: true }),
+
     /**
      * **The manager's runs are read with the manager's token; the feed reads are
      * reference data and read with the service key.** Same split as everywhere

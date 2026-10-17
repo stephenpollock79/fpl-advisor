@@ -48,6 +48,10 @@ const harness = (overrides: Partial<WorldDeps> = {}) => {
       return 's1'
     },
     loadParts: async () => parts(),
+    lastKnownParts: async () => {
+      events.push('last-known')
+      return parts(3)
+    },
     supersedeSnapshot: async () => {
       events.push('supersede')
     },
@@ -106,6 +110,7 @@ describe('F6-RS-02 · the feeds are read on open, which is what gives recomputat
       lastCompletedGameweek: async () => 4,
       captureSquad: async () => 's1',
       loadParts: async () => parts(),
+      lastKnownParts: async () => parts(),
     })
     const res = await app.request('/api/world')
 
@@ -151,6 +156,79 @@ describe('F6-UP-03 · a gameweek rollover re-reads the squad rather than reusing
 
     expect(events).not.toContain('supersede')
     expect(events).not.toContain('capture')
+  })
+})
+
+/**
+ * **A feed that fails at the turnover is the frozen state, not a crash** (STE-198).
+ *
+ * On 2026-10-17 every feed read failed from 19:22, and mid-week that was caught
+ * and answered from file. The first open of GW8 found no snapshot for the new
+ * week, ingested again outside the catch, and returned a bare 500 — "Could not
+ * load your squad: http_500". The squad on file is still true (F6-UP-02 lists it
+ * among what is *not* frozen), so it is answered with that, marked unreachable.
+ */
+describe('STE-198 · a feed failure at the gameweek turnover answers from file, marked frozen', () => {
+  const failing = async (): Promise<never> => {
+    throw new Error('could not write player_state')
+  }
+
+  it('the new week has no snapshot and the feeds fail: last week\'s squad, marked unreachable', async () => {
+    const { get, events } = harness({
+      newestFeedReadAt: async () => ago(10 * 60 * 1000),
+      ingest: failing,
+      loadParts: async () => null,
+    })
+    const res = await get()
+
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { feedsReachable: boolean }).feedsReachable).toBe(false)
+    expect(events).toContain('last-known')
+    expect(events).not.toContain('capture')
+  })
+
+  it('a stale snapshot is kept, not retired, when the squad cannot be re-read', async () => {
+    // Retiring it first and then failing to capture would leave nothing on file.
+    const { get, events } = harness({
+      newestFeedReadAt: async () => ago(10 * 60 * 1000),
+      ingest: failing,
+      lastCompletedGameweek: async () => 4,
+      loadParts: async () => parts(3),
+    })
+    const res = await get()
+
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { feedsReachable: boolean }).feedsReachable).toBe(false)
+    expect(events).not.toContain('supersede')
+  })
+
+  it('FPL refusing the picks just after a deadline is the same frozen state', async () => {
+    // The feeds read fine, but the picks endpoint answers "the game is being
+    // updated" for a while after every deadline.
+    const { get, events } = harness({
+      loadParts: async () => null,
+      captureSquad: async () => {
+        throw new Error('FPL /entry/6131656/event/7/picks/ responded 503')
+      },
+    })
+    const res = await get()
+
+    expect(res.status).toBe(200)
+    expect(((await res.json()) as { feedsReachable: boolean }).feedsReachable).toBe(false)
+    expect(events).toContain('last-known')
+  })
+
+  it('with nothing on file at all, it says the feeds are unreachable rather than a bare 500', async () => {
+    const { get } = harness({
+      ingest: failing,
+      newestFeedReadAt: async () => ago(10 * 60 * 1000),
+      loadParts: async () => null,
+      lastKnownParts: async () => null,
+    })
+    const res = await get()
+
+    expect(res.status).toBe(503)
+    expect(((await res.json()) as { error: string }).error).toBe('feeds_unreachable')
   })
 })
 

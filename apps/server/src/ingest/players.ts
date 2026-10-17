@@ -99,6 +99,34 @@ export function toClubRows(bootstrap: BootstrapPayload): ClubRow[] {
   return bootstrap.teams.map((t) => ({ id: t.id, name: t.name, shortName: t.short_name }))
 }
 
+type Position = PlayerRow['position']
+
+/** The feed's element type for each id, where it is one of the four the app knows. */
+function positions(bootstrap: BootstrapPayload): (e: { element_type: number }) => Position | null {
+  const names = new Map(bootstrap.element_types.map((t) => [t.id, t.singular_name_short]))
+  return (e) => {
+    const name = names.get(e.element_type)
+    return name === 'GKP' || name === 'DEF' || name === 'MID' || name === 'FWD' ? name : null
+  }
+}
+
+/**
+ * **The elements that are players, and only those** (STE-198).
+ *
+ * 2024/25 put managers in `elements` as type 5, "AM", for the Assistant Manager
+ * chip. Throwing on one failed the whole read for every player; a manager can
+ * never be one of the fifteen, so it is left out and said so, once, in the log.
+ * Identity and state both read through here, so a state row never points at a
+ * player that was not stored.
+ */
+function players(bootstrap: BootstrapPayload): BootstrapPayload['elements'] {
+  const positionOf = positions(bootstrap)
+  const kept = bootstrap.elements.filter((e) => positionOf(e) !== null)
+  const skipped = bootstrap.elements.length - kept.length
+  if (skipped > 0) console.warn(`[ingest] skipped ${skipped} element(s) whose type is not GKP, DEF, MID or FWD`)
+  return kept
+}
+
 /**
  * Player identity.
  *
@@ -112,13 +140,10 @@ export function toClubRows(bootstrap: BootstrapPayload): ClubRow[] {
  * form must never reach the database.
  */
 export function toPlayerRows(bootstrap: BootstrapPayload): PlayerRow[] {
-  const positions = new Map(bootstrap.element_types.map((t) => [t.id, t.singular_name_short]))
+  const positionOf = positions(bootstrap)
 
-  return bootstrap.elements.map((e) => {
-    const position = positions.get(e.element_type)
-    if (position !== 'GKP' && position !== 'DEF' && position !== 'MID' && position !== 'FWD') {
-      throw new Error(`Unknown element_type ${e.element_type} for player ${e.id}: got ${position}`)
-    }
+  return players(bootstrap).map((e) => {
+    const position = positionOf(e)!
     return {
       id: e.id,
       clubId: e.team,
@@ -145,7 +170,7 @@ export function toPlayerStateRows(
   bootstrap: BootstrapPayload,
   feedReadId: string,
 ): PlayerStateRow[] {
-  return bootstrap.elements.map((e) => ({
+  return players(bootstrap).map((e) => ({
     feedReadId,
     playerId: e.id,
     status: e.status,
