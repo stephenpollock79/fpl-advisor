@@ -16,6 +16,7 @@ import avatar from '../../assets/gaffer-avatar.png'
 import { AccountSheet, type Account } from '../Account/AccountSheet'
 import { UploadSheet } from './UploadSheet'
 import { benchInOrder, formationOf, startersByPosition, totalProjected } from '../../squad/format'
+import { FrozenStrip } from '../Frozen/FrozenStrip'
 import { PlayerSlot } from './parts'
 import { StatTable } from './StatTable'
 import styles from './SquadScreen.module.css'
@@ -57,6 +58,8 @@ export function SquadScreen({
         onAccount={() => setAccountOpen(true)}
         onUpdate={() => setUploadOpen(true)}
       />
+
+      <FrozenStrip world={world} />
 
       <div className={styles.modes} role="tablist">
         {(['pitch', 'stat'] as const).map((m) => (
