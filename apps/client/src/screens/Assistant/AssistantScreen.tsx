@@ -38,7 +38,6 @@ import {
   recomputeTransfer,
   restoredSwaps,
   shortlistCount,
-  dataAge,
   diffRows,
   storedFigures,
   viceHeldByCaptain,
@@ -46,6 +45,7 @@ import {
   transferKey,
 } from '../../calls/view'
 import { DiffSheet, RefreshInterstitial, Thinking } from './Refresh'
+import { FrozenStrip } from '../Frozen/FrozenStrip'
 import styles from './Assistant.module.css'
 import { CategoryCleared, type ClearedRow } from './CategoryCleared'
 import { HeadToHead } from './HeadToHead'
@@ -724,19 +724,7 @@ export function AssistantScreen({
           than failing on tap, and the screen timestamps itself. Navigation is
           never dimmed — everything already on file is still true and still
           worth looking at. */}
-      {world.feedsReachable === false ? (
-        <div className={styles.frozen} data-testid="frozen">
-          <span className={styles.frozenAge}>{dataAge(world.dataReadAt, Date.now()) ?? 'showing stored data'}</span>
-          <p>
-            <strong>FPL is not answering.</strong> Frozen until it is: new calls, refresh, and chip
-            re-planning. Not frozen: your squad, your prices and every decision you have made.
-          </p>
-          <p className={styles.frozenRisk}>
-            What you cannot see is team news. If someone picks up a knock in the next hour, this
-            screen will not know.
-          </p>
-        </div>
-      ) : null}
+      <FrozenStrip world={world} />
 
       <section className={styles.content}>
         {/* **A stop, not a prompt** (F6-UP-03, ruled 2026-09-10). A refresh says
